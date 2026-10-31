@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Иллюстрация товара</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center">
+<svg viewBox="0 0 120 120" style="width: 100%; height: 100%" role="img" aria-label="{{label}}">
+  <defs>
+    <radialGradient id="fgApple" cx="35%" cy="32%" r="75%"><stop offset="0" stop-color="#FF7A66"></stop><stop offset="0.55" stop-color="#E5322B"></stop><stop offset="1" stop-color="#A3161B"></stop></radialGradient>
+    <linearGradient id="fgBanana" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE873"></stop><stop offset="1" stop-color="#F2B705"></stop></linearGradient>
+    <radialGradient id="fgTomato" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#FF7B5C"></stop><stop offset="0.6" stop-color="#EA3B24"></stop><stop offset="1" stop-color="#B3200F"></stop></radialGradient>
+    <radialGradient id="fgPersimmon" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#FFC170"></stop><stop offset="0.6" stop-color="#F57C1F"></stop><stop offset="1" stop-color="#C9520A"></stop></radialGradient>
+    <linearGradient id="fgCucumber" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7BC96F"></stop><stop offset="1" stop-color="#2C7A32"></stop></linearGradient>
+    <radialGradient id="fgPom" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#F26D86"></stop><stop offset="0.6" stop-color="#C6233F"></stop><stop offset="1" stop-color="#83102A"></stop></radialGradient>
+    <radialGradient id="fgPotato" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#EBCB98"></stop><stop offset="1" stop-color="#B98A4E"></stop></radialGradient>
+    <linearGradient id="fgCarrot" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFA24A"></stop><stop offset="1" stop-color="#E8650E"></stop></linearGradient>
+  </defs>
+  <ellipse cx="60" cy="108" rx="34" ry="5" fill="#121712" opacity="0.08"></ellipse>
+
+  <sc-if value="{{isApple}}" hint-placeholder-val="{{ true }}">
+    <path d="M60 36 C48 25 22 29 22 58 C22 86 42 104 54 102 C58 101 62 101 66 102 C78 104 98 86 98 58 C98 29 72 25 60 36 Z" fill="url(#fgApple)"></path>
+    <path d="M60 38 C60 29 62 21 67 15" stroke="#6B4423" stroke-width="4" fill="none" stroke-linecap="round"></path>
+    <path d="M65 26 C72 12 88 11 93 15 C87 27 75 30 65 26 Z" fill="#4DAF4A"></path>
+    <ellipse cx="40" cy="54" rx="6" ry="12" fill="#FFFFFF" opacity="0.35" transform="rotate(20 40 54)"></ellipse>
+  </sc-if>
+
+  <sc-if value="{{isBanana}}" hint-placeholder-val="{{ false }}">
+    <path d="M18 66 C38 98 88 96 106 58 C108 53 103 51 101 55 C86 80 50 86 26 60 Z" fill="url(#fgBanana)"></path>
+    <path d="M24 52 C44 80 88 78 102 42 C103 37 98 36 97 40 C84 66 52 70 32 46 Z" fill="#FFE873"></path>
+    <path d="M24 52 C44 80 88 78 102 42" stroke="#D9A404" stroke-width="1.5" fill="none" opacity="0.6"></path>
+    <path d="M98 41 L106 30 L110 34 L102 44 Z" fill="#6B5323"></path>
+    <path d="M18 66 L14 62 L20 60 Z M24 52 L19 49 L25 46 Z" fill="#4A3A18"></path>
+  </sc-if>
+
+  <sc-if value="{{isTomato}}" hint-placeholder-val="{{ false }}">
+    <path d="M60 34 C86 34 100 50 100 68 C100 90 82 104 60 104 C38 104 20 90 20 68 C20 50 34 34 60 34 Z" fill="url(#fgTomato)"></path>
+    <path d="M60 30 L66 41 L79 37 L71 47 L82 53 L67 51 L60 60 L53 51 L38 53 L49 47 L41 37 L54 41 Z" fill="#3E8E3E"></path>
+    <path d="M60 32 L60 22" stroke="#2F6B2F" stroke-width="4" stroke-linecap="round"></path>
+    <ellipse cx="40" cy="62" rx="6" ry="10" fill="#FFFFFF" opacity="0.35" transform="rotate(25 40 62)"></ellipse>
+  </sc-if>
+
+  <sc-if value="{{isPersimmon}}" hint-placeholder-val="{{ false }}">
+    <path d="M22 66 C22 42 40 34 60 34 C80 34 98 42 98 66 C98 90 80 102 60 102 C40 102 22 90 22 66 Z" fill="url(#fgPersimmon)"></path>
+    <path d="M40 38 L60 28 L80 38 L70 46 L60 40 L50 46 Z" fill="#5C7F2B"></path>
+    <rect x="57" y="20" width="6" height="12" rx="3" fill="#6B4423"></rect>
+    <ellipse cx="40" cy="62" rx="6" ry="11" fill="#FFFFFF" opacity="0.35" transform="rotate(20 40 62)"></ellipse>
+  </sc-if>
+
+  <sc-if value="{{isCucumber}}" hint-placeholder-val="{{ false }}">
+    <g transform="rotate(-28 60 64)">
+      <rect x="14" y="50" width="92" height="28" rx="14" fill="url(#fgCucumber)"></rect>
+      <circle cx="32" cy="58" r="2" fill="#B9E3A8"></circle><circle cx="48" cy="66" r="2" fill="#B9E3A8"></circle><circle cx="64" cy="57" r="2" fill="#B9E3A8"></circle><circle cx="80" cy="66" r="2" fill="#B9E3A8"></circle><circle cx="94" cy="58" r="2" fill="#B9E3A8"></circle>
+      <rect x="102" y="60" width="8" height="8" rx="3" fill="#C9B458"></rect>
+      <rect x="20" y="54" width="70" height="5" rx="2.5" fill="#FFFFFF" opacity="0.25"></rect>
+    </g>
+  </sc-if>
+
+  <sc-if value="{{isGreens}}" hint-placeholder-val="{{ false }}">
+    <path d="M60 104 L46 50 M60 104 L60 40 M60 104 L74 50 M60 104 L34 62 M60 104 L86 62" stroke="#2E7D32" stroke-width="3" fill="none" stroke-linecap="round"></path>
+    <circle cx="44" cy="44" r="12" fill="#4CAF50"></circle><circle cx="60" cy="32" r="13" fill="#66BB6A"></circle><circle cx="76" cy="44" r="12" fill="#43A047"></circle>
+    <circle cx="32" cy="58" r="10" fill="#66BB6A"></circle><circle cx="88" cy="58" r="10" fill="#4CAF50"></circle><circle cx="60" cy="50" r="10" fill="#81C784"></circle>
+    <rect x="52" y="84" width="16" height="8" rx="3" fill="#D9B44A"></rect>
+  </sc-if>
+
+  <sc-if value="{{isPomegranate}}" hint-placeholder-val="{{ false }}">
+    <circle cx="60" cy="68" r="36" fill="url(#fgPom)"></circle>
+    <path d="M48 36 L51 22 L56 31 L60 20 L64 31 L69 22 L72 36 Z" fill="#9E1530"></path>
+    <ellipse cx="44" cy="58" rx="6" ry="11" fill="#FFFFFF" opacity="0.3" transform="rotate(20 44 58)"></ellipse>
+  </sc-if>
+
+  <sc-if value="{{isPotato}}" hint-placeholder-val="{{ false }}">
+    <path d="M24 68 C22 46 44 36 64 38 C86 40 100 54 98 72 C96 92 72 100 52 98 C34 96 26 84 24 68 Z" fill="url(#fgPotato)"></path>
+    <ellipse cx="46" cy="60" rx="3" ry="2" fill="#9C7440"></ellipse><ellipse cx="72" cy="56" rx="3" ry="2" fill="#9C7440"></ellipse><ellipse cx="62" cy="80" rx="3" ry="2" fill="#9C7440"></ellipse><ellipse cx="84" cy="74" rx="2.5" ry="2" fill="#9C7440"></ellipse>
+  </sc-if>
+
+  <sc-if value="{{isCarrot}}" hint-placeholder-val="{{ false }}">
+    <path d="M38 42 C46 34 62 34 70 42 C72 60 62 86 50 104 C48 107 45 106 45 103 C42 84 36 60 38 42 Z" fill="url(#fgCarrot)" transform="rotate(-30 54 70)"></path>
+    <path d="M52 34 C46 20 40 14 34 12 M56 33 C58 18 62 10 68 6 M60 35 C70 24 80 22 88 22" stroke="#3E9142" stroke-width="5" fill="none" stroke-linecap="round" transform="rotate(-30 54 70)"></path>
+  </sc-if>
+</svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["apple","banana","tomato","persimmon","cucumber","greens","pomegranate","potato","carrot"],"default":"apple"},"$preview":{"width":160,"height":160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const k = this.props.kind ?? 'apple';
+    const labels = { apple: 'Яблоко', banana: 'Бананы', tomato: 'Помидор', persimmon: 'Хурма', cucumber: 'Огурец', greens: 'Зелень', pomegranate: 'Гранат', potato: 'Картофель', carrot: 'Морковь' };
+    return {
+      label: labels[k] || 'Товар',
+      isApple: k === 'apple', isBanana: k === 'banana', isTomato: k === 'tomato', isPersimmon: k === 'persimmon',
+      isCucumber: k === 'cucumber', isGreens: k === 'greens', isPomegranate: k === 'pomegranate', isPotato: k === 'potato', isCarrot: k === 'carrot'
+    };
+  }
+}
+</script>
+</body>
+</html>

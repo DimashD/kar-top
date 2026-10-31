@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: FreshMarket / Kartop API
+  version: 0.1.0
+  description: Онлайн зелёный базар — витрины и доставка. Деньги в тиынах, вес в граммах.
+servers: [{ url: /api }]
+paths:
+  /health:
+    get: { summary: Health, responses: { "200": { description: ok } } }
+  /auth/otp/request:
+    post:
+      summary: Запросить код подтверждения (Telegram → SMS → WhatsApp)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OtpRequest" } } }
+      responses: { "200": { description: Код отправлен (ответ одинаков для любых номеров) } }
+  /auth/otp/verify:
+    post:
+      summary: Подтвердить код, получить токены
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/OtpVerify" } } }
+      responses: { "200": { description: JWT access + refresh } }
+  /shops/{slug}/catalog:
+    get:
+      summary: Публичный каталог витрины магазина
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Каталог магазина } }
+  /shops/{slug}/zone-check:
+    get:
+      summary: Проверить, в зоне ли адрес доставки
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: lat, in: query, required: true, schema: { type: number } }
+        - { name: lng, in: query, required: true, schema: { type: number } }
+      responses: { "200": { description: in_zone + расстояние + стоимость } }
+  /orders:
+    post: { summary: Создать заказ (оплата при получении), responses: { "201": { description: Создан } } }
+components:
+  schemas:
+    OtpRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, example: "+7 701 234 56 78" }
+        channel: { type: string, enum: [telegram, sms, whatsapp] }
+    OtpVerify:
+      type: object
+      required: [phone, code]
+      properties:
+        phone: { type: string }
+        code: { type: string, example: "481523" }

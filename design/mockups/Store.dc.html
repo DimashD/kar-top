@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Витрина магазина</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: Onest, system-ui, sans-serif; color: #121712; position: relative; overflow: hidden">
+  <div style="height: 210px; background: #D7F45B; position: relative; overflow: hidden">
+    <span style="position: absolute; left: -10px; top: 40px; width: 150px; transform: rotate(-12deg)"><dc-import name="Fruit" kind="persimmon" hint-size="150px,150px"></dc-import></span>
+    <span style="position: absolute; left: 120px; top: 70px; width: 130px"><dc-import name="Fruit" kind="apple" hint-size="130px,130px"></dc-import></span>
+    <span style="position: absolute; right: -16px; top: 30px; width: 160px; transform: rotate(10deg)"><dc-import name="Fruit" kind="banana" hint-size="160px,160px"></dc-import></span>
+    <div style="position: absolute; left: 16px; right: 16px; top: 16px; display: flex; justify-content: space-between">
+      <a href="Main.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+      <div style="display: flex; gap: 8px">
+        <button aria-label="Поиск в магазине" style="all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+        <button aria-label="Поделиться магазином" style="all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13M7 8l5-5 5 5M5 14v6h14v-6"></path></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin: -36px 16px 0; position: relative; background: #FFFFFF; border-radius: 26px; padding: 16px; box-shadow: 0 10px 30px rgba(18,23,18,.10); display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start">
+      <div style="display: flex; flex-direction: column; gap: 3px">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Фрукты у Руслана</h1>
+        <span style="font-size: 13px; color: #5E665F">★ 4.9 · 1 240 оценок · Зелёный базар, ряд 4</span>
+      </div>
+      <button aria-label="В избранное" style="all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 22px; background: #F3F4EF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path></svg></button>
+    </div>
+    <a href="Address.dc.html" style="display: flex; align-items: center; gap: 10px; background: #F6F9D9; border-radius: 16px; padding: 10px 12px; color: #121712">
+      <span style="width: 28px; height: 28px; border-radius: 14px; background: #0F7A40; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+      <span style="flex: 1; font-size: 13px; line-height: 1.3"><b>Возим к вам</b> · Абая, 10 · 1,2 км от магазина</span>
+      <span style="font-size: 12px; font-weight: 700; color: #0A5C30">Изменить</span>
+    </a>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <span style="font-size: 12px; font-weight: 700; background: #D7F45B; padding: 6px 10px; border-radius: 999px">Как можно скорее ≈ 1 ч</span>
+      <span style="font-size: 12px; font-weight: 600; background: #F3F4EF; padding: 6px 10px; border-radius: 999px">Доставка 500 ₸</span>
+      <span style="font-size: 12px; font-weight: 600; background: #F3F4EF; padding: 6px 10px; border-radius: 999px">от 3 000 ₸</span>
+      <span style="font-size: 12px; font-weight: 600; background: #F3F4EF; padding: 6px 10px; border-radius: 999px">Оплата при получении</span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 8px; padding: 16px 16px 12px; overflow: hidden">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+      <button style="all: unset; cursor: pointer; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 700; display: flex; align-items: center; white-space: nowrap; background: {{t.bg}}; color: {{t.fg}}">{{t.name}}</button>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; padding: 0 16px">
+    <sc-for list="{{products}}" as="p" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <div style="height: 150px; border-radius: 24px; background: {{p.bg}}; position: relative; display: flex; align-items: center; justify-content: center">
+          <a href="Product.dc.html" aria-label="{{p.name}}" style="width: 104px; display: block"><dc-import name="Fruit" kind="{{p.kind}}" hint-size="104px,104px"></dc-import></a>
+          <sc-if value="{{p.sale}}" hint-placeholder-val="{{ false }}"><span style="position: absolute; top: 10px; left: 10px; background: #121712; color: #D7F45B; font-size: 12px; font-weight: 800; padding: 4px 9px; border-radius: 999px">−15%</span></sc-if>
+          <sc-if value="{{p.notInCart}}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{p.add}}" aria-label="Добавить {{p.name}}" style="all: unset; cursor: pointer; position: absolute; right: 8px; bottom: 8px; width: 44px; height: 44px; border-radius: 22px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+          </sc-if>
+          <sc-if value="{{p.inCart}}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: 8px; right: 8px; bottom: 8px; height: 44px; border-radius: 999px; background: #D7F45B; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; box-sizing: border-box">
+              <button onClick="{{p.dec}}" aria-label="Меньше" style="all: unset; cursor: pointer; width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; text-align: center; line-height: 36px; font-size: 20px; font-weight: 800">−</button>
+              <span style="font-size: 14px; font-weight: 800">{{p.qtyLabel}}</span>
+              <button onClick="{{p.add}}" aria-label="Больше" style="all: unset; cursor: pointer; width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; text-align: center; line-height: 36px; font-size: 20px; font-weight: 800">+</button>
+            </div>
+          </sc-if>
+        </div>
+        <span style="font-size: 18px; font-weight: 800; margin-top: 4px">{{p.price}}<span style="font-size: 13px; font-weight: 600; color: #5E665F"> {{p.per}}</span></span>
+        <a href="Product.dc.html" style="font-size: 14px; font-weight: 600; color: #121712">{{p.name}}</a>
+        <span style="font-size: 12px; color: #5E665F">{{p.hint}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{hasCart}}" hint-placeholder-val="{{ true }}">
+    <a href="Checkout.dc.html" style="position: absolute; left: 16px; right: 16px; bottom: 20px; height: 64px; border-radius: 999px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 22px; box-shadow: 0 12px 30px rgba(18,23,18,.3)">
+      <span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 800">Корзина · {{count}}</span><span style="font-size: 12px; color: #C9CFC9">{{deliveryHint}}</span></span>
+      <span style="height: 48px; border-radius: 999px; background: #D7F45B; color: #121712; padding: 0 18px; display: flex; align-items: center; font-size: 16px; font-weight: 800">{{total}}</span>
+    </a>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { q: { apple: 2, persimmon: 1 } }; }
+  renderVals() {
+    const items = [
+      { id: 'apple', kind: 'apple', name: 'Яблоки Апорт', price: 890, per: '/кг', hint: '≈ 4–5 шт в 1 кг', bg: '#FDEDEA', step: 0.5, unit: 'кг' },
+      { id: 'banana', kind: 'banana', name: 'Бананы Эквадор', price: 760, per: '/кг', hint: '≈ 5–6 шт в 1 кг', bg: '#FFF7D6', step: 0.5, unit: 'кг', sale: true },
+      { id: 'persimmon', kind: 'persimmon', name: 'Хурма Королёк', price: 1290, per: '/кг', hint: '≈ 3–4 шт в 1 кг', bg: '#FFF1E6', step: 0.5, unit: 'кг' },
+      { id: 'pomegranate', kind: 'pomegranate', name: 'Гранат', price: 450, per: '/шт', hint: '≈ 350–400 г', bg: '#FCE9EE', step: 1, unit: 'шт' }
+    ];
+    const q = this.state.q;
+    const fmt = (n) => Math.round(n).toLocaleString('ru-RU') + ' ₸';
+    const set = (id, v) => this.setState({ q: { ...q, [id]: Math.max(0, v) } });
+    let total = 0, count = 0;
+    const products = items.map((p) => {
+      const n = q[p.id] || 0;
+      if (n) { total += n * p.step * p.price; count += 1; }
+      const qty = n * p.step;
+      return {
+        ...p, price: p.price.toLocaleString('ru-RU') + ' ₸', inCart: n > 0, notInCart: n === 0, sale: !!p.sale,
+        qtyLabel: (p.unit === 'кг' ? String(qty).replace('.', ',') : qty) + ' ' + p.unit,
+        add: () => set(p.id, n + 1), dec: () => set(p.id, n - 1)
+      };
+    });
+    const left = 10000 - total;
+    return {
+      tabs: ['Фрукты', 'Овощи', 'Зелень', 'Ягоды', 'Орехи'].map((name, i) => ({ name, bg: i === 0 ? '#121712' : '#F3F4EF', fg: i === 0 ? '#FFFFFF' : '#121712' })),
+      products, hasCart: count > 0, count, total: '~' + fmt(total),
+      deliveryHint: left > 0 ? 'До бесплатной доставки ' + fmt(left) : 'Доставка бесплатно'
+    };
+  }
+}
+</script>
+</body>
+</html>

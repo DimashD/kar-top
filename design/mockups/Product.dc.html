@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Товар</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #5B605B; font-family: Onest, system-ui, sans-serif; color: #121712; position: relative; overflow: hidden">
+  <a href="Store.dc.html" aria-label="Закрыть" style="position: absolute; inset: 0 0 auto 0; height: 90px; display: block"></a>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; top: 54px; background: #FFFFFF; border-radius: 30px 30px 0 0; display: flex; flex-direction: column; overflow: hidden">
+    <div style="height: 290px; margin: 10px 10px 0; border-radius: 26px; background: #FFF1E6; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+      <span style="position: absolute; top: 8px; left: 50%; margin-left: -20px; width: 40px; height: 5px; border-radius: 3px; background: rgba(18,23,18,.18)"></span>
+      <span style="width: 210px"><dc-import name="Fruit" kind="persimmon" hint-size="210px,210px"></dc-import></span>
+      <a href="Store.dc.html" aria-label="Закрыть" style="position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+      <span style="position: absolute; left: 14px; bottom: 14px; background: #FFFFFF; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px">Фото 1 из 4</span>
+    </div>
+
+    <div style="flex: 1; padding: 18px 16px 0; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Хурма Королёк</h1>
+        <div style="display: flex; gap: 6px">
+          <span style="font-size: 12px; font-weight: 600; background: #F3F4EF; padding: 5px 10px; border-radius: 999px">Узбекистан</span>
+          <span style="font-size: 12px; font-weight: 700; background: #D7F45B; padding: 5px 10px; border-radius: 999px">Сезон</span>
+          <span style="font-size: 12px; font-weight: 600; background: #F3F4EF; padding: 5px 10px; border-radius: 999px">Сладкая, без вяжущего вкуса</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 30px; font-weight: 800; letter-spacing: -0.02em">1 290 ₸</span><span style="font-size: 15px; font-weight: 600; color: #5E665F">за кг · ≈ 3–4 шт</span></div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; background: #F3F4EF; border-radius: 999px; padding: 4px">
+        <sc-for list="{{presets}}" as="w" hint-placeholder-count="4">
+          <button onClick="{{w.pick}}" style="all: unset; cursor: pointer; text-align: center; height: 44px; line-height: 44px; border-radius: 999px; font-size: 14px; font-weight: 800; background: {{w.bg}}; color: {{w.fg}}; box-shadow: {{w.shadow}}">{{w.label}}</button>
+        </sc-for>
+      </div>
+      <span style="font-size: 13px; color: #5E665F; text-align: center">{{pieces}}</span>
+
+      <div style="display: flex; gap: 10px; align-items: flex-start; background: #F3F4EF; border-radius: 18px; padding: 12px 14px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F7A40" stroke-width="2.2" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px" aria-hidden="true"><path d="M6 20h12M12 4v16M5 8h14l-3 6h2M5 8l-3 6h6z"></path></svg>
+        <span style="font-size: 13px; line-height: 1.45; color: #3A423B">Взвесим при сборке и пришлём точную сумму. Оплата при получении — наличными, картой или Kaspi.</span>
+      </div>
+    </div>
+
+    <div style="padding: 12px 16px 24px; display: flex; gap: 10px; align-items: center">
+      <div style="display: flex; align-items: center; height: 60px; border-radius: 999px; background: #F3F4EF; padding: 0 6px">
+        <button onClick="{{dec}}" aria-label="Минус 0,5 кг" style="all: unset; cursor: pointer; width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; text-align: center; line-height: 48px; font-size: 22px; font-weight: 800">−</button>
+        <span style="min-width: 62px; text-align: center; font-size: 15px; font-weight: 800">{{weightLabel}}</span>
+        <button onClick="{{inc}}" aria-label="Плюс 0,5 кг" style="all: unset; cursor: pointer; width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; text-align: center; line-height: 48px; font-size: 22px; font-weight: 800">+</button>
+      </div>
+      <a href="Store.dc.html" style="flex: 1; height: 60px; border-radius: 999px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 800">Добавить<span style="color: #D7F45B">{{total}}</span></a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { g: 1000 }; }
+  renderVals() {
+    const g = this.state.g;
+    const kg = (x) => String(x / 1000).replace('.', ',') + ' кг';
+    const min = Math.max(1, Math.round(g / 1000 * 3)), max = Math.round(g / 1000 * 4);
+    return {
+      weightLabel: kg(g),
+      pieces: 'Примерно ' + min + '–' + max + ' шт',
+      total: '~' + Math.round(g / 1000 * 1290).toLocaleString('ru-RU') + ' ₸',
+      dec: () => this.setState({ g: Math.max(500, g - 500) }),
+      inc: () => this.setState({ g: Math.min(10000, g + 500) }),
+      presets: [500, 1000, 1500, 2000].map((v) => ({
+        label: kg(v), bg: v === g ? '#FFFFFF' : 'transparent', fg: '#121712',
+        shadow: v === g ? '0 2px 8px rgba(18,23,18,.12)' : 'none',
+        pick: () => this.setState({ g: v })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

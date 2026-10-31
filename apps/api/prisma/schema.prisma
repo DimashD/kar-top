@@ -1,0 +1,174 @@
+// FreshMarket / Kartop — модель данных (см. docs/03-architecture.md)
+// Деньги — в тиынах (Int, minor units). Вес — в граммах (Int). Время — UTC.
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+enum Role { OWNER MANAGER PICKER COURIER PLATFORM_ADMIN SUPPORT }
+enum StoreStatus { PENDING ACTIVE SUSPENDED BLOCKED }
+enum DeliveryMode { OWN SERVICE BOTH }
+enum Unit { KG G PCS BUNCH PACK }
+enum OrderStatus { CREATED PLACED ACCEPTED PICKING AWAITING_CUSTOMER READY COURIER_ASSIGNED DELIVERING DELIVERED COMPLETED CANCELLED }
+enum PayMethod { CASH CARD_COURIER KASPI_TRANSFER }
+enum InvoiceStatus { DRAFT ISSUED PAID OVERDUE VOID }
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  members   StoreMember[]
+  orders    Order[]
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String
+  codeHash  String
+  channel   String   // telegram | sms | whatsapp
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([phone])
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  parentId  String?
+  parent    Category?  @relation("CatTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CatTree")
+  name      Json       // i18n { ru, kk, en }
+  perishable Boolean   @default(false) // мясо, молочка, салаты — скоропорт
+  coldChain  Boolean   @default(false)
+  sort      Int        @default(0)
+  products  MasterProduct[]
+}
+
+model MasterProduct {
+  id          String  @id @default(uuid())
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  name        Json
+  unit        Unit
+  stepG       Int?     // шаг веса, г
+  avgPieceG   Int?     // ≈ вес 1 шт
+  perishable  Boolean  @default(false)
+  storage     String?  // условия хранения
+  media       Json?
+  storeProducts StoreProduct[]
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  status    StoreStatus @default(PENDING)
+  phone     String?
+  kaspiPhone String?
+  address   String?
+  geom      Json?       // точка магазина
+  deliveryMode DeliveryMode @default(OWN)
+  rating    Float    @default(0)
+  settings  Json?
+  createdAt DateTime @default(now())
+  members   StoreMember[]
+  products  StoreProduct[]
+  zones     DeliveryZone[]
+  orders    Order[]
+  subscription Subscription?
+}
+
+model StoreMember {
+  storeId String
+  userId  String
+  role    Role
+  store   Store @relation(fields: [storeId], references: [id])
+  user    User  @relation(fields: [userId], references: [id])
+  @@id([storeId, userId])
+}
+
+model StoreProduct {
+  id              String @id @default(uuid())
+  storeId         String
+  masterProductId String
+  store           Store @relation(fields: [storeId], references: [id])
+  master          MasterProduct @relation(fields: [masterProductId], references: [id])
+  priceTiyn       Int
+  oldPriceTiyn    Int?
+  inStock         Boolean @default(true)
+  @@unique([storeId, masterProductId])
+}
+
+model DeliveryZone {
+  id        String @id @default(uuid())
+  storeId   String
+  store     Store  @relation(fields: [storeId], references: [id])
+  polygon   Json   // GeoJSON (в БД — geography/PostGIS)
+  feeTiyn   Int
+  minOrderTiyn Int
+  freeFromTiyn Int?
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  number        Int      @default(autoincrement())
+  storeId       String
+  customerId    String?
+  store         Store @relation(fields: [storeId], references: [id])
+  customer      User? @relation(fields: [customerId], references: [id])
+  status        OrderStatus @default(CREATED)
+  // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
+  address       Json?
+  payMethod     PayMethod @default(CASH)
+  subtotalTiyn  Int @default(0)
+  deliveryFeeTiyn Int @default(0)
+  finalTiyn     Int?
+  createdAt     DateTime @default(now())
+  items         OrderItem[]
+  events        OrderEvent[]
+}
+
+model OrderItem {
+  id            String @id @default(uuid())
+  orderId       String
+  order         Order @relation(fields: [orderId], references: [id])
+  storeProductId String
+  qtyRequestedG Int?   // для весовых — граммы
+  qtyRequested  Int?   // для штучных
+  qtyActualG    Int?
+  priceSnapTiyn Int
+  status        String @default("ok") // ok | replaced | missing
+}
+
+model OrderEvent {
+  id      String @id @default(uuid())
+  orderId String
+  order   Order @relation(fields: [orderId], references: [id])
+  from    String?
+  to      String
+  actor   String?
+  at      DateTime @default(now())
+}
+
+model Subscription {
+  id        String @id @default(uuid())
+  storeId   String @unique
+  store     Store @relation(fields: [storeId], references: [id])
+  plan      String // free | pro | business
+  priceTiyn Int
+  status    String @default("active")
+  nextInvoiceAt DateTime?
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id             String @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  period         String // YYYY-MM
+  amountTiyn     Int
+  status         InvoiceStatus @default(DRAFT)
+  kaspiInvoiceId String?
+  issuedAt       DateTime?
+  paidAt         DateTime?
+  @@unique([subscriptionId, period]) // один счёт за месяц (идемпотентность)
+}

@@ -1,0 +1,30 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-10-31T10:00:00Z"},"title":"Витрина продуктов — макеты","launch":{"view":"canvas"},"pages":[],
+"boards":{
+"DesignSystem.dc.html":{"x":0,"y":0,"w":1200,"h":640,"title":"0. Дизайн-система v0.2"},
+"Fruit.dc.html":{"x":1280,"y":0,"w":160,"h":160,"title":"Иллюстрация товара (компонент)"},
+"Main.dc.html":{"x":0,"y":1000,"w":390,"h":844,"title":"1. Главная","is_interactive":true},
+"Address.dc.html":{"x":470,"y":1000,"w":390,"h":844,"title":"2. Адрес на карте","is_interactive":true},
+"Store.dc.html":{"x":940,"y":1000,"w":390,"h":844,"title":"3. Витрина магазина","is_interactive":true},
+"Product.dc.html":{"x":1410,"y":1000,"w":390,"h":844,"title":"4. Товар (шторка)","is_interactive":true},
+"Checkout.dc.html":{"x":1880,"y":1000,"w":390,"h":844,"title":"5. Корзина и оформление","is_interactive":true},
+"Tracking.dc.html":{"x":2350,"y":1000,"w":390,"h":844,"title":"6. Статус заказа","is_interactive":true},
+"MerchantOrders.dc.html":{"x":0,"y":2190,"w":390,"h":844,"title":"7. Магазин: новый заказ (данные скрыты до принятия)","is_interactive":true},
+"MerchantPicking.dc.html":{"x":470,"y":2190,"w":390,"h":844,"title":"8. Магазин: сборка и взвешивание"},
+"MerchantCatalog.dc.html":{"x":940,"y":2190,"w":390,"h":844,"title":"9. Магазин: цены дня","is_interactive":true},
+"MerchantZones.dc.html":{"x":1410,"y":2190,"w":390,"h":844,"title":"10. Магазин: зоны доставки"},
+"MerchantSchedule.dc.html":{"x":1880,"y":2190,"w":390,"h":844,"title":"11. Магазин: график и слоты"},
+"AdminStores.dc.html":{"x":0,"y":3380,"w":1440,"h":900,"title":"12. Админка: магазины","expand":"fill"},
+"OtpLogin.dc.html":{"x":2820,"y":1000,"w":390,"h":844,"title":"5а. Код подтверждения: Telegram / SMS / WhatsApp","is_interactive":true},
+"States.dc.html":{"x":3290,"y":1000,"w":1250,"h":844,"title":"Состояния: не возим · пауза · пустая корзина"},
+"WebStore.dc.html":{"x":0,"y":4620,"w":1440,"h":1000,"title":"13. Веб: витрина магазина (компьютер)","expand":"fill","is_interactive":true},
+"WebCheckout.dc.html":{"x":1520,"y":4620,"w":1440,"h":1000,"title":"14. Веб: оформление (компьютер)","expand":"fill"}
+},
+"order":["DesignSystem.dc.html","Fruit.dc.html","Main.dc.html","Address.dc.html","Store.dc.html","Product.dc.html","Checkout.dc.html","Tracking.dc.html","MerchantOrders.dc.html","MerchantPicking.dc.html","MerchantCatalog.dc.html","MerchantZones.dc.html","MerchantSchedule.dc.html","AdminStores.dc.html","OtpLogin.dc.html","States.dc.html","WebStore.dc.html","WebCheckout.dc.html"],
+"notes":{
+"t0":{"x":0,"y":-260,"text":"Дизайн-система","kind":"title1","maxW":1440},
+"t1":{"x":0,"y":740,"text":"Покупатель — приложение и мобильный сайт","kind":"title1","maxW":4540},
+"t4":{"x":0,"y":4360,"text":"Покупатель — сайт на компьютере","kind":"title1","maxW":2960},
+"t2":{"x":0,"y":1930,"text":"Магазин — только мобильное приложение","kind":"title1","maxW":2270},
+"t3":{"x":0,"y":3120,"text":"Админка платформы","kind":"title1","maxW":1440}
+},
+"designSystems":[]}

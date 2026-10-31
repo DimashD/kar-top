@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Дизайн-система</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 1200px; height: 640px; box-sizing: border-box; padding: 48px; background: #FFFFFF; font-family: Onest, system-ui, sans-serif; color: #121712; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px">
+  <div style="display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 14px; background: #D7F45B; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#0F7A40" aria-hidden="true"><path d="M5 19C5 10 11 4 20 4c0 9-6 15-15 15z"></path></svg></span><span style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em">FreshMarket</span></div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 12px; font-weight: 700; color: #5E665F; text-transform: uppercase; letter-spacing: .08em">Типографика · Onest</span>
+      <span style="font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Свежее с рынка</span>
+      <span style="font-size: 22px; font-weight: 800; letter-spacing: -0.02em">Магазины рядом</span>
+      <span style="font-size: 16px; font-weight: 600">Хурма Королёк · 1 290 ₸/кг</span>
+      <span style="font-size: 14px; font-weight: 500; color: #5E665F">≈ 3–4 шт в 1 кг · Узбекистан</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 12px; font-weight: 700; color: #5E665F; text-transform: uppercase; letter-spacing: .08em">Цвета</span>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="8">
+          <div style="display: flex; flex-direction: column; gap: 4px"><span style="height: 44px; border-radius: 12px; background: {{c.hex}}; border: 1px solid #E6E8E2"></span><span style="font-size: 11px; font-weight: 600">{{c.name}}</span><span style="font-size: 11px; color: #5E665F">{{c.hex}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <span style="font-size: 12px; font-weight: 700; color: #5E665F; text-transform: uppercase; letter-spacing: .08em">Кнопки и элементы</span>
+    <button style="all: unset; cursor: pointer; height: 56px; border-radius: 999px; background: #0F7A40; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">Оформить заказ</button>
+    <button style="all: unset; cursor: pointer; height: 56px; border-radius: 999px; background: #121712; color: #FFFFFF; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 22px"><span>Корзина · 3</span><span style="background: #D7F45B; color: #121712; border-radius: 999px; padding: 10px 16px">4 260 ₸</span></button>
+    <button style="all: unset; cursor: pointer; height: 48px; border-radius: 999px; background: #F3F4EF; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">Вторичная</button>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap">
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #121712; color: #FFFFFF; font-size: 14px; font-weight: 700; display: flex; align-items: center">Фрукты</span>
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #F3F4EF; font-size: 14px; font-weight: 600; display: flex; align-items: center">Овощи</span>
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #D7F45B; font-size: 14px; font-weight: 700; display: flex; align-items: center">−15%</span>
+      <span style="height: 36px; padding: 0 14px; border-radius: 999px; background: #FDECE3; color: #B93A0B; font-size: 14px; font-weight: 700; display: flex; align-items: center">Новый · 2:41</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; width: 160px; height: 44px; border-radius: 999px; background: #D7F45B; padding: 0 4px; box-sizing: border-box">
+      <span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">−</span><span style="font-weight: 800; font-size: 15px">1 кг</span><span style="width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">+</span>
+    </div>
+    <span style="font-size: 13px; color: #5E665F; line-height: 1.45">Радиус карточек 24, кнопки — «пилюли». Тап‑зоны ≥ 44 px у покупателя, ≥ 56 px у сборщика. Лаймовый — только с тёмным текстом.</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px">
+    <span style="font-size: 12px; font-weight: 700; color: #5E665F; text-transform: uppercase; letter-spacing: .08em">Карточка товара</span>
+    <div style="width: 180px; display: flex; flex-direction: column; gap: 6px">
+      <div style="height: 168px; border-radius: 24px; background: #F3F4EF; position: relative; display: flex; align-items: center; justify-content: center">
+        <div style="width: 120px"><dc-import name="Fruit" kind="persimmon" hint-size="120px,120px"></dc-import></div>
+        <span style="position: absolute; right: 8px; bottom: 8px; width: 40px; height: 40px; border-radius: 20px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600">+</span>
+      </div>
+      <span style="font-size: 18px; font-weight: 800">1 290 ₸<span style="font-size: 13px; font-weight: 600; color: #5E665F"> /кг</span></span>
+      <span style="font-size: 14px; font-weight: 600">Хурма Королёк</span>
+      <span style="font-size: 12px; color: #5E665F">≈ 3–4 шт в 1 кг</span>
+    </div>
+    <span style="font-size: 12px; font-weight: 700; color: #5E665F; text-transform: uppercase; letter-spacing: .08em">Иллюстрации (в продукте — фото каталога)</span>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="9">
+        <div style="background: #F3F4EF; border-radius: 14px; padding: 4px"><dc-import name="Fruit" kind="{{k}}" hint-size="100%,60px"></dc-import></div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'Чернила', hex: '#121712' }, { name: 'Зелёный', hex: '#0F7A40' }, { name: 'Лайм', hex: '#D7F45B' }, { name: 'Поверхность', hex: '#F3F4EF' },
+        { name: 'Вторичный текст', hex: '#5E665F' }, { name: 'Линии', hex: '#E6E8E2' }, { name: 'Внимание', hex: '#B93A0B' }, { name: 'Инфо', hex: '#1D4E89' }
+      ],
+      kinds: ['apple', 'banana', 'tomato', 'persimmon', 'cucumber', 'greens', 'pomegranate', 'potato', 'carrot']
+    };
+  }
+}
+</script>
+</body>
+</html>

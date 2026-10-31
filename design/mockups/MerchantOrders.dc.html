@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Магазин — новый заказ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F4EF; font-family: Onest, system-ui, sans-serif; color: #121712; position: relative; overflow: hidden">
+  <div style="background: #121712; color: #FFFFFF; padding: 16px 16px 18px; display: flex; flex-direction: column; gap: 14px; border-radius: 0 0 28px 28px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #C9CFC9">Фрукты у Руслана</span><span style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em">Заказы</span></div>
+      <label style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 14px; border-radius: 999px; background: #2A322A; font-size: 13px; font-weight: 700">
+        Принимаем
+        <span style="width: 48px; height: 30px; border-radius: 15px; background: #D7F45B; position: relative; display: inline-block"><span style="position: absolute; right: 3px; top: 3px; width: 24px; height: 24px; border-radius: 12px; background: #121712"></span></span>
+        <input type="checkbox" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">
+      </label>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <span style="flex: 1; background: #2A322A; border-radius: 18px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 20px; font-weight: 800">14</span><span style="font-size: 11px; color: #C9CFC9">заказов сегодня</span></span>
+      <span style="flex: 1; background: #2A322A; border-radius: 18px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 20px; font-weight: 800">68 400 ₸</span><span style="font-size: 11px; color: #C9CFC9">выручка</span></span>
+      <span style="flex: 1; background: #2A322A; border-radius: 18px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 20px; font-weight: 800">97%</span><span style="font-size: 11px; color: #C9CFC9">вовремя</span></span>
+    </div>
+  </div>
+
+  <div style="padding: 14px 16px 100px; display: flex; flex-direction: column; gap: 12px">
+    <sc-if value="{{isNew}}" hint-placeholder-val="{{ true }}">
+      <section style="background: #FFFFFF; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 3px #B93A0B">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 20px; font-weight: 800">Новый заказ</span>
+          <span style="background: #FDECE3; color: #B93A0B; font-size: 13px; font-weight: 800; padding: 7px 12px; border-radius: 999px">Примите за 2:41</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <span style="background: #F3F4EF; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Куда</span><span style="font-size: 14px; font-weight: 800">Бостандыкский р-н</span><span style="font-size: 12px; color: #5E665F">~2,3 км от вас</span></span>
+          <span style="background: #F3F4EF; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Когда</span><span style="font-size: 14px; font-weight: 800">Сегодня 20–22</span><span style="font-size: 12px; color: #5E665F">собрать к 19:30</span></span>
+          <span style="background: #F3F4EF; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Состав</span><span style="font-size: 14px; font-weight: 800">8 позиций</span><span style="font-size: 12px; color: #5E665F">5 весовых · ~3,2 кг</span></span>
+          <span style="background: #F3F4EF; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Сумма</span><span style="font-size: 14px; font-weight: 800">~7 950 ₸</span><span style="font-size: 12px; color: #5E665F">наличными</span></span>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; padding: 2px 4px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E665F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+          <span style="font-size: 13px; color: #5E665F">Имя, телефон и точный адрес откроются после принятия</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 8px">
+          <button style="all: unset; cursor: pointer; text-align: center; height: 60px; line-height: 60px; border-radius: 999px; background: #F3F4EF; font-size: 15px; font-weight: 800">Отклонить</button>
+          <button onClick="{{accept}}" style="all: unset; cursor: pointer; text-align: center; height: 60px; line-height: 60px; border-radius: 999px; background: #0F7A40; color: #FFFFFF; font-size: 16px; font-weight: 800">Принять заказ</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{isAccepted}}" hint-placeholder-val="{{ false }}">
+      <section style="background: #FFFFFF; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 0 0 3px #0F7A40">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 20px; font-weight: 800">№ 20482 · принят</span>
+          <span style="background: #D7F45B; font-size: 13px; font-weight: 800; padding: 7px 12px; border-radius: 999px">Собрать к 19:30</span>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center">
+          <span style="width: 48px; height: 48px; border-radius: 24px; background: #F3F4EF; display: flex; align-items: center; justify-content: center; font-weight: 800">А</span>
+          <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 800">Айгерим</span><span style="font-size: 14px; color: #3A423B">+7 701 234 56 78</span></span>
+          <button aria-label="Позвонить клиенту" style="all: unset; cursor: pointer; width: 52px; height: 52px; border-radius: 26px; background: #0F7A40; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"></path></svg></button>
+        </div>
+        <div style="background: #F3F4EF; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 15px; font-weight: 800">просп. Абая, 10, кв. 25</span>
+          <span style="font-size: 13px; color: #3A423B">Подъезд 2 · этаж 5 · домофон 25</span>
+          <span style="font-size: 13px; color: #5E665F">«Вход со двора, шлагбаум откроют»</span>
+        </div>
+        <a href="MerchantPicking.dc.html" style="height: 60px; border-radius: 999px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">Начать сборку</a>
+      </section>
+    </sc-if>
+
+    <h2 style="margin: 6px 0 0; font-size: 15px; font-weight: 800; color: #5E665F">В работе · 3</h2>
+    <sc-for list="{{orders}}" as="o" hint-placeholder-count="3">
+      <div style="background: #FFFFFF; border-radius: 20px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 16px; font-weight: 800">{{o.id}}</span><span style="font-size: 13px; color: #5E665F">{{o.meta}}</span></div>
+        <span style="font-size: 12px; font-weight: 800; padding: 7px 11px; border-radius: 999px; background: {{o.bg}}; color: {{o.fg}}">{{o.status}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <nav style="position: absolute; left: 16px; right: 16px; bottom: 20px; height: 64px; border-radius: 999px; background: #121712; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; padding: 0 8px; box-shadow: 0 12px 30px rgba(18,23,18,.28)">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+      <a href="{{t.href}}" aria-label="{{t.label}}" style="display: flex; justify-content: center">
+        <span style="height: 48px; min-width: 48px; border-radius: 999px; background: {{t.bg}}; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; box-sizing: border-box; font-size: 13px; font-weight: 800; color: #121712">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg>
+          <sc-if value="{{t.active}}" hint-placeholder-val="{{ false }}"><span>{{t.label}}</span></sc-if>
+        </span>
+      </a>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { accepted: false }; }
+  renderVals() {
+    const tabs = [
+      { label: 'Заказы', href: 'MerchantOrders.dc.html', icon: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6' },
+      { label: 'Товары', href: 'MerchantCatalog.dc.html', icon: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z' },
+      { label: 'Доставка', href: 'MerchantZones.dc.html', icon: 'M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z' },
+      { label: 'График', href: 'MerchantSchedule.dc.html', icon: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z' }
+    ];
+    return {
+      isNew: !this.state.accepted, isAccepted: this.state.accepted,
+      accept: () => this.setState({ accepted: true }),
+      orders: [
+        { id: '№ 20481', meta: '18–20 · 5 позиций', status: 'Ждём ответ клиента', bg: '#FDECE3', fg: '#B93A0B' },
+        { id: '№ 20479', meta: '18–20 · 11 позиций', status: 'Сборка', bg: '#D7F45B', fg: '#121712' },
+        { id: '№ 20476', meta: '16–18 · 6 позиций', status: 'Курьер в пути', bg: '#E5EEFB', fg: '#1D4E89' }
+      ],
+      tabs: tabs.map((t, i) => ({ ...t, active: i === 0, bg: i === 0 ? '#D7F45B' : 'transparent', color: i === 0 ? '#121712' : '#FFFFFF' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

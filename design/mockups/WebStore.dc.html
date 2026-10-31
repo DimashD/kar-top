@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Веб — витрина магазина</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="min-height: 1000px; background: #FFFFFF; font-family: Onest, system-ui, sans-serif; color: #121712">
+  <header style="border-bottom: 1px solid #E6E8E2; background: #FFFFFF">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+      <a href="#" style="display: flex; align-items: center; gap: 8px; color: #121712"><span style="width: 36px; height: 36px; border-radius: 12px; background: #D7F45B; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="#0F7A40" aria-hidden="true"><path d="M5 19C5 10 11 4 20 4c0 9-6 15-15 15z"></path></svg></span><span style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em">FreshMarket</span></a>
+      <button style="all: unset; cursor: pointer; height: 44px; padding: 0 14px; border-radius: 999px; background: #F3F4EF; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px">Алматы<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+      <a href="Address.dc.html" style="height: 44px; padding: 0 14px 0 6px; border-radius: 999px; background: #F6F9D9; color: #121712; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600">
+        <span style="width: 32px; height: 32px; border-radius: 16px; background: #0F7A40; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+        <span><b>Абая, 10</b> · возим к вам</span>
+      </a>
+      <label style="flex: 1 1 280px; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 18px; border-radius: 999px; background: #F3F4EF">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5E665F" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Поиск</span>
+        <input type="search" placeholder="Найти в «Фрукты у Руслана»" style="border: 0; background: transparent; font: inherit; font-size: 15px; flex: 1; outline: none; min-width: 0">
+      </label>
+      <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; color: #121712; display: flex; align-items: center; font-size: 14px; font-weight: 700">Мои заказы</a>
+    </div>
+  </header>
+
+  <div style="max-width: 1360px; margin: 0 auto; padding: 20px 24px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <section style="border-radius: 32px; background: #D7F45B; padding: 28px 32px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; position: relative; overflow: hidden">
+      <div style="display: flex; flex-direction: column; gap: 10px; flex: 1 1 420px; position: relative">
+        <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em">Зелёный базар, ряд 4 · ★ 4.9 · 1 240 оценок</span>
+        <h1 style="margin: 0; font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1">Фрукты у Руслана</h1>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <span style="font-size: 13px; font-weight: 700; background: #121712; color: #FFFFFF; padding: 8px 12px; border-radius: 999px">Как можно скорее ≈ 1 ч</span>
+          <span style="font-size: 13px; font-weight: 600; background: #FFFFFF; padding: 8px 12px; border-radius: 999px">Доставка 500 ₸ · бесплатно от 10 000 ₸</span>
+          <span style="font-size: 13px; font-weight: 600; background: #FFFFFF; padding: 8px 12px; border-radius: 999px">Заказ от 3 000 ₸</span>
+          <span style="font-size: 13px; font-weight: 600; background: #FFFFFF; padding: 8px 12px; border-radius: 999px">Оплата при получении</span>
+          <span style="font-size: 13px; font-weight: 600; background: #FFFFFF; padding: 8px 12px; border-radius: 999px">Самовывоз</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: flex-end; position: relative">
+        <span style="width: 140px; transform: rotate(-10deg)"><dc-import name="Fruit" kind="persimmon" hint-size="140px,140px"></dc-import></span>
+        <span style="width: 120px; margin-left: -30px"><dc-import name="Fruit" kind="apple" hint-size="120px,120px"></dc-import></span>
+        <span style="width: 150px; margin-left: -30px; transform: rotate(8deg)"><dc-import name="Fruit" kind="banana" hint-size="150px,150px"></dc-import></span>
+      </div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <nav aria-label="Категории" style="flex: 1 1 200px; max-width: 220px; display: flex; flex-direction: column; gap: 4px">
+        <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+          <a href="#" style="height: 44px; padding: 0 16px; border-radius: 999px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; background: {{c.bg}}; color: {{c.fg}}">{{c.name}}<span style="font-size: 13px; font-weight: 600; opacity: .7">{{c.count}}</span></a>
+        </sc-for>
+      </nav>
+
+      <main style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em">Фрукты</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 20px 16px">
+          <sc-for list="{{products}}" as="p" hint-placeholder-count="8">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="aspect-ratio: 1 / 1; border-radius: 24px; background: {{p.bg}}; position: relative; display: flex; align-items: center; justify-content: center">
+                <a href="Product.dc.html" aria-label="{{p.name}}" style="width: 66%; display: block"><dc-import name="Fruit" kind="{{p.kind}}" hint-size="100%,120px"></dc-import></a>
+                <sc-if value="{{p.notInCart}}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{p.add}}" aria-label="Добавить {{p.name}}" style="all: unset; cursor: pointer; position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 22px; background: #121712; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+                </sc-if>
+                <sc-if value="{{p.inCart}}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 10px; right: 10px; bottom: 10px; height: 44px; border-radius: 999px; background: #D7F45B; display: flex; align-items: center; justify-content: space-between; padding: 0 4px; box-sizing: border-box">
+                    <button onClick="{{p.dec}}" aria-label="Меньше" style="all: unset; cursor: pointer; width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; text-align: center; line-height: 36px; font-size: 20px; font-weight: 800">−</button>
+                    <span style="font-size: 14px; font-weight: 800">{{p.qtyLabel}}</span>
+                    <button onClick="{{p.add}}" aria-label="Больше" style="all: unset; cursor: pointer; width: 36px; height: 36px; border-radius: 18px; background: #FFFFFF; text-align: center; line-height: 36px; font-size: 20px; font-weight: 800">+</button>
+                  </div>
+                </sc-if>
+              </div>
+              <span style="font-size: 19px; font-weight: 800; margin-top: 4px">{{p.priceLabel}}<span style="font-size: 13px; font-weight: 600; color: #5E665F"> {{p.per}}</span></span>
+              <a href="Product.dc.html" style="font-size: 15px; font-weight: 600; color: #121712">{{p.name}}</a>
+              <span style="font-size: 13px; color: #5E665F">{{p.hint}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </main>
+
+      <aside aria-label="Корзина" style="flex: 1 1 300px; max-width: 360px; border-radius: 28px; border: 1px solid #E6E8E2; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 22px; font-weight: 800">Корзина</h2><span style="font-size: 13px; color: #5E665F">{{countLabel}}</span></div>
+        <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 14px; color: #5E665F; padding: 20px 0">Добавьте товары — они появятся здесь</span>
+        </sc-if>
+        <sc-for list="{{cart}}" as="it" hint-placeholder-count="2">
+          <div style="display: flex; gap: 10px; align-items: center">
+            <span style="width: 44px; height: 44px; border-radius: 14px; background: {{it.bg}}; padding: 5px; box-sizing: border-box; flex-shrink: 0"><dc-import name="Fruit" kind="{{it.kind}}" hint-size="34px,34px"></dc-import></span>
+            <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 14px; font-weight: 700">{{it.name}}</span><span style="font-size: 12px; color: #5E665F">{{it.qtyLabel}}</span></span>
+            <span style="font-size: 14px; font-weight: 800">{{it.sum}}</span>
+          </div>
+        </sc-for>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px">
+          <span style="font-size: 13px; font-weight: 600">{{progressText}}</span>
+          <div style="height: 8px; border-radius: 4px; background: #F3F4EF; overflow: hidden"><div style="width: {{progress}}; height: 8px; border-radius: 4px; background: #0F7A40"></div></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid #E6E8E2; padding-top: 14px"><span style="font-size: 14px; color: #5E665F">Примерно, до взвешивания</span><span style="font-size: 24px; font-weight: 800">{{total}}</span></div>
+        <a href="WebCheckout.dc.html" style="height: 56px; border-radius: 999px; background: #0F7A40; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">Оформить заказ</a>
+        <span style="font-size: 12px; color: #5E665F; line-height: 1.4">Весовые товары взвесят при сборке — пришлём точную сумму. Оплата при получении.</span>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { q: { apple: 2, persimmon: 1 } }; }
+  renderVals() {
+    const items = [
+      { id: 'apple', kind: 'apple', name: 'Яблоки Апорт', price: 890, per: '/кг', hint: '≈ 4–5 шт в 1 кг', bg: '#FDEDEA', step: 0.5, unit: 'кг' },
+      { id: 'banana', kind: 'banana', name: 'Бананы Эквадор', price: 760, per: '/кг', hint: '≈ 5–6 шт в 1 кг', bg: '#FFF7D6', step: 0.5, unit: 'кг' },
+      { id: 'persimmon', kind: 'persimmon', name: 'Хурма Королёк', price: 1290, per: '/кг', hint: '≈ 3–4 шт в 1 кг', bg: '#FFF1E6', step: 0.5, unit: 'кг' },
+      { id: 'pomegranate', kind: 'pomegranate', name: 'Гранат', price: 450, per: '/шт', hint: '≈ 350–400 г', bg: '#FCE9EE', step: 1, unit: 'шт' },
+      { id: 'tomato', kind: 'tomato', name: 'Помидоры розовые', price: 1190, per: '/кг', hint: '≈ 5–6 шт в 1 кг', bg: '#FDEDEA', step: 0.5, unit: 'кг' },
+      { id: 'cucumber', kind: 'cucumber', name: 'Огурцы короткие', price: 700, per: '/кг', hint: '≈ 8–10 шт в 1 кг', bg: '#EAF6E4', step: 0.5, unit: 'кг' },
+      { id: 'greens', kind: 'greens', name: 'Укроп', price: 250, per: '/пучок', hint: '≈ 100 г', bg: '#EAF6E4', step: 1, unit: 'шт' },
+      { id: 'carrot', kind: 'carrot', name: 'Морковь', price: 320, per: '/кг', hint: '≈ 6–8 шт в 1 кг', bg: '#FFF1E6', step: 1, unit: 'кг' }
+    ];
+    const q = this.state.q;
+    const fmt = (n) => Math.round(n).toLocaleString('ru-RU') + ' ₸';
+    const set = (id, v) => this.setState({ q: { ...q, [id]: Math.max(0, v) } });
+    let total = 0;
+    const cart = [];
+    const products = items.map((p) => {
+      const n = q[p.id] || 0;
+      const qty = n * p.step;
+      const qtyLabel = (p.unit === 'кг' ? String(qty).replace('.', ',') : qty) + ' ' + p.unit;
+      if (n) { total += qty * p.price; cart.push({ kind: p.kind, bg: p.bg, name: p.name, qtyLabel, sum: '~' + fmt(qty * p.price) }); }
+      return { ...p, priceLabel: p.price.toLocaleString('ru-RU') + ' ₸', inCart: n > 0, notInCart: n === 0, qtyLabel,
+        add: () => set(p.id, n + 1), dec: () => set(p.id, n - 1) };
+    });
+    const left = 10000 - total;
+    return {
+      cats: [['Фрукты', 18], ['Овощи', 32], ['Зелень', 11], ['Ягоды', 6], ['Сухофрукты', 14], ['Скидки', 5]].map(([name, count], i) => ({ name, count, bg: i === 0 ? '#121712' : 'transparent', fg: i === 0 ? '#FFFFFF' : '#121712' })),
+      products, cart, empty: cart.length === 0,
+      countLabel: cart.length + ' поз.',
+      total: '~' + fmt(total),
+      progress: Math.min(100, Math.round(total / 100)) + '%',
+      progressText: left > 0 ? 'До бесплатной доставки ' + fmt(left) : 'Доставка бесплатно'
+    };
+  }
+}
+</script>
+</body>
+</html>

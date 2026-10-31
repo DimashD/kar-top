@@ -1,0 +1,16 @@
+{
+  "name": "freshmarket",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Онлайн зелёный базар — мультитенантная платформа витрин и доставки (Kartop).",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm --workspaces --if-present run build",
+    "lint": "npm --workspaces --if-present run lint",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down"
+  }
+}

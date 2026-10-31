@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Магазин — зоны доставки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #EEF0EA; font-family: Onest, system-ui, sans-serif; color: #121712; position: relative; overflow: hidden">
+  <svg width="390" height="470" viewBox="0 0 390 470" style="position: absolute; top: 0; left: 0" aria-hidden="true">
+    <rect width="390" height="470" fill="#EEF0EA"></rect>
+    <path d="M-10 230 L400 214" stroke="#FFFFFF" stroke-width="22"></path>
+    <path d="M190 -10 L204 480" stroke="#FFFFFF" stroke-width="18"></path>
+    <path d="M-10 90 L400 100" stroke="#FFFFFF" stroke-width="10"></path>
+    <path d="M-10 380 L400 368" stroke="#FFFFFF" stroke-width="10"></path>
+    <path d="M80 -10 L90 480" stroke="#FFFFFF" stroke-width="8"></path><path d="M310 -10 L318 480" stroke="#FFFFFF" stroke-width="8"></path>
+    <rect x="300" y="250" width="90" height="100" rx="10" fill="#D4EAC6"></rect>
+    <path d="M30 60 L250 40 L370 120 L360 330 L240 440 L60 420 L14 250 Z" fill="#1D4E89" fill-opacity="0.10" stroke="#1D4E89" stroke-width="2.5" stroke-dasharray="6 5"></path>
+    <path d="M110 130 L270 116 L300 220 L250 320 L130 330 L90 230 Z" fill="#0F7A40" fill-opacity="0.18" stroke="#0F7A40" stroke-width="3"></path>
+    <circle cx="110" cy="130" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle><circle cx="270" cy="116" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle>
+    <circle cx="300" cy="220" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle><circle cx="250" cy="320" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle>
+    <circle cx="130" cy="330" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle><circle cx="90" cy="230" r="8" fill="#FFFFFF" stroke="#0F7A40" stroke-width="3"></circle>
+  </svg>
+  <span style="position: absolute; left: 176px; top: 196px; width: 44px; height: 44px; border-radius: 22px; background: #121712; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(18,23,18,.3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D7F45B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l2-5h12l2 5M4 9v11h16V9M4 9h16M10 20v-6h4v6"></path></svg></span>
+  <span style="position: absolute; left: 140px; top: 282px; background: #0F7A40; color: #FFFFFF; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 999px">Зона 1 · 500 ₸</span>
+  <span style="position: absolute; left: 34px; top: 400px; background: #1D4E89; color: #FFFFFF; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 999px">Зона 2 · 900 ₸</span>
+
+  <div style="position: absolute; left: 16px; right: 16px; top: 16px; display: flex; gap: 8px; align-items: center">
+    <a href="MerchantOrders.dc.html" aria-label="Назад" style="width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(18,23,18,.12)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+    <div style="flex: 1; height: 48px; border-radius: 999px; background: #FFFFFF; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 4px; box-sizing: border-box; box-shadow: 0 4px 14px rgba(18,23,18,.12)">
+      <span style="border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">Радиус</span>
+      <span style="border-radius: 999px; background: #121712; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">Нарисовать</span>
+    </div>
+  </div>
+  <span style="position: absolute; left: 16px; top: 76px; background: #FFFFFF; font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 999px; box-shadow: 0 4px 14px rgba(18,23,18,.10)">Тяните точки, чтобы изменить границу</span>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; top: 452px; background: #FFFFFF; border-radius: 30px 30px 0 0; padding: 10px 16px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
+    <span style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #E6E8E2"></span>
+    <div style="display: flex; justify-content: space-between; align-items: center"><h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em">Зоны доставки</h1><span style="font-size: 14px; font-weight: 700; color: #0F7A40">+ Зона</span></div>
+    <sc-for list="{{zones}}" as="z" hint-placeholder-count="2">
+      <div style="border-radius: 20px; border: 2px solid {{z.border}}; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 6px; background: {{z.color}}"></span><span style="font-size: 16px; font-weight: 800">{{z.name}}</span><span style="font-size: 13px; color: #5E665F">{{z.area}}</span></div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+          <span style="background: #F3F4EF; border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Доставка</span><span style="font-size: 14px; font-weight: 800">{{z.fee}}</span></span>
+          <span style="background: #F3F4EF; border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Мин. заказ</span><span style="font-size: 14px; font-weight: 800">{{z.min}}</span></span>
+          <span style="background: #F3F4EF; border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column"><span style="font-size: 11px; color: #5E665F">Бесплатно от</span><span style="font-size: 14px; font-weight: 800">{{z.free}}</span></span>
+        </div>
+      </div>
+    </sc-for>
+    <button style="all: unset; cursor: pointer; margin-top: auto; height: 56px; border-radius: 999px; background: #0F7A40; color: #FFFFFF; text-align: center; line-height: 56px; font-size: 16px; font-weight: 800">Сохранить зоны</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      zones: [
+        { name: 'Зона 1', area: '≈ 4,1 км²', color: '#0F7A40', border: '#121712', fee: '500 ₸', min: '3 000 ₸', free: '10 000 ₸' },
+        { name: 'Зона 2', area: '≈ 11 км²', color: '#1D4E89', border: '#E6E8E2', fee: '900 ₸', min: '5 000 ₸', free: '15 000 ₸' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

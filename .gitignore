@@ -1,0 +1,22 @@
+# deps
+node_modules/
+.pnpm-store/
+# build
+dist/
+.next/
+build/
+out/
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+# logs / os
+*.log
+.DS_Store
+# flutter
+.dart_tool/
+.flutter-plugins*
+# terraform
+.terraform/
+*.tfstate*

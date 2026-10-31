@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Код подтверждения</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0F7A40;text-decoration:none}a:hover{color:#0A5C30}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; font-family: Onest, system-ui, sans-serif; color: #121712; display: flex; flex-direction: column; padding: 16px 16px 28px; gap: 20px">
+  <a href="Checkout.dc.html" aria-label="Назад" style="width: 44px; height: 44px; border-radius: 22px; background: #F3F4EF; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#121712" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></a>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <h1 style="margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05">Подтвердите номер</h1>
+    <span style="font-size: 15px; color: #3A423B; line-height: 1.4">{{hint}} <b>+7 701 234-56-78</b>. Это нужно один раз — для первого заказа.</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: #F3F4EF; border-radius: 999px; padding: 4px">
+    <sc-for list="{{channels}}" as="c" hint-placeholder-count="3">
+      <button onClick="{{c.pick}}" style="all: unset; cursor: pointer; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; background: {{c.bg}}; color: {{c.fg}}">{{c.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{digits}}" as="d" hint-placeholder-count="6">
+      <span style="height: 60px; border-radius: 16px; background: #F3F4EF; border: 2px solid {{d.border}}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800">{{d.v}}</span>
+    </sc-for>
+  </div>
+  <label style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Код из сообщения<input type="text" inputmode="numeric" autocomplete="one-time-code"></label>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-size: 14px; color: #5E665F">Отправить ещё раз через 0:42</span>
+    <button onClick="{{fallback}}" style="all: unset; cursor: pointer; font-size: 14px; font-weight: 700; color: #0F7A40">{{fallbackLabel}}</button>
+  </div>
+
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; gap: 10px; align-items: flex-start; background: #F3F4EF; border-radius: 18px; padding: 12px 14px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F7A40" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+      <span style="font-size: 12px; line-height: 1.45; color: #3A423B">Никому не сообщайте код — ни продавцу, ни курьеру. Мы никогда его не спрашиваем.</span>
+    </div>
+    <a href="Tracking.dc.html" style="height: 60px; border-radius: 999px; background: #0F7A40; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">Подтвердить и заказать</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ch: 0 }; }
+  renderVals() {
+    const ch = this.state.ch;
+    const names = ['Telegram', 'WhatsApp', 'SMS'];
+    const hints = ['Отправили код в Telegram на номер', 'Отправили код в WhatsApp на номер', 'Отправили SMS с кодом на номер'];
+    const code = ['4', '8', '1', '', '', ''];
+    return {
+      hint: hints[ch],
+      fallbackLabel: ch === 2 ? 'Не пришло? Получить код в Telegram' : 'Не пришло? Отправить по SMS',
+      fallback: () => this.setState({ ch: ch === 2 ? 0 : 2 }),
+      channels: names.map((label, i) => ({ label, bg: i === ch ? '#121712' : 'transparent', fg: i === ch ? '#FFFFFF' : '#121712', pick: () => this.setState({ ch: i }) })),
+      digits: code.map((v, i) => ({ v, border: i === 3 ? '#121712' : 'transparent' }))
+    };
+  }
+}
+</script>
+</body>
+</html>
