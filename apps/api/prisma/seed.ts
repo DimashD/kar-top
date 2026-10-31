@@ -105,7 +105,44 @@ async function main() {
   const owner = await prisma.user.create({ data: { phone: '+77012223344', name: 'Руслан' } });
   await prisma.storeMember.create({ data: { storeId: store.id, userId: owner.id, role: 'OWNER' } });
 
-  console.log(`Сид готов: ${CATEGORIES.length} категорий, ${products.length} товаров, демо-магазин /${store.slug}.`);
+  // Сотрудник платформы (доступ к админ-аналитике).
+  await prisma.user.create({ data: { phone: '+77000000001', name: 'Админ платформы', platformRole: 'PLATFORM_ADMIN' } });
+
+  // Демо-покупатели и завершённые заказы — чтобы аналитика по покупателям/магазинам была наполнена.
+  const sp = await prisma.storeProduct.findMany({ where: { storeId: store.id }, select: { id: true, priceTiyn: true } });
+  const customers = [
+    { phone: '+77011111111', name: 'Айгерим', orders: [[1000], [1500, 500], [2000]] },
+    { phone: '+77012222222', name: 'Артём', orders: [[500], [1000]] },
+    { phone: '+77013333333', name: 'Данияр', orders: [[3000, 1000, 500]] },
+  ];
+  let dayShift = 20;
+  for (const c of customers) {
+    const u = await prisma.user.create({ data: { phone: c.phone, name: c.name } });
+    for (const grams of c.orders) {
+      const itemsData = grams.map((g, idx) => {
+        const p = sp[idx % sp.length];
+        return { storeProductId: p.id, qtyRequestedG: g, priceSnapTiyn: p.priceTiyn };
+      });
+      const finalTiyn = grams.reduce((s, g, idx) => s + Math.round((sp[idx % sp.length].priceTiyn * g) / 1000), 0);
+      const createdAt = new Date(Date.now() - dayShift * 24 * 60 * 60 * 1000);
+      dayShift -= 2;
+      await prisma.order.create({
+        data: {
+          storeId: store.id,
+          customerId: u.id,
+          status: 'COMPLETED',
+          payMethod: 'CASH',
+          subtotalTiyn: finalTiyn,
+          finalTiyn,
+          createdAt,
+          items: { create: itemsData },
+          events: { create: { to: 'COMPLETED', actor: 'system', at: createdAt } },
+        },
+      });
+    }
+  }
+
+  console.log(`Сид готов: ${CATEGORIES.length} категорий, ${products.length} товаров, демо-магазин /${store.slug}, 3 покупателя с заказами.`);
 }
 
 main()
