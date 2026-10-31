@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -8,11 +10,13 @@ import { CatalogModule } from './modules/catalog.module';
 import { ShopsModule } from './modules/shops.module';
 import { OrderingModule } from './modules/ordering.module';
 import { BillingModule } from './modules/billing.module';
+import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.register({ global: true }),
     PrismaModule,
     RedisModule,
     IdentityModule,
@@ -22,5 +26,6 @@ import { BillingModule } from './modules/billing.module';
     BillingModule,
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
 export class AppModule {}

@@ -101,6 +101,10 @@ async function main() {
     },
   });
 
+  // Владелец магазина (для проверки доступа merchant-эндпоинтов).
+  const owner = await prisma.user.create({ data: { phone: '+77012223344', name: 'Руслан' } });
+  await prisma.storeMember.create({ data: { storeId: store.id, userId: owner.id, role: 'OWNER' } });
+
   console.log(`Сид готов: ${CATEGORIES.length} категорий, ${products.length} товаров, демо-магазин /${store.slug}.`);
 }
 
