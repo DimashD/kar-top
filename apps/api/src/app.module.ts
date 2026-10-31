@@ -7,6 +7,7 @@ import { IdentityModule } from './modules/identity.module';
 import { CatalogModule } from './modules/catalog.module';
 import { ShopsModule } from './modules/shops.module';
 import { OrderingModule } from './modules/ordering.module';
+import { BillingModule } from './modules/billing.module';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
 @Module({
@@ -18,6 +19,7 @@ import { OrderingModule } from './modules/ordering.module';
     CatalogModule,
     ShopsModule,
     OrderingModule,
+    BillingModule,
   ],
   controllers: [HealthController],
 })
