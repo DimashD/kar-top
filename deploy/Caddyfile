@@ -1,0 +1,13 @@
+# Авто-HTTPS (Let's Encrypt). DOMAIN и ACME_EMAIL берутся из окружения.
+{
+    email {$ACME_EMAIL}
+}
+{$DOMAIN} {
+    encode gzip
+    handle /api/* {
+        reverse_proxy api:3000
+    }
+    handle {
+        reverse_proxy web:3001
+    }
+}

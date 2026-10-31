@@ -49,3 +49,22 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## Что осталось по коду до публичного пилота
 Роли и JWT-гварды на merchant/admin эндпоинтах; мерчант/админ API (ассортимент, модерация); каркас веб-витрины на Next.js по макетам (витрина → корзина → оформление → статус); планировщик счетов 1-го числа; outbox + пуши; автотесты (Testcontainers/e2e).
+
+## Развёртывание на VPS PS.KZ (Казахстан)
+
+1. **Заказать на ps.kz:** VPS с Ubuntu 22.04/24.04, минимум **2 vCPU / 4 ГБ RAM / 60 ГБ SSD** (хватает для db+redis+api+web+TLS в Docker на старте; для роста — отдельная БД/кластер).
+2. **Домен** `kar-top.kz`: в DNS создать **A-запись** на IP вашего VPS (и `www` при желании).
+3. На сервере:
+   ```bash
+   ssh root@<IP-вашего-VPS>
+   git clone https://github.com/DimashD/kar-top.git && cd kar-top
+   sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz
+   ```
+   Скрипт сам ставит Docker, генерирует секреты в `.env.prod`, поднимает стек и получает HTTPS-сертификат (Let's Encrypt через Caddy).
+4. Первичный сид демо-магазина (один раз):
+   ```bash
+   docker compose --env-file .env.prod -f docker-compose.prod.yml exec api npx prisma db seed
+   ```
+5. Открыть `https://kar-top.kz/api/health` — должно вернуть `{"status":"ok"}`.
+
+Ключи интеграций (Telegram/SMS/Kaspi) вписываются в `.env.prod` позже — до этого OTP/биллинг работают в dev-режиме, остальной API — полностью.
