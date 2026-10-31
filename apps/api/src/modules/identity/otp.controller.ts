@@ -2,7 +2,9 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { OtpRequestDto, OtpVerifyDto } from './dto';
 import { OtpService } from './otp.service';
 import { AuthService } from './auth.service';
+import { Public } from '../../common/auth/public.decorator';
 
+@Public()
 @Controller('auth/otp')
 export class OtpController {
   constructor(

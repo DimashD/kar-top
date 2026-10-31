@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Unit, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
@@ -68,13 +68,30 @@ export class OrderingService {
     return { ...order, estimatedTiyn: subtotal, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
   }
 
+  /** Проверка, что пользователь — сотрудник магазина заказа (защита от IDOR). */
+  private async authorizeStore(storeId: string, userId: string) {
+    const member = await this.prisma.storeMember.findUnique({
+      where: { storeId_userId: { storeId, userId } },
+      select: { role: true },
+    });
+    if (!member) throw new ForbiddenException('Нет доступа к этому магазину');
+    return member.role;
+  }
+
+  private async orderStoreId(orderId: string): Promise<string> {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { storeId: true } });
+    if (!o) throw new NotFoundException('Заказ не найден');
+    return o.storeId;
+  }
+
   /** Представление заказа для магазина: ПДн клиента скрыты до ACCEPTED (на уровне сервера). */
-  async forMerchant(orderId: string) {
+  async forMerchant(orderId: string, userId: string) {
     const o = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: { customer: true, items: true },
     });
     if (!o) throw new NotFoundException('Заказ не найден');
+    await this.authorizeStore(o.storeId, userId);
 
     const base = {
       number: o.number,
@@ -98,9 +115,10 @@ export class OrderingService {
   }
 
   /** Идемпотентный переход статуса с записью события. Повтор того же статуса — no-op. */
-  async transition(orderId: string, to: OrderStatus, actor: string) {
-    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true } });
+  async transition(orderId: string, to: OrderStatus, actor: string, userId: string) {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, storeId: true } });
     if (!o) throw new NotFoundException('Заказ не найден');
+    await this.authorizeStore(o.storeId, userId);
     if (o.status === to) return { id: o.id, status: to, changed: false };
     if (!canTransition(o.status, to)) {
       throw new BadRequestException(`Недопустимый переход ${o.status} → ${to}`);
@@ -113,15 +131,16 @@ export class OrderingService {
     return { id: orderId, status: to, changed: true };
   }
 
-  accept(id: string) { return this.transition(id, 'ACCEPTED', 'merchant'); }
-  startPicking(id: string) { return this.transition(id, 'PICKING', 'merchant'); }
-  ready(id: string) { return this.transition(id, 'READY', 'merchant'); }
-  delivering(id: string) { return this.transition(id, 'DELIVERING', 'courier'); }
-  delivered(id: string) { return this.transition(id, 'DELIVERED', 'courier'); }
-  cancel(id: string, actor = 'merchant') { return this.transition(id, 'CANCELLED', actor); }
+  accept(id: string, userId: string) { return this.transition(id, 'ACCEPTED', 'merchant', userId); }
+  startPicking(id: string, userId: string) { return this.transition(id, 'PICKING', 'merchant', userId); }
+  ready(id: string, userId: string) { return this.transition(id, 'READY', 'merchant', userId); }
+  delivering(id: string, userId: string) { return this.transition(id, 'DELIVERING', 'courier', userId); }
+  delivered(id: string, userId: string) { return this.transition(id, 'DELIVERED', 'courier', userId); }
+  cancel(id: string, userId: string) { return this.transition(id, 'CANCELLED', 'merchant', userId); }
 
   /** Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог. */
-  async weighItem(orderId: string, itemId: string, qtyActualG: number) {
+  async weighItem(orderId: string, itemId: string, qtyActualG: number, userId: string) {
+    await this.authorizeStore(await this.orderStoreId(orderId), userId);
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, orderId },
       select: { id: true, priceSnapTiyn: true },
@@ -132,7 +151,8 @@ export class OrderingService {
   }
 
   /** Отметить позицию отсутствующей (нет в наличии). */
-  async markMissing(orderId: string, itemId: string) {
+  async markMissing(orderId: string, itemId: string, userId: string) {
+    await this.authorizeStore(await this.orderStoreId(orderId), userId);
     await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId }, data: { status: 'missing' } });
     return this.recalcFinal(orderId);
   }

@@ -2,6 +2,7 @@ import { Body, Controller, Headers, Post, UnauthorizedException } from '@nestjs/
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { BillingService } from './billing.service';
+import { Public } from '../../common/auth/public.decorator';
 
 @Controller('billing')
 export class BillingController {
@@ -11,6 +12,7 @@ export class BillingController {
   ) {}
 
   /** Вебхук Kaspi Pay о статусе оплаты. Подпись запроса обязательно проверяется. */
+  @Public()
   @Post('kaspi/webhook')
   async kaspiWebhook(@Headers('x-kaspi-signature') signature: string, @Body() body: { invoiceId: string; status: string }) {
     const secret = this.config.get<string>('KASPI_API_KEY');

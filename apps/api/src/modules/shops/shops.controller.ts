@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
 import { ShopsService } from './shops.service';
+import { Public } from '../../common/auth/public.decorator';
 
+@Public()
 @Controller('shops')
 export class ShopsController {
   constructor(private readonly shops: ShopsService) {}

@@ -64,7 +64,8 @@ export class OtpService {
       CODE_TTL_SEC,
     );
 
-    const order: OtpChannelName[] = [...new Set([preferred, 'sms', 'whatsapp'] as OtpChannelName[])];
+    // Приоритет: Telegram (бесплатно) → WhatsApp → SMS (платно, последний резерв).
+    const order: OtpChannelName[] = [...new Set([preferred, 'whatsapp', 'sms'] as OtpChannelName[])];
     for (const name of order) {
       try {
         if (await this.channels[name].send(rawPhone, code)) {
