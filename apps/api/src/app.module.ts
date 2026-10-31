@@ -5,6 +5,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { IdentityModule } from './modules/identity.module';
 import { CatalogModule } from './modules/catalog.module';
+import { ShopsModule } from './modules/shops.module';
+import { OrderingModule } from './modules/ordering.module';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
 @Module({
@@ -14,6 +16,8 @@ import { CatalogModule } from './modules/catalog.module';
     RedisModule,
     IdentityModule,
     CatalogModule,
+    ShopsModule,
+    OrderingModule,
   ],
   controllers: [HealthController],
 })
