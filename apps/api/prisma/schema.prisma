@@ -68,13 +68,14 @@ enum InvoiceStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  phone     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  members   StoreMember[]
-  orders    Order[]
-  devices   Device[]
+  id           String   @id @default(uuid())
+  phone        String   @unique
+  name         String?
+  platformRole Role?    // сотрудник платформы (PLATFORM_ADMIN / SUPPORT); null — обычный пользователь
+  createdAt    DateTime @default(now())
+  members      StoreMember[]
+  orders       Order[]
+  devices      Device[]
 }
 
 model Device {
