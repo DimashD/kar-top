@@ -1,0 +1,42 @@
+# Развёртывание для тестирования (staging) одной командой:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# ВАЖНО: для реального прода с ПДн граждан РК размещать в Казахстане (Yandex Cloud kz1).
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: freshmarket
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-freshmarket}
+      POSTGRES_DB: freshmarket
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+  api:
+    build: { context: ./apps/api }
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://freshmarket:${DB_PASSWORD:-freshmarket}@db:5432/freshmarket?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set me}
+      TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      KASPI_MERCHANT_ID: ${KASPI_MERCHANT_ID:-}
+      KASPI_API_KEY: ${KASPI_API_KEY:-}
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+    depends_on: [db, redis]
+    ports: ["3000:3000"]
+    restart: unless-stopped
+  web:
+    build: { context: ./apps/web }
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:3000/api
+    depends_on: [api]
+    ports: ["3001:3001"]
+    restart: unless-stopped
+volumes:
+  pgdata:
