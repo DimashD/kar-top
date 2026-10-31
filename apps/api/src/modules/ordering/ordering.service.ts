@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Unit } from '@prisma/client';
+import { Unit, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
-import { piiVisibleToMerchant } from './order-state';
+import { piiVisibleToMerchant, canTransition } from './order-state';
 
 @Injectable()
 export class OrderingService {
@@ -95,5 +95,62 @@ export class OrderingService {
         address: o.address,
       },
     };
+  }
+
+  /** Идемпотентный переход статуса с записью события. Повтор того же статуса — no-op. */
+  async transition(orderId: string, to: OrderStatus, actor: string) {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true } });
+    if (!o) throw new NotFoundException('Заказ не найден');
+    if (o.status === to) return { id: o.id, status: to, changed: false };
+    if (!canTransition(o.status, to)) {
+      throw new BadRequestException(`Недопустимый переход ${o.status} → ${to}`);
+    }
+    await this.prisma.$transaction([
+      this.prisma.order.update({ where: { id: orderId }, data: { status: to } }),
+      this.prisma.orderEvent.create({ data: { orderId, from: o.status, to, actor } }),
+    ]);
+    // TODO: событие в outbox → пуш покупателю/магазину.
+    return { id: orderId, status: to, changed: true };
+  }
+
+  accept(id: string) { return this.transition(id, 'ACCEPTED', 'merchant'); }
+  startPicking(id: string) { return this.transition(id, 'PICKING', 'merchant'); }
+  ready(id: string) { return this.transition(id, 'READY', 'merchant'); }
+  delivering(id: string) { return this.transition(id, 'DELIVERING', 'courier'); }
+  delivered(id: string) { return this.transition(id, 'DELIVERED', 'courier'); }
+  cancel(id: string, actor = 'merchant') { return this.transition(id, 'CANCELLED', actor); }
+
+  /** Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог. */
+  async weighItem(orderId: string, itemId: string, qtyActualG: number) {
+    const item = await this.prisma.orderItem.findFirst({
+      where: { id: itemId, orderId },
+      select: { id: true, priceSnapTiyn: true },
+    });
+    if (!item) throw new NotFoundException('Позиция не найдена');
+    await this.prisma.orderItem.update({ where: { id: itemId }, data: { qtyActualG, status: 'ok' } });
+    return this.recalcFinal(orderId);
+  }
+
+  /** Отметить позицию отсутствующей (нет в наличии). */
+  async markMissing(orderId: string, itemId: string) {
+    await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId }, data: { status: 'missing' } });
+    return this.recalcFinal(orderId);
+  }
+
+  /** Пересчёт итоговой суммы по фактическим весам/статусам позиций. */
+  private async recalcFinal(orderId: string) {
+    const items = await this.prisma.orderItem.findMany({
+      where: { orderId },
+      select: { qtyActualG: true, qtyRequested: true, qtyRequestedG: true, priceSnapTiyn: true, status: true },
+    });
+    let final = 0;
+    for (const it of items) {
+      if (it.status === 'missing') continue;
+      if (it.qtyActualG != null) final += Math.round((it.priceSnapTiyn * it.qtyActualG) / 1000);
+      else if (it.qtyRequestedG != null) final += Math.round((it.priceSnapTiyn * it.qtyRequestedG) / 1000);
+      else if (it.qtyRequested != null) final += it.priceSnapTiyn * it.qtyRequested;
+    }
+    await this.prisma.order.update({ where: { id: orderId }, data: { finalTiyn: final } });
+    return { orderId, finalTiyn: final };
   }
 }
