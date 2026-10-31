@@ -31,18 +31,19 @@ async function main() {
     byKey[c.key] = created.id;
   }
 
-  // Демо мастер-товары (для разработки витрины).
+  // Демо мастер-товары (для разработки витрины). priceTiyn — цена в тиынах для демо-магазина.
   const products = [
-    { cat: 'fruits', ru: 'Яблоки Апорт', unit: Unit.KG, stepG: 500, avgPieceG: 220 },
-    { cat: 'fruits', ru: 'Хурма Королёк', unit: Unit.KG, stepG: 500, avgPieceG: 280 },
-    { cat: 'vegetables', ru: 'Помидоры розовые', unit: Unit.KG, stepG: 500 },
-    { cat: 'greens', ru: 'Укроп', unit: Unit.BUNCH },
-    { cat: 'meat', ru: 'Говядина (мякоть)', unit: Unit.KG, stepG: 500, perishable: true, storage: 'хранить при 0…+4 °C' },
-    { cat: 'dairy', ru: 'Сулугуни', unit: Unit.KG, stepG: 250, perishable: true, storage: 'хранить при +2…+6 °C' },
-    { cat: 'korean_salads', ru: 'Морковь по-корейски', unit: Unit.KG, stepG: 250, perishable: true },
+    { cat: 'fruits', ru: 'Яблоки Апорт', unit: Unit.KG, stepG: 500, avgPieceG: 220, priceTiyn: 89000 },
+    { cat: 'fruits', ru: 'Хурма Королёк', unit: Unit.KG, stepG: 500, avgPieceG: 280, priceTiyn: 129000 },
+    { cat: 'vegetables', ru: 'Помидоры розовые', unit: Unit.KG, stepG: 500, priceTiyn: 119000 },
+    { cat: 'greens', ru: 'Укроп', unit: Unit.BUNCH, priceTiyn: 25000 },
+    { cat: 'meat', ru: 'Говядина (мякоть)', unit: Unit.KG, stepG: 500, perishable: true, storage: 'хранить при 0…+4 °C', priceTiyn: 320000 },
+    { cat: 'dairy', ru: 'Сулугуни', unit: Unit.KG, stepG: 250, perishable: true, storage: 'хранить при +2…+6 °C', priceTiyn: 290000 },
+    { cat: 'korean_salads', ru: 'Морковь по-корейски', unit: Unit.KG, stepG: 250, perishable: true, priceTiyn: 90000 },
   ];
+  const masterByName: Record<string, { id: string; priceTiyn: number }> = {};
   for (const p of products) {
-    await prisma.masterProduct.create({
+    const mp = await prisma.masterProduct.create({
       data: {
         categoryId: byKey[p.cat],
         name: { ru: p.ru, kk: p.ru, en: p.ru },
@@ -53,9 +54,54 @@ async function main() {
         storage: p.storage ?? null,
       },
     });
+    masterByName[p.ru] = { id: mp.id, priceTiyn: p.priceTiyn };
   }
 
-  console.log(`Сид готов: ${CATEGORIES.length} категорий, ${products.length} товаров.`);
+  // Демо-магазин для сквозного теста: активен, со своими ценами, зоной и подпиской.
+  const store = await prisma.store.create({
+    data: {
+      slug: 'ruslan-fruits',
+      name: 'Фрукты у Руслана',
+      status: 'ACTIVE',
+      phone: '+77012223344',
+      kaspiPhone: '+77012223344',
+      address: 'Алматы, Зелёный базар',
+      deliveryMode: 'OWN',
+      rating: 4.9,
+      geom: { type: 'Point', coordinates: [76.9535, 43.2602] }, // Алматы, центр
+    },
+  });
+  for (const ru of Object.keys(masterByName)) {
+    await prisma.storeProduct.create({
+      data: {
+        storeId: store.id,
+        masterProductId: masterByName[ru].id,
+        priceTiyn: masterByName[ru].priceTiyn,
+        inStock: true,
+      },
+    });
+  }
+  // Зона доставки вокруг центра Алматы (GeoJSON-полигон).
+  await prisma.deliveryZone.create({
+    data: {
+      storeId: store.id,
+      polygon: { rings: [[[76.90, 43.23], [77.00, 43.23], [77.00, 43.29], [76.90, 43.29], [76.90, 43.23]]] },
+      feeTiyn: 50000,
+      minOrderTiyn: 300000,
+      freeFromTiyn: 1000000,
+    },
+  });
+  await prisma.subscription.create({
+    data: {
+      storeId: store.id,
+      plan: 'pro',
+      priceTiyn: 1490000,
+      status: 'active',
+      nextInvoiceAt: new Date(),
+    },
+  });
+
+  console.log(`Сид готов: ${CATEGORIES.length} категорий, ${products.length} товаров, демо-магазин /${store.slug}.`);
 }
 
 main()
