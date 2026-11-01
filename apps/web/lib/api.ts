@@ -16,7 +16,10 @@ export interface CatalogProduct {
 }
 export interface CatalogCategory { category: { ru: string }; items: CatalogProduct[] }
 export interface Catalog {
-  store: { id: string; slug: string; name: string; rating: number; address: string | null; deliveryMode: string };
+  store: {
+    id: string; slug: string; name: string; rating: number; address: string | null;
+    deliveryMode: string; pickupEnabled: boolean; pickupLeadMinutes: number;
+  };
   categories: CatalogCategory[];
 }
 
@@ -42,8 +45,10 @@ export interface OrderTrack {
   number: number;
   status: OrderStatus;
   createdAt: string;
-  store: { name: string; slug: string };
+  store: { name: string; slug: string; address: string | null };
   payMethod: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
+  fulfillment: 'DELIVERY' | 'PICKUP';
+  pickupAt: string | null;
   estimatedTiyn: number;
   finalTiyn: number | null;
   itemCount: number;
