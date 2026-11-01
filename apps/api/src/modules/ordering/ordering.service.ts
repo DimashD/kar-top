@@ -120,6 +120,45 @@ export class OrderingService {
     return o.storeId;
   }
 
+  /** Список заказов магазина (для приложения магазина). ПДн не раскрываются в списке. */
+  async listForStore(storeId: string, userId: string, status?: OrderStatus, limit = 100) {
+    await this.authorizeStore(storeId, userId);
+    const orders = await this.prisma.order.findMany({
+      where: { storeId, ...(status ? { status } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true, number: true, status: true, createdAt: true,
+        subtotalTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, pickupAt: true,
+        _count: { select: { items: true } },
+      },
+    });
+    return orders.map((o) => ({
+      id: o.id, number: o.number, status: o.status, createdAt: o.createdAt,
+      amountTiyn: o.finalTiyn ?? o.subtotalTiyn, payMethod: o.payMethod,
+      fulfillment: o.fulfillment, pickupAt: o.pickupAt, itemCount: o._count.items,
+    }));
+  }
+
+  /** Названия товаров позиций заказа (OrderItem хранит storeProductId без relation). */
+  private async itemsWithNames(items: { id: string; storeProductId: string; qtyRequestedG: number | null; qtyRequested: number | null; qtyActualG: number | null; priceSnapTiyn: number; status: string }[]) {
+    const sps = await this.prisma.storeProduct.findMany({
+      where: { id: { in: items.map((i) => i.storeProductId) } },
+      select: { id: true, master: { select: { name: true, unit: true } } },
+    });
+    const m = new Map(sps.map((s) => [s.id, s.master]));
+    return items.map((i) => ({
+      id: i.id,
+      name: (m.get(i.storeProductId)?.name as any)?.ru ?? 'Товар',
+      unit: m.get(i.storeProductId)?.unit ?? 'PCS',
+      qtyRequestedG: i.qtyRequestedG,
+      qtyRequested: i.qtyRequested,
+      qtyActualG: i.qtyActualG,
+      priceSnapTiyn: i.priceSnapTiyn,
+      status: i.status,
+    }));
+  }
+
   /** Представление заказа для магазина: ПДн клиента скрыты до ACCEPTED (на уровне сервера). */
   async forMerchant(orderId: string, userId: string) {
     const o = await this.prisma.order.findUnique({
@@ -130,11 +169,16 @@ export class OrderingService {
     await this.authorizeStore(o.storeId, userId);
 
     const base = {
+      id: o.id,
       number: o.number,
       status: o.status,
       subtotalTiyn: o.subtotalTiyn,
+      finalTiyn: o.finalTiyn,
       payMethod: o.payMethod,
+      fulfillment: o.fulfillment,
+      pickupAt: o.pickupAt,
       itemCount: o.items.length,
+      items: await this.itemsWithNames(o.items), // позиции — не ПДн, нужны для сборки
     };
     if (!piiVisibleToMerchant(o.status)) {
       // до принятия — только район/зона, без имени, телефона и точного адреса

@@ -1,0 +1,164 @@
+/// Модели данных приложения магазина. Деньги — в тиынах, вес — в граммах.
+library;
+
+class StoreSummary {
+  final String id;
+  final String slug;
+  final String name;
+  final String status;
+  final String myRole;
+  StoreSummary({required this.id, required this.slug, required this.name, required this.status, required this.myRole});
+  factory StoreSummary.fromJson(Map<String, dynamic> j) => StoreSummary(
+        id: j['id'] as String,
+        slug: j['slug'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        status: j['status'] as String? ?? '',
+        myRole: j['myRole'] as String? ?? '',
+      );
+}
+
+class StoreSettings {
+  bool pickupEnabled;
+  int pickupLeadMinutes;
+  String deliveryMode;
+  StoreSettings({required this.pickupEnabled, required this.pickupLeadMinutes, required this.deliveryMode});
+  factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
+        pickupEnabled: j['pickupEnabled'] as bool? ?? true,
+        pickupLeadMinutes: (j['pickupLeadMinutes'] as num?)?.toInt() ?? 60,
+        deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
+      );
+}
+
+class OrderSummary {
+  final String id;
+  final int number;
+  final String status;
+  final DateTime createdAt;
+  final int amountTiyn;
+  final String payMethod;
+  final String fulfillment;
+  final DateTime? pickupAt;
+  final int itemCount;
+  OrderSummary({
+    required this.id,
+    required this.number,
+    required this.status,
+    required this.createdAt,
+    required this.amountTiyn,
+    required this.payMethod,
+    required this.fulfillment,
+    required this.pickupAt,
+    required this.itemCount,
+  });
+  factory OrderSummary.fromJson(Map<String, dynamic> j) => OrderSummary(
+        id: j['id'] as String,
+        number: (j['number'] as num).toInt(),
+        status: j['status'] as String,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+        amountTiyn: (j['amountTiyn'] as num?)?.toInt() ?? 0,
+        payMethod: j['payMethod'] as String? ?? 'CASH',
+        fulfillment: j['fulfillment'] as String? ?? 'DELIVERY',
+        pickupAt: j['pickupAt'] != null ? DateTime.parse(j['pickupAt'] as String) : null,
+        itemCount: (j['itemCount'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class OrderItem {
+  final String id;
+  final String name;
+  final String unit;
+  final int? qtyRequestedG;
+  final int? qtyRequested;
+  final int? qtyActualG;
+  final int priceSnapTiyn;
+  final String status;
+  OrderItem({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.qtyRequestedG,
+    required this.qtyRequested,
+    required this.qtyActualG,
+    required this.priceSnapTiyn,
+    required this.status,
+  });
+  bool get weighted => unit == 'KG' || unit == 'G';
+  factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? 'Товар',
+        unit: j['unit'] as String? ?? 'PCS',
+        qtyRequestedG: (j['qtyRequestedG'] as num?)?.toInt(),
+        qtyRequested: (j['qtyRequested'] as num?)?.toInt(),
+        qtyActualG: (j['qtyActualG'] as num?)?.toInt(),
+        priceSnapTiyn: (j['priceSnapTiyn'] as num?)?.toInt() ?? 0,
+        status: j['status'] as String? ?? 'ok',
+      );
+}
+
+class OrderDetail {
+  final String id;
+  final int number;
+  final String status;
+  final int subtotalTiyn;
+  final int? finalTiyn;
+  final String payMethod;
+  final String fulfillment;
+  final DateTime? pickupAt;
+  final List<OrderItem> items;
+  final String? customerName;
+  final String? customerPhone;
+  final String? addressLine;
+  OrderDetail({
+    required this.id,
+    required this.number,
+    required this.status,
+    required this.subtotalTiyn,
+    required this.finalTiyn,
+    required this.payMethod,
+    required this.fulfillment,
+    required this.pickupAt,
+    required this.items,
+    required this.customerName,
+    required this.customerPhone,
+    required this.addressLine,
+  });
+  bool get piiVisible => customerPhone != null;
+  factory OrderDetail.fromJson(Map<String, dynamic> j) {
+    final pii = j['pii'] as Map<String, dynamic>?;
+    final addr = pii?['address'] as Map<String, dynamic>?;
+    return OrderDetail(
+      id: j['id'] as String,
+      number: (j['number'] as num).toInt(),
+      status: j['status'] as String,
+      subtotalTiyn: (j['subtotalTiyn'] as num?)?.toInt() ?? 0,
+      finalTiyn: (j['finalTiyn'] as num?)?.toInt(),
+      payMethod: j['payMethod'] as String? ?? 'CASH',
+      fulfillment: j['fulfillment'] as String? ?? 'DELIVERY',
+      pickupAt: j['pickupAt'] != null ? DateTime.parse(j['pickupAt'] as String) : null,
+      items: ((j['items'] as List?) ?? []).map((e) => OrderItem.fromJson(e as Map<String, dynamic>)).toList(),
+      customerName: pii?['name'] as String?,
+      customerPhone: pii?['phone'] as String?,
+      addressLine: addr?['line'] as String?,
+    );
+  }
+}
+
+class CatalogItem {
+  final String id;
+  final String name;
+  final String unit;
+  int priceTiyn;
+  bool inStock;
+  CatalogItem({required this.id, required this.name, required this.unit, required this.priceTiyn, required this.inStock});
+  factory CatalogItem.fromJson(Map<String, dynamic> j) {
+    final master = j['master'] as Map<String, dynamic>?;
+    final name = master?['name'] as Map<String, dynamic>?;
+    return CatalogItem(
+      id: j['id'] as String,
+      name: name?['ru'] as String? ?? 'Товар',
+      unit: master?['unit'] as String? ?? 'PCS',
+      priceTiyn: (j['priceTiyn'] as num?)?.toInt() ?? 0,
+      inStock: j['inStock'] as bool? ?? true,
+    );
+  }
+}

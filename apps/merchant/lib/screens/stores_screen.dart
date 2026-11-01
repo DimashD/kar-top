@@ -1,0 +1,70 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models.dart';
+import '../session.dart';
+import '../theme.dart';
+import 'home_screen.dart';
+
+class StoresScreen extends StatefulWidget {
+  const StoresScreen({super.key});
+  @override
+  State<StoresScreen> createState() => _StoresScreenState();
+}
+
+class _StoresScreenState extends State<StoresScreen> {
+  late Future<List<StoreSummary>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = context.read<Session>().api.myStores();
+  }
+
+  void _open(StoreSummary s) {
+    context.read<Session>().selectStore(s);
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Мои магазины'),
+        actions: [IconButton(onPressed: () => context.read<Session>().logout(), icon: const Icon(Icons.logout))],
+      ),
+      body: FutureBuilder<List<StoreSummary>>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('${snap.error}', style: const TextStyle(color: AppColors.sale))));
+          }
+          final stores = snap.data ?? [];
+          if (stores.isEmpty) {
+            return const Center(child: Text('Вы пока не привязаны к магазину', style: TextStyle(color: AppColors.ink60)));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: stores.length,
+            itemBuilder: (context, i) {
+              final s = stores[i];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: const CircleAvatar(backgroundColor: AppColors.carrot50, child: Text('🏪')),
+                  title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text('${s.status} · ${s.myRole}', style: const TextStyle(color: AppColors.ink40)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _open(s),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}

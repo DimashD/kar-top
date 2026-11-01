@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { OrderStatus } from '@prisma/client';
 import { OrderingService } from './ordering.service';
 import { CreateOrderDto } from './dto';
 import { Public } from '../../common/auth/public.decorator';
@@ -23,6 +24,11 @@ export class OrderingController {
   }
 
   // --- Магазин (требует access-токен + членство в магазине заказа) ---
+  @Get('merchant/stores/:storeId/orders')
+  listForStore(@Param('storeId') storeId: string, @Query('status') status: OrderStatus | undefined, @CurrentUser() user: RequestUser) {
+    return this.ordering.listForStore(storeId, user.userId, status);
+  }
+
   @Get('merchant/orders/:id')
   forMerchant(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.ordering.forMerchant(id, user.userId);
