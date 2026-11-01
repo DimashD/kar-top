@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type CustomerSort = 'spend' | 'orders' | 'recent';
@@ -86,5 +86,86 @@ export class AdminAnalyticsService {
       .slice(0, limit);
 
     return { rows };
+  }
+
+  /** Заказы конкретного покупателя (для провала из аналитики клиента). */
+  async customerOrders(customerId: string, limit = 100) {
+    const customer = await this.prisma.user.findUnique({
+      where: { id: customerId },
+      select: { id: true, name: true, phone: true },
+    });
+    const orders = await this.prisma.order.findMany({
+      where: { customerId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true, number: true, status: true, createdAt: true,
+        finalTiyn: true, subtotalTiyn: true, payMethod: true,
+        store: { select: { name: true, slug: true } },
+        _count: { select: { items: true } },
+      },
+    });
+    return { customer, orders: orders.map(this.mapOrderRow) };
+  }
+
+  /** Заказы конкретного магазина (для провала из аналитики магазина). */
+  async storeOrders(storeId: string, limit = 100) {
+    const store = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { id: true, name: true, slug: true },
+    });
+    const orders = await this.prisma.order.findMany({
+      where: { storeId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true, number: true, status: true, createdAt: true,
+        finalTiyn: true, subtotalTiyn: true, payMethod: true,
+        customer: { select: { name: true, phone: true } },
+        _count: { select: { items: true } },
+      },
+    });
+    return { store, orders: orders.map(this.mapOrderRow) };
+  }
+
+  /** Карточка заказа для админа: позиции, события, стороны. */
+  async orderDetail(orderId: string) {
+    const o = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        store: { select: { name: true, slug: true } },
+        customer: { select: { name: true, phone: true } },
+        events: { orderBy: { at: 'asc' } },
+        items: {
+          select: {
+            id: true, storeProductId: true, qtyRequestedG: true, qtyRequested: true,
+            qtyActualG: true, priceSnapTiyn: true, status: true,
+          },
+        },
+      },
+    });
+    if (!o) throw new NotFoundException('Заказ не найден');
+
+    // Имена товаров подтягиваем отдельно (OrderItem хранит storeProductId без relation).
+    const sps = await this.prisma.storeProduct.findMany({
+      where: { id: { in: o.items.map((i) => i.storeProductId) } },
+      select: { id: true, master: { select: { name: true, unit: true } } },
+    });
+    const prod = new Map(sps.map((s) => [s.id, s.master]));
+    return { ...o, items: o.items.map((i) => ({ ...i, product: prod.get(i.storeProductId) ?? null })) };
+  }
+
+  private mapOrderRow(o: any) {
+    return {
+      id: o.id,
+      number: o.number,
+      status: o.status,
+      createdAt: o.createdAt,
+      amountTiyn: o.finalTiyn ?? o.subtotalTiyn,
+      payMethod: o.payMethod,
+      itemCount: o._count?.items ?? null,
+      store: o.store ?? undefined,
+      customer: o.customer ?? undefined,
+    };
   }
 }

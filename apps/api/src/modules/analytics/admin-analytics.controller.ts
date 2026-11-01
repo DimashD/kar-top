@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminAnalyticsService } from './admin-analytics.service';
 import { AdminGuard } from '../../common/auth/admin.guard';
 
@@ -18,5 +18,23 @@ export class AdminAnalyticsController {
   @Get('analytics/stores')
   stores(@Query('limit') limit?: string) {
     return this.analytics.stores(limit ? Number(limit) : 100);
+  }
+
+  /** Провал в заказы покупателя из аналитики клиента. */
+  @Get('customers/:id/orders')
+  customerOrders(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.analytics.customerOrders(id, limit ? Number(limit) : 100);
+  }
+
+  /** Провал в заказы магазина из аналитики магазина. */
+  @Get('stores/:id/orders')
+  storeOrders(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.analytics.storeOrders(id, limit ? Number(limit) : 100);
+  }
+
+  /** Карточка заказа (позиции, события). */
+  @Get('orders/:id')
+  orderDetail(@Param('id') id: string) {
+    return this.analytics.orderDetail(id);
   }
 }
