@@ -59,6 +59,11 @@ enum PayMethod {
   KASPI_TRANSFER
 }
 
+enum Fulfillment {
+  DELIVERY
+  PICKUP
+}
+
 enum InvoiceStatus {
   DRAFT
   ISSUED
@@ -161,6 +166,9 @@ model Store {
   address   String?
   geom      Json?       // точка магазина
   deliveryMode DeliveryMode @default(OWN)
+  // Самовывоз: клиент забирает сам. pickupLeadMinutes — минимум времени от оформления до готовности к выдаче.
+  pickupEnabled     Boolean @default(true)
+  pickupLeadMinutes Int     @default(60)
   rating    Float    @default(0)
   settings  Json?
   createdAt DateTime @default(now())
@@ -213,6 +221,9 @@ model Order {
   // Код подтверждения получения: покупатель называет его курьеру при передаче заказа.
   // Магазину код не показываем — он только сверяет названный (защита-«страховка»).
   deliveryCode  String?
+  // Способ получения: доставка или самовывоз. pickupAt — выбранное время самовывоза.
+  fulfillment   Fulfillment @default(DELIVERY)
+  pickupAt      DateTime?
   // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
   address       Json?
   payMethod     PayMethod @default(CASH)

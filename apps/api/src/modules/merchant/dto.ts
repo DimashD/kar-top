@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class AddProductDto {
   @IsString() masterProductId!: string;
@@ -12,4 +12,11 @@ export class UpdateProductDto {
   // null разрешён — убрать старую (зачёркнутую) цену.
   @IsOptional() @IsInt() oldPriceTiyn?: number | null;
   @IsOptional() @IsBoolean() inStock?: boolean;
+}
+
+export class StoreSettingsDto {
+  @IsOptional() @IsBoolean() pickupEnabled?: boolean;
+  // Минимум времени от оформления до готовности к самовывозу (минуты).
+  @IsOptional() @IsInt() @Min(0) pickupLeadMinutes?: number;
+  @IsOptional() @IsIn(['OWN', 'SERVICE', 'BOTH']) deliveryMode?: 'OWN' | 'SERVICE' | 'BOTH';
 }

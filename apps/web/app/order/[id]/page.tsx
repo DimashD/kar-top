@@ -58,7 +58,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center', borderColor: 'var(--carrot)', background: 'var(--carrot-50)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--carrot-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Код получения</div>
             <div style={{ fontSize: 44, fontWeight: 900, letterSpacing: '0.2em', color: 'var(--ink)', margin: '6px 0' }}>{o.deliveryCode}</div>
-            <div className="muted" style={{ fontSize: 14 }}>Назовите этот код курьеру при получении заказа — так подтверждается, что заказ у вас на руках.</div>
+            <div className="muted" style={{ fontSize: 14 }}>Назовите этот код {o.fulfillment === 'PICKUP' ? 'сотруднику магазина' : 'курьеру'} при получении заказа — так подтверждается, что заказ у вас на руках.</div>
           </div>
         ) : null}
 
@@ -71,18 +71,32 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           <div className="card" style={{ padding: '8px 20px', marginBottom: 20 }}>
             {STEPS.map((s, i) => {
               const st = stepState(s.key, o.status);
+              const label = o.fulfillment === 'PICKUP'
+                ? (s.label === 'В пути' ? 'Готов к выдаче' : s.label === 'Доставлен' ? 'Выдан' : s.label)
+                : s.label;
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < STEPS.length - 1 ? '1px solid var(--line)' : 'none', opacity: st === 'todo' ? 0.45 : 1 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: st === 'done' ? 'var(--leaf-50)' : st === 'active' ? 'var(--carrot-50)' : '#F1EAE4' }}>
                     {st === 'done' ? '✓' : s.icon}
                   </div>
-                  <div style={{ fontWeight: st === 'active' ? 800 : 600 }}>{s.label}</div>
+                  <div style={{ fontWeight: st === 'active' ? 800 : 600 }}>{label}</div>
                   {st === 'active' ? <span className="badge badge-leaf" style={{ marginLeft: 'auto' }}>сейчас</span> : null}
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Способ получения */}
+        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+          <Row label="Способ получения" value={o.fulfillment === 'PICKUP' ? 'Самовывоз' : 'Доставка'} />
+          {o.fulfillment === 'PICKUP' ? (
+            <>
+              {o.pickupAt ? <Row label="Время самовывоза" value={new Date(o.pickupAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} /> : null}
+              {o.store.address ? <Row label="Адрес магазина" value={o.store.address} /> : null}
+            </>
+          ) : null}
+        </div>
 
         {/* Сумма */}
         <div className="card" style={{ padding: 20 }}>

@@ -19,6 +19,12 @@ export const TEMPLATES: Record<string, NotifTemplate> = {
     loud: true,
     critical: true,
   },
+  'order.placed_customer': {
+    audience: 'customer',
+    title: 'Заказ оформлен',
+    body: (p) => `Заказ №${p.number} принят. Код получения: ${p.code}. Отслеживайте: ${p.trackUrl}`,
+    critical: true,
+  },
   'order.accepted': {
     audience: 'customer',
     title: 'Магазин принял заказ',

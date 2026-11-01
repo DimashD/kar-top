@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoreAccess } from '../../common/auth/store-access.service';
-import { AddProductDto, UpdateProductDto } from './dto';
+import { AddProductDto, UpdateProductDto, StoreSettingsDto } from './dto';
 
 // Роли, которым разрешено управлять ассортиментом.
 const CATALOG_ROLES: Role[] = [Role.OWNER, Role.MANAGER];
@@ -21,6 +21,32 @@ export class MerchantService {
       select: { role: true, store: { select: { id: true, slug: true, name: true, status: true } } },
     });
     return members.map((m) => ({ ...m.store, myRole: m.role }));
+  }
+
+  /** Настройки магазина (самовывоз, лид-тайм, режим доставки) — для приложения магазина. */
+  async getSettings(storeId: string, userId: string) {
+    await this.access.assertMember(storeId, userId);
+    const s = await this.prisma.store.findUnique({
+      where: { id: storeId },
+      select: { id: true, name: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true },
+    });
+    if (!s) throw new NotFoundException('Магазин не найден');
+    return s;
+  }
+
+  /** Изменить настройки доставки/самовывоза. Только OWNER/MANAGER. */
+  async updateSettings(storeId: string, userId: string, dto: StoreSettingsDto) {
+    await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    const s = await this.prisma.store.update({
+      where: { id: storeId },
+      data: {
+        ...(dto.pickupEnabled != null ? { pickupEnabled: dto.pickupEnabled } : {}),
+        ...(dto.pickupLeadMinutes != null ? { pickupLeadMinutes: dto.pickupLeadMinutes } : {}),
+        ...(dto.deliveryMode != null ? { deliveryMode: dto.deliveryMode } : {}),
+      },
+      select: { id: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true },
+    });
+    return s;
   }
 
   /** Полный ассортимент магазина (включая снятые с продажи) — только для сотрудников. */

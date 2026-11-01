@@ -17,9 +17,25 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
+
+    // Способ получения: доставка (по умолчанию) или самовывоз.
+    const fulfillment = dto.fulfillment ?? 'DELIVERY';
+    let pickupAt: Date | null = null;
+    if (fulfillment === 'PICKUP') {
+      if (!store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
+      // Небольшой допуск (1 мин): UI считает «раньше всего» в минутах, учитываем дрейф секунд.
+      const earliest = Date.now() + store.pickupLeadMinutes * 60_000 - 60_000;
+      if (dto.pickupAt) {
+        pickupAt = new Date(dto.pickupAt);
+        if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время самовывоза');
+        if (pickupAt.getTime() < earliest) {
+          throw new BadRequestException(`Самовывоз возможен не ранее чем через ${store.pickupLeadMinutes} мин после оформления`);
+        }
+      }
+    }
 
     const ids = dto.items.map((i) => i.storeProductId);
     const sps = await this.prisma.storeProduct.findMany({
@@ -62,21 +78,30 @@ export class OrderingService {
         customerId: user.id,
         status: 'PLACED',
         deliveryCode: this.genDeliveryCode(),
-        address: dto.address ? (dto.address as object) : undefined,
+        fulfillment,
+        pickupAt,
+        address: fulfillment === 'DELIVERY' && dto.address ? (dto.address as object) : undefined,
         payMethod: dto.payMethod,
         subtotalTiyn: subtotal,
         items: { create: itemsData },
         events: { create: { to: 'PLACED', actor: 'customer' } },
       },
-      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true },
+      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true, fulfillment: true, pickupAt: true },
     });
 
-    // Уведомление магазину о новом заказе (звук + пуш).
-    await this.prisma.outboxEvent.create({
-      data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number } },
-    });
+    const trackUrl = `${(process.env.WEB_BASE_URL || 'https://kartop.kz').replace(/\/$/, '')}/order/${order.id}`;
+    await this.prisma.$transaction([
+      // Магазину — новый заказ (звук + пуш).
+      this.prisma.outboxEvent.create({
+        data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, fulfillment } },
+      }),
+      // Покупателю — подтверждение со ссылкой-трекингом и кодом получения.
+      this.prisma.outboxEvent.create({
+        data: { type: 'order.placed_customer', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, code: order.deliveryCode, trackUrl } },
+      }),
+    ]);
 
-    return { ...order, estimatedTiyn: subtotal, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
+    return { ...order, estimatedTiyn: subtotal, trackUrl, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
   }
 
   /** Проверка, что пользователь — сотрудник магазина заказа (защита от IDOR). */
@@ -184,7 +209,8 @@ export class OrderingService {
       select: {
         id: true, number: true, status: true, createdAt: true,
         subtotalTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
-        store: { select: { name: true, slug: true } },
+        fulfillment: true, pickupAt: true,
+        store: { select: { name: true, slug: true, address: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
         items: { select: { status: true } },
       },
@@ -198,6 +224,8 @@ export class OrderingService {
       createdAt: o.createdAt,
       store: o.store,
       payMethod: o.payMethod,
+      fulfillment: o.fulfillment,
+      pickupAt: o.pickupAt,
       estimatedTiyn: o.subtotalTiyn,
       finalTiyn: o.finalTiyn,
       itemCount: o.items.length,

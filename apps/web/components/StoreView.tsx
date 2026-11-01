@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, grams } from '../lib/format';
+import { categoryStyle } from '../lib/category';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -55,7 +56,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
             <h2 style={{ fontSize: 20, marginBottom: 14 }}>{cat.category.ru}</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
               {cat.items.map((p) => (
-                <ProductCard key={p.id} p={p} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onDec={() => dec(p)} />
+                <ProductCard key={p.id} p={p} cat={cat.category.ru} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onDec={() => dec(p)} />
               ))}
             </div>
           </section>
@@ -73,6 +74,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
       {open && (
         <CheckoutDrawer
           slug={slug}
+          store={catalog.store}
           lines={lines}
           subtotal={subtotal}
           onClose={() => setOpen(false)}
@@ -104,14 +106,20 @@ function Header({ name, rating, address }: { name: string; rating: number; addre
   );
 }
 
-function ProductCard({ p, qty, onAdd, onDec }: { p: CatalogProduct; qty: number; onAdd: () => void; onDec: () => void }) {
+function ProductCard({ p, cat, qty, onAdd, onDec }: { p: CatalogProduct; cat: string; qty: number; onAdd: () => void; onDec: () => void }) {
   const sale = p.oldPriceTiyn && p.oldPriceTiyn > p.priceTiyn;
+  const cs = categoryStyle(cat);
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="photo-ph" style={{ position: 'relative', padding: 0 }}>
+      <div className="photo-ph" style={{ position: 'relative', padding: 0, background: p.photo ? undefined : `linear-gradient(135deg, ${cs.from}, ${cs.to})` }}>
         {p.photo ? (
           <img src={p.photo} alt={p.name.ru} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : '🧺'}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 12, textAlign: 'center' }}>
+            <span style={{ fontSize: 44, lineHeight: 1 }}>{cs.emoji}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: cs.ink, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{cat}</span>
+          </div>
+        )}
         {sale ? <span className="badge badge-sale" style={{ position: 'absolute', top: 8, left: 8 }}>Акция</span> : null}
         {p.perishable ? <span className="badge badge-leaf" style={{ position: 'absolute', top: 8, right: 8 }}>Свежее</span> : null}
       </div>
@@ -141,19 +149,30 @@ function ProductCard({ p, qty, onAdd, onDec }: { p: CatalogProduct; qty: number;
 }
 
 function CheckoutDrawer(props: {
-  slug: string; lines: Line[]; subtotal: number;
+  slug: string; store: Catalog['store']; lines: Line[]; subtotal: number;
   onClose: () => void; onInc: (p: CatalogProduct) => void; onDec: (p: CatalogProduct) => void;
   onDone: (r: { id: string; number: number; estimatedTiyn: number; deliveryCode?: string }) => void;
 }) {
-  const { slug, lines, subtotal, onClose, onInc, onDec, onDone } = props;
+  const { slug, store, lines, subtotal, onClose, onInc, onDec, onDone } = props;
+  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [phone, setPhone] = useState('+7');
   const [line, setLine] = useState('');
+  const [pickupAt, setPickupAt] = useState('');
   const [pay, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Самое раннее время самовывоза = сейчас + лид-тайм магазина (для <input type=datetime-local>, локальное).
+  const earliest = useMemo(() => {
+    const d = new Date(Date.now() + (store.pickupLeadMinutes ?? 60) * 60000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }, [store.pickupLeadMinutes]);
+
   const phoneOk = /^\+7\d{10}$/.test(phone);
-  const canSubmit = lines.length > 0 && phoneOk && line.trim().length >= 5 && !busy;
+  const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
+  const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
+  const canSubmit = lines.length > 0 && phoneOk && addrOk && pickupOk && !busy;
 
   async function submit() {
     setErr(null); setBusy(true);
@@ -161,10 +180,13 @@ function CheckoutDrawer(props: {
       const items = lines.map((l) => isWeighted(l.product.unit)
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
+      const body: any = { storeSlug: slug, phone, payMethod: pay, fulfillment: mode, items };
+      if (mode === 'DELIVERY') body.address = { line: line.trim() };
+      else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ storeSlug: slug, phone, payMethod: pay, address: { line: line.trim() }, items }),
+        body: JSON.stringify(body),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || 'Ошибка оформления'));
@@ -200,12 +222,31 @@ function CheckoutDrawer(props: {
         </div>
 
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Способ получения */}
+          <Field label="Способ получения">
+            <div style={{ display: 'grid', gridTemplateColumns: store.pickupEnabled ? '1fr 1fr' : '1fr', gap: 8 }}>
+              <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚗" title="Доставка" />
+              {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="🛍️" title="Самовывоз" /> : null}
+            </div>
+          </Field>
+
           <Field label="Телефон для связи">
             <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={inputStyle(!phone || phoneOk)} />
           </Field>
-          <Field label="Адрес доставки">
-            <input value={line} onChange={(e) => setLine(e.target.value)} placeholder="Улица, дом, кв." style={inputStyle(true)} />
-          </Field>
+
+          {mode === 'DELIVERY' ? (
+            <Field label="Адрес доставки">
+              <input value={line} onChange={(e) => setLine(e.target.value)} placeholder="Улица, дом, кв." style={inputStyle(true)} />
+            </Field>
+          ) : (
+            <Field label={`Время самовывоза (не ранее чем через ${store.pickupLeadMinutes} мин)`}>
+              <input type="datetime-local" value={pickupAt} min={earliest} onChange={(e) => setPickupAt(e.target.value)} style={inputStyle(pickupOk)} />
+              <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
+                {store.address ? `Забрать: ${store.address}` : 'Адрес магазина — в подтверждении заказа'}
+              </div>
+            </Field>
+          )}
+
           <Field label="Оплата при получении">
             <div style={{ display: 'grid', gap: 8 }}>
               {([['CASH', 'Наличными'], ['CARD_COURIER', 'Картой курьеру'], ['KASPI_TRANSFER', 'Перевод Kaspi']] as const).map(([v, t]) => (
@@ -248,13 +289,26 @@ function OrderPlaced({ order, onClose }: { order: { id: string; number: number; 
           <div style={{ marginTop: 16, padding: 16, borderRadius: 'var(--radius-sm)', background: 'var(--carrot-50)', border: '1px solid var(--carrot)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--carrot-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Код получения</div>
             <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: '0.2em', margin: '4px 0' }}>{order.deliveryCode}</div>
-            <div className="muted" style={{ fontSize: 13 }}>Назовите его курьеру при получении заказа.</div>
+            <div className="muted" style={{ fontSize: 13 }}>Назовите его при получении заказа.</div>
           </div>
         ) : null}
         <a className="btn btn-primary btn-block" href={`/order/${order.id}`} style={{ marginTop: 16 }}>Отследить заказ</a>
         <button className="btn btn-ghost btn-block" onClick={onClose} style={{ marginTop: 8 }}>Продолжить покупки</button>
       </div>
     </div>
+  );
+}
+
+function ModeBtn({ active, onClick, icon, title }: { active: boolean; onClick: () => void; icon: string; title: string }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 10px',
+      border: `1px solid ${active ? 'var(--carrot)' : 'var(--line)'}`, borderRadius: 'var(--radius-sm)',
+      background: active ? 'var(--carrot-50)' : 'var(--card)', color: active ? 'var(--carrot-600)' : 'var(--ink)',
+      fontWeight: 700, fontSize: 15,
+    }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>{title}
+    </button>
   );
 }
 
