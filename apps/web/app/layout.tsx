@@ -1,16 +1,30 @@
 import type { ReactNode } from 'react';
+import './globals.css';
 
 export const metadata = {
   title: 'Kartop — зелёный базар рядом',
-  description: 'Свежие продукты с рынка: доставка и самовывоз из магазинов вашего района.',
+  description: 'Свежие продукты с рынка: овощи, фрукты, мясо, молочка, корейские салаты — доставка и самовывоз из магазинов вашего района.',
+  openGraph: {
+    title: 'Kartop — зелёный базар рядом',
+    description: 'Свежие продукты с рынка с доставкой из магазинов вашего района.',
+    type: 'website',
+  },
 };
+
+export const viewport = { themeColor: '#D9531E', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
-      <body style={{ margin: 0, fontFamily: "'Golos Text', system-ui, sans-serif", color: '#1A1512' }}>
-        {children}
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
