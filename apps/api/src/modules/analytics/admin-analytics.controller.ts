@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, UseGuards } from '@nestjs/common';
 import { AdminAnalyticsService } from './admin-analytics.service';
 import { AdminGuard } from '../../common/auth/admin.guard';
 
@@ -18,6 +18,22 @@ export class AdminAnalyticsController {
   @Get('analytics/stores')
   stores(@Query('limit') limit?: string) {
     return this.analytics.stores(limit ? Number(limit) : 100);
+  }
+
+  /** Экспорт покупателей в CSV. */
+  @Get('customers.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="customers.csv"')
+  customersCsv(@Query('sort') sort?: 'spend' | 'orders' | 'recent') {
+    return this.analytics.customersCsv(sort ?? 'spend');
+  }
+
+  /** Экспорт магазинов в CSV. */
+  @Get('analytics/stores.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="stores.csv"')
+  storesCsv() {
+    return this.analytics.storesCsv();
   }
 
   /** Провал в заказы покупателя из аналитики клиента. */
