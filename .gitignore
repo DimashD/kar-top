@@ -20,3 +20,7 @@ out/
 # terraform
 .terraform/
 *.tfstate*
+
+# Redis snapshot (local dev)
+dump.rdb
+*.rdb
