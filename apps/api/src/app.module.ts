@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
@@ -12,6 +13,7 @@ import { OrderingModule } from './modules/ordering.module';
 import { BillingModule } from './modules/billing.module';
 import { AnalyticsModule } from './modules/analytics.module';
 import { NotificationsModule } from './modules/notifications.module';
+import { SchedulerModule } from './modules/scheduler.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
@@ -19,6 +21,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({ global: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
     IdentityModule,
@@ -28,6 +31,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
     BillingModule,
     AnalyticsModule,
     NotificationsModule,
+    SchedulerModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],

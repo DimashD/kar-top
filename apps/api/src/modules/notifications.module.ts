@@ -7,5 +7,6 @@ import { AdminGuard } from '../common/auth/admin.guard';
 @Module({
   controllers: [NotificationsController],
   providers: [NotificationDispatcher, PushRegistry, FcmProvider, ApnsProvider, WebPushProvider, AdminGuard],
+  exports: [NotificationDispatcher],
 })
 export class NotificationsModule {}
