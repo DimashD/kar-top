@@ -18,7 +18,7 @@ export interface CatalogCategory { category: { ru: string }; items: CatalogProdu
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;
-    deliveryMode: string; pickupEnabled: boolean; pickupLeadMinutes: number;
+    deliveryMode: string; pickupEnabled: boolean; pickupLeadMinutes: number; reviewCount?: number;
   };
   categories: CatalogCategory[];
 }
@@ -55,6 +55,8 @@ export interface OrderTrack {
   missingCount: number;
   timeline: { to: OrderStatus; at: string }[];
   deliveryCode: string | null;
+  canReview: boolean;
+  review: { rating: number; comment: string | null } | null;
 }
 
 /** SSR-загрузка трекинга заказа. */

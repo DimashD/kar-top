@@ -213,6 +213,7 @@ export class OrderingService {
         store: { select: { name: true, slug: true, address: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
         items: { select: { status: true } },
+        review: { select: { rating: true, comment: true } },
       },
     });
     if (!o) throw new NotFoundException('Заказ не найден');
@@ -233,6 +234,9 @@ export class OrderingService {
       timeline: o.events,
       // Код скрываем после закрытия заказа — он уже сыграл свою роль.
       deliveryCode: CLOSED.includes(o.status) ? null : o.deliveryCode,
+      // Оценку можно оставить после выдачи/доставки и только один раз.
+      canReview: ['DELIVERED', 'COMPLETED'].includes(o.status) && !o.review,
+      review: o.review,
     };
   }
   cancel(id: string, userId: string) { return this.transition(id, 'CANCELLED', 'merchant', userId); }
