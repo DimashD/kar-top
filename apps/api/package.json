@@ -10,7 +10,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "photos:generate": "ts-node scripts/generate-photos.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

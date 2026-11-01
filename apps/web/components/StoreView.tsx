@@ -19,7 +19,7 @@ function lineTiyn(l: Line): number {
 export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: string }) {
   const [cart, setCart] = useState<Record<string, Line>>({});
   const [open, setOpen] = useState(false);
-  const [done, setDone] = useState<{ number: number; estimatedTiyn: number } | null>(null);
+  const [done, setDone] = useState<{ id: string; number: number; estimatedTiyn: number; deliveryCode?: string } | null>(null);
 
   const lines = Object.values(cart);
   const subtotal = lines.reduce((s, l) => s + lineTiyn(l), 0);
@@ -82,7 +82,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
         />
       )}
 
-      {done && <OrderPlaced number={done.number} estimatedTiyn={done.estimatedTiyn} onClose={() => setDone(null)} />}
+      {done && <OrderPlaced order={done} onClose={() => setDone(null)} />}
     </main>
   );
 }
@@ -108,8 +108,10 @@ function ProductCard({ p, qty, onAdd, onDec }: { p: CatalogProduct; qty: number;
   const sale = p.oldPriceTiyn && p.oldPriceTiyn > p.priceTiyn;
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="photo-ph" style={{ position: 'relative' }}>
-        🧺
+      <div className="photo-ph" style={{ position: 'relative', padding: 0 }}>
+        {p.photo ? (
+          <img src={p.photo} alt={p.name.ru} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : '🧺'}
         {sale ? <span className="badge badge-sale" style={{ position: 'absolute', top: 8, left: 8 }}>Акция</span> : null}
         {p.perishable ? <span className="badge badge-leaf" style={{ position: 'absolute', top: 8, right: 8 }}>Свежее</span> : null}
       </div>
@@ -141,7 +143,7 @@ function ProductCard({ p, qty, onAdd, onDec }: { p: CatalogProduct; qty: number;
 function CheckoutDrawer(props: {
   slug: string; lines: Line[]; subtotal: number;
   onClose: () => void; onInc: (p: CatalogProduct) => void; onDec: (p: CatalogProduct) => void;
-  onDone: (r: { number: number; estimatedTiyn: number }) => void;
+  onDone: (r: { id: string; number: number; estimatedTiyn: number; deliveryCode?: string }) => void;
 }) {
   const { slug, lines, subtotal, onClose, onInc, onDec, onDone } = props;
   const [phone, setPhone] = useState('+7');
@@ -166,7 +168,7 @@ function CheckoutDrawer(props: {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || 'Ошибка оформления'));
-      onDone({ number: data.number, estimatedTiyn: data.estimatedTiyn ?? data.subtotalTiyn ?? subtotal });
+      onDone({ id: data.id, number: data.number, estimatedTiyn: data.estimatedTiyn ?? data.subtotalTiyn ?? subtotal, deliveryCode: data.deliveryCode });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -232,17 +234,25 @@ function CheckoutDrawer(props: {
   );
 }
 
-function OrderPlaced({ number, estimatedTiyn, onClose }: { number: number; estimatedTiyn: number; onClose: () => void }) {
+function OrderPlaced({ order, onClose }: { order: { id: string; number: number; estimatedTiyn: number; deliveryCode?: string }; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div className="card" style={{ maxWidth: 420, width: '100%', padding: 28, textAlign: 'center', boxShadow: 'var(--shadow)' }}>
         <div style={{ fontSize: 48 }}>✅</div>
-        <h2 style={{ fontSize: 24, margin: '12px 0 6px' }}>Заказ №{number} принят</h2>
+        <h2 style={{ fontSize: 24, margin: '12px 0 6px' }}>Заказ №{order.number} принят</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Магазин скоро подтвердит. Оценочно: {tenge(estimatedTiyn)}. Оплата при получении.
-          Точная сумма — после взвешивания.
+          Магазин скоро подтвердит. Оценочно: {tenge(order.estimatedTiyn)}. Оплата при получении —
+          точная сумма после взвешивания.
         </p>
-        <button className="btn btn-primary btn-block" onClick={onClose} style={{ marginTop: 12 }}>Понятно</button>
+        {order.deliveryCode ? (
+          <div style={{ marginTop: 16, padding: 16, borderRadius: 'var(--radius-sm)', background: 'var(--carrot-50)', border: '1px solid var(--carrot)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--carrot-600)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Код получения</div>
+            <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: '0.2em', margin: '4px 0' }}>{order.deliveryCode}</div>
+            <div className="muted" style={{ fontSize: 13 }}>Назовите его курьеру при получении заказа.</div>
+          </div>
+        ) : null}
+        <a className="btn btn-primary btn-block" href={`/order/${order.id}`} style={{ marginTop: 16 }}>Отследить заказ</a>
+        <button className="btn btn-ghost btn-block" onClick={onClose} style={{ marginTop: 8 }}>Продолжить покупки</button>
       </div>
     </div>
   );

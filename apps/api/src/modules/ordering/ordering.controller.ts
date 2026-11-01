@@ -15,6 +15,13 @@ export class OrderingController {
     return this.ordering.create(dto);
   }
 
+  // Публичный трекинг заказа покупателем (по id-ссылке). Показывает код получения до закрытия.
+  @Public()
+  @Get('orders/:id/track')
+  track(@Param('id') id: string) {
+    return this.ordering.track(id);
+  }
+
   // --- Магазин (требует access-токен + членство в магазине заказа) ---
   @Get('merchant/orders/:id')
   forMerchant(@Param('id') id: string, @CurrentUser() user: RequestUser) {
@@ -57,8 +64,9 @@ export class OrderingController {
     return this.ordering.delivering(id, user.userId);
   }
 
+  // Курьер вводит код, названный покупателем при передаче заказа.
   @Post('courier/orders/:id/delivered')
-  delivered(@Param('id') id: string, @CurrentUser() user: RequestUser) {
-    return this.ordering.delivered(id, user.userId);
+  delivered(@Param('id') id: string, @Body('code') code: string, @CurrentUser() user: RequestUser) {
+    return this.ordering.delivered(id, user.userId, code);
   }
 }

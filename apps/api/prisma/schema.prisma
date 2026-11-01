@@ -210,6 +210,9 @@ model Order {
   store         Store @relation(fields: [storeId], references: [id])
   customer      User? @relation(fields: [customerId], references: [id])
   status        OrderStatus @default(CREATED)
+  // Код подтверждения получения: покупатель называет его курьеру при передаче заказа.
+  // Магазину код не показываем — он только сверяет названный (защита-«страховка»).
+  deliveryCode  String?
   // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
   address       Json?
   payMethod     PayMethod @default(CASH)

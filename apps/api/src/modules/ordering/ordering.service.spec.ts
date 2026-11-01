@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { OrderingService } from './ordering.service';
 
 // Лёгкий мок PrismaService — проверяем арифметику суммы и эмиссию outbox без БД.
@@ -73,5 +73,41 @@ describe('OrderingService.create', () => {
     await expect(
       svc.create({ storeSlug: 'ruslan', phone: '+77011112233', payMethod: 'CASH', items: [{ storeProductId: 'нет-такого', qty: 1 }] } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('создаёт заказ с 4-значным кодом получения', async () => {
+    const prisma = makePrisma();
+    const svc = new OrderingService(prisma as any);
+    await svc.create({ storeSlug: 'ruslan', phone: '+77011112233', payMethod: 'CASH', items: [{ storeProductId: 'sp-pcs', qty: 1 }] } as any);
+    const data = (prisma.order.create as jest.Mock).mock.calls[0][0].data;
+    expect(data.deliveryCode).toMatch(/^\d{4}$/);
+  });
+});
+
+describe('OrderingService.delivered (код получения — «страховка»)', () => {
+  function prismaWith(deliveryCode: string | null) {
+    return {
+      order: { findUnique: jest.fn().mockResolvedValue({ storeId: 'store1', deliveryCode }) },
+      storeMember: { findUnique: jest.fn().mockResolvedValue({ role: 'COURIER' }) },
+    };
+  }
+
+  it('неверный код → BadRequest, заказ не закрывается', async () => {
+    const prisma = prismaWith('7605');
+    const svc = new OrderingService(prisma as any);
+    await expect(svc.delivered('o1', 'user1', '0000')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('нет кода у заказа → BadRequest', async () => {
+    const prisma = prismaWith(null);
+    const svc = new OrderingService(prisma as any);
+    await expect(svc.delivered('o1', 'user1', '1234')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('не член магазина → Forbidden (IDOR)', async () => {
+    const prisma = prismaWith('7605');
+    prisma.storeMember.findUnique = jest.fn().mockResolvedValue(null);
+    const svc = new OrderingService(prisma as any);
+    await expect(svc.delivered('o1', 'stranger', '7605')).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
