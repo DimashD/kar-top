@@ -13,6 +13,7 @@ import { OrderingModule } from './modules/ordering.module';
 import { BillingModule } from './modules/billing.module';
 import { AnalyticsModule } from './modules/analytics.module';
 import { MerchantModule } from './modules/merchant.module';
+import { ReviewsModule } from './modules/reviews.module';
 import { NotificationsModule } from './modules/notifications.module';
 import { SchedulerModule } from './modules/scheduler.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -32,6 +33,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
     BillingModule,
     AnalyticsModule,
     MerchantModule,
+    ReviewsModule,
     NotificationsModule,
     SchedulerModule,
   ],

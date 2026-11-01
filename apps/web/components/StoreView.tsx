@@ -48,7 +48,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   return (
     <main style={{ paddingBottom: count ? 88 : 24 }}>
-      <Header name={catalog.store.name} rating={catalog.store.rating} address={catalog.store.address} />
+      <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} />
 
       <div className="container" style={{ paddingTop: 20 }}>
         {catalog.categories.map((cat, i) => (
@@ -89,7 +89,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   );
 }
 
-function Header({ name, rating, address }: { name: string; rating: number; address: string | null }) {
+function Header({ name, rating, reviewCount, address }: { name: string; rating: number; reviewCount?: number; address: string | null }) {
   return (
     <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
       <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -98,7 +98,7 @@ function Header({ name, rating, address }: { name: string; rating: number; addre
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div className="muted" style={{ fontSize: 13 }}>
-            ★ {rating.toFixed(1)}{address ? ` · ${address}` : ''}
+            ★ {rating.toFixed(1)}{reviewCount ? ` · ${reviewCount} отз.` : ''}{address ? ` · ${address}` : ''}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { fetchTrack, OrderStatus } from '../../../lib/api';
 import { tenge } from '../../../lib/format';
+import ReviewForm from '../../../components/ReviewForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Заказ — Kartop', robots: { index: false } };
@@ -86,6 +87,19 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
             })}
           </div>
         )}
+
+        {/* Оценка заказа */}
+        {o.canReview ? <ReviewForm orderId={o.id} /> : null}
+        {o.review ? (
+          <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 22, letterSpacing: 2 }}>
+              {'★'.repeat(o.review.rating)}<span style={{ color: 'var(--line)' }}>{'★'.repeat(5 - o.review.rating)}</span>
+            </div>
+            <div className="muted" style={{ fontSize: 14, marginTop: 6 }}>
+              {o.review.comment ? `«${o.review.comment}»` : 'Спасибо за вашу оценку!'}
+            </div>
+          </div>
+        ) : null}
 
         {/* Способ получения */}
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>

@@ -170,12 +170,14 @@ model Store {
   pickupEnabled     Boolean @default(true)
   pickupLeadMinutes Int     @default(60)
   rating    Float    @default(0)
+  reviewCount Int    @default(0)
   settings  Json?
   createdAt DateTime @default(now())
   members   StoreMember[]
   products  StoreProduct[]
   zones     DeliveryZone[]
   orders    Order[]
+  reviews   Review[]
   subscription Subscription?
 }
 
@@ -233,6 +235,21 @@ model Order {
   createdAt     DateTime @default(now())
   items         OrderItem[]
   events        OrderEvent[]
+  review        Review?
+}
+
+// Оценка и отзыв покупателя после доставки/выдачи. Один отзыв на заказ.
+model Review {
+  id         String   @id @default(uuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id])
+  customerId String?
+  rating     Int      // 1..5
+  comment    String?
+  createdAt  DateTime @default(now())
+  @@index([storeId])
 }
 
 model OrderItem {
