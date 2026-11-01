@@ -21,7 +21,7 @@ export class ShopsService {
         priceTiyn: true,
         oldPriceTiyn: true,
         master: {
-          select: { name: true, unit: true, stepG: true, avgPieceG: true, perishable: true, category: { select: { id: true, name: true } } },
+          select: { name: true, unit: true, stepG: true, avgPieceG: true, perishable: true, media: true, category: { select: { id: true, name: true } } },
         },
       },
     });
@@ -36,6 +36,7 @@ export class ShopsService {
         unit: it.master.unit,
         stepG: it.master.stepG,
         perishable: it.master.perishable,
+        photo: (it.master.media as any)?.url ?? null, // media = { url } | null
         priceTiyn: it.priceTiyn,
         oldPriceTiyn: it.oldPriceTiyn,
       });

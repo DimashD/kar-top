@@ -8,6 +8,11 @@ import { piiVisibleToMerchant, canTransition } from './order-state';
 export class OrderingService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** 4-значный код подтверждения получения (покупатель называет курьеру). */
+  private genDeliveryCode(): string {
+    return String(Math.floor(1000 + Math.random() * 9000));
+  }
+
   /** Создание заказа. Оплата при получении (MVP). Сумма — оценочная, уточняется после взвешивания. */
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
@@ -56,13 +61,14 @@ export class OrderingService {
         storeId: store.id,
         customerId: user.id,
         status: 'PLACED',
+        deliveryCode: this.genDeliveryCode(),
         address: dto.address ? (dto.address as object) : undefined,
         payMethod: dto.payMethod,
         subtotalTiyn: subtotal,
         items: { create: itemsData },
         events: { create: { to: 'PLACED', actor: 'customer' } },
       },
-      select: { id: true, number: true, status: true, subtotalTiyn: true },
+      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true },
     });
 
     // Уведомление магазину о новом заказе (звук + пуш).
@@ -155,7 +161,52 @@ export class OrderingService {
   startPicking(id: string, userId: string) { return this.transition(id, 'PICKING', 'merchant', userId); }
   ready(id: string, userId: string) { return this.transition(id, 'READY', 'merchant', userId); }
   delivering(id: string, userId: string) { return this.transition(id, 'DELIVERING', 'courier', userId); }
-  delivered(id: string, userId: string) { return this.transition(id, 'DELIVERED', 'courier', userId); }
+
+  /**
+   * Подтверждение получения: курьер вводит код, который покупатель называет при передаче.
+   * Неверный код — заказ не закрывается (страховка от «якобы доставлено»).
+   */
+  async delivered(id: string, userId: string, code: string) {
+    const o = await this.prisma.order.findUnique({ where: { id }, select: { storeId: true, deliveryCode: true } });
+    if (!o) throw new NotFoundException('Заказ не найден');
+    await this.authorizeStore(o.storeId, userId);
+    const given = (code ?? '').trim();
+    if (!o.deliveryCode || given !== o.deliveryCode) {
+      throw new BadRequestException('Неверный код подтверждения получения');
+    }
+    return this.transition(id, 'DELIVERED', 'courier', userId);
+  }
+
+  /** Публичный трекинг заказа покупателем по id (без ПДн магазина). Код получения виден владельцу. */
+  async track(orderId: string) {
+    const o = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true, number: true, status: true, createdAt: true,
+        subtotalTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
+        store: { select: { name: true, slug: true } },
+        events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
+        items: { select: { status: true } },
+      },
+    });
+    if (!o) throw new NotFoundException('Заказ не найден');
+    const CLOSED: OrderStatus[] = ['DELIVERED', 'COMPLETED', 'CANCELLED'];
+    return {
+      id: o.id,
+      number: o.number,
+      status: o.status,
+      createdAt: o.createdAt,
+      store: o.store,
+      payMethod: o.payMethod,
+      estimatedTiyn: o.subtotalTiyn,
+      finalTiyn: o.finalTiyn,
+      itemCount: o.items.length,
+      missingCount: o.items.filter((i) => i.status === 'missing').length,
+      timeline: o.events,
+      // Код скрываем после закрытия заказа — он уже сыграл свою роль.
+      deliveryCode: CLOSED.includes(o.status) ? null : o.deliveryCode,
+    };
+  }
   cancel(id: string, userId: string) { return this.transition(id, 'CANCELLED', 'merchant', userId); }
 
   /** Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог. */

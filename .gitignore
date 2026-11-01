@@ -24,3 +24,7 @@ out/
 # Redis snapshot (local dev)
 dump.rdb
 *.rdb
+
+# Сгенерированные фото товаров (dev/MVP)
+apps/web/public/products/*.png
+apps/web/public/products/*.webp

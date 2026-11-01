@@ -10,6 +10,7 @@ export interface CatalogProduct {
   unit: 'KG' | 'G' | 'PCS' | 'BUNCH' | 'PACK';
   stepG: number | null;
   perishable: boolean;
+  photo: string | null;
   priceTiyn: number;
   oldPriceTiyn: number | null;
 }
@@ -27,6 +28,36 @@ export async function fetchCatalog(slug: string): Promise<Catalog | null> {
     });
     if (!r.ok) return null;
     return (await r.json()) as Catalog;
+  } catch {
+    return null;
+  }
+}
+
+export type OrderStatus =
+  | 'CREATED' | 'PLACED' | 'ACCEPTED' | 'PICKING' | 'AWAITING_CUSTOMER'
+  | 'READY' | 'COURIER_ASSIGNED' | 'DELIVERING' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
+
+export interface OrderTrack {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  createdAt: string;
+  store: { name: string; slug: string };
+  payMethod: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
+  estimatedTiyn: number;
+  finalTiyn: number | null;
+  itemCount: number;
+  missingCount: number;
+  timeline: { to: OrderStatus; at: string }[];
+  deliveryCode: string | null;
+}
+
+/** SSR-загрузка трекинга заказа. */
+export async function fetchTrack(orderId: string): Promise<OrderTrack | null> {
+  try {
+    const r = await fetch(`${SERVER_API}/orders/${encodeURIComponent(orderId)}/track`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    return (await r.json()) as OrderTrack;
   } catch {
     return null;
   }
