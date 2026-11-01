@@ -65,6 +65,11 @@ export class OrderingService {
       select: { id: true, number: true, status: true, subtotalTiyn: true },
     });
 
+    // Уведомление магазину о новом заказе (звук + пуш).
+    await this.prisma.outboxEvent.create({
+      data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number } },
+    });
+
     return { ...order, estimatedTiyn: subtotal, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
   }
 
@@ -114,20 +119,35 @@ export class OrderingService {
     };
   }
 
-  /** Идемпотентный переход статуса с записью события. Повтор того же статуса — no-op. */
+  // Статус заказа → тип уведомления (outbox). Нет записи — пуш не шлём.
+  private static readonly STATUS_EVENT: Partial<Record<OrderStatus, string>> = {
+    ACCEPTED: 'order.accepted',
+    READY: 'order.ready',
+    DELIVERING: 'order.delivering',
+    DELIVERED: 'order.delivered',
+    CANCELLED: 'order.cancelled',
+  };
+
+  /** Идемпотентный переход статуса с записью события и outbox-уведомления (в одной транзакции). */
   async transition(orderId: string, to: OrderStatus, actor: string, userId: string) {
-    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, storeId: true } });
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, storeId: true, number: true } });
     if (!o) throw new NotFoundException('Заказ не найден');
     await this.authorizeStore(o.storeId, userId);
     if (o.status === to) return { id: o.id, status: to, changed: false };
     if (!canTransition(o.status, to)) {
       throw new BadRequestException(`Недопустимый переход ${o.status} → ${to}`);
     }
-    await this.prisma.$transaction([
+    const ops: any[] = [
       this.prisma.order.update({ where: { id: orderId }, data: { status: to } }),
       this.prisma.orderEvent.create({ data: { orderId, from: o.status, to, actor } }),
-    ]);
-    // TODO: событие в outbox → пуш покупателю/магазину.
+    ];
+    const evType = OrderingService.STATUS_EVENT[to];
+    if (evType) {
+      ops.push(this.prisma.outboxEvent.create({
+        data: { type: evType, aggregateType: 'order', aggregateId: orderId, payload: { number: o.number } },
+      }));
+    }
+    await this.prisma.$transaction(ops);
     return { id: orderId, status: to, changed: true };
   }
 
@@ -154,6 +174,10 @@ export class OrderingService {
   async markMissing(orderId: string, itemId: string, userId: string) {
     await this.authorizeStore(await this.orderStoreId(orderId), userId);
     await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId }, data: { status: 'missing' } });
+    const ord = await this.prisma.order.findUnique({ where: { id: orderId }, select: { number: true } });
+    await this.prisma.outboxEvent.create({
+      data: { type: 'order.substitution_needed', aggregateType: 'order', aggregateId: orderId, payload: { number: ord?.number } },
+    });
     return this.recalcFinal(orderId);
   }
 

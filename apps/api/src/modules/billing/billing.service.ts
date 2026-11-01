@@ -43,8 +43,10 @@ export class BillingService {
           issuedAt: now,
         },
       });
+      await this.prisma.outboxEvent.create({
+        data: { type: 'billing.invoice_issued', aggregateType: 'subscription', aggregateId: sub.id, payload: { amountTiyn: sub.priceTiyn, period } },
+      });
       created++;
-      // TODO: пуш/SMS магазину со ссылкой на оплату.
     }
     this.log.log(`Выставлено счетов за ${period}: ${created}`);
     return { period, created };
@@ -55,6 +57,9 @@ export class BillingService {
     const inv = await this.prisma.invoice.findFirst({ where: { kaspiInvoiceId } });
     if (!inv || inv.status === 'PAID') return { updated: false };
     await this.prisma.invoice.update({ where: { id: inv.id }, data: { status: 'PAID', paidAt: new Date() } });
+    await this.prisma.outboxEvent.create({
+      data: { type: 'billing.invoice_paid', aggregateType: 'subscription', aggregateId: inv.subscriptionId, payload: { period: inv.period } },
+    });
     // TODO: при suspended-магазине — снять ограничение витрины.
     return { updated: true };
   }
