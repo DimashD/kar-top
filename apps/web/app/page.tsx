@@ -22,7 +22,10 @@ export default function Home() {
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <div style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)' }}>Kartop</div>
-          <Link className="btn btn-ghost" href="/ruslan-fruits">Открыть витрину</Link>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link className="btn btn-ghost" href="/app">Приложение</Link>
+            <Link className="btn btn-primary" href="/ruslan-fruits">Открыть витрину</Link>
+          </div>
         </div>
       </header>
 

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { fetchTrack, OrderStatus } from '../../../lib/api';
 import { tenge } from '../../../lib/format';
 import ReviewForm from '../../../components/ReviewForm';
+import AppBanner from '../../../components/AppBanner';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Заказ — Kartop', robots: { index: false } };
@@ -62,6 +63,9 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
             <div className="muted" style={{ fontSize: 14 }}>Назовите этот код {o.fulfillment === 'PICKUP' ? 'сотруднику магазина' : 'курьеру'} при получении заказа — так подтверждается, что заказ у вас на руках.</div>
           </div>
         ) : null}
+
+        {/* Стимул скачать приложение: живой статус и пуши — в приложении. */}
+        {!cancelled && !delivered ? <AppBanner orderId={o.id} /> : null}
 
         {cancelled ? (
           <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center' }}>
