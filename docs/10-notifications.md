@@ -86,10 +86,13 @@ Upsert по `token`: смена владельца устройства пере
 
 ## 10.7 Запуск диспетчера
 
-- Сейчас: `POST /api/internal/notifications/dispatch` (под `AdminGuard`) — ручной/проверочный прогон,
-  возвращает `{ processed, pushesSent }`.
-- Дальше: воркер/планировщик вызывает `process(batch)` каждые несколько секунд
-  (вместе с планировщиком биллинга 1-го числа, см. `02-backlog.md`).
+- **Планировщик** (`SchedulerService`, `@nestjs/schedule`) вызывает `process()` каждые 5 с
+  с защитой от наложения прогонов. Включается `SCHEDULER_ENABLED=1` (в тестах/CI выключен —
+  прогоны детерминированы, без фоновых пушей).
+- Ежемесячные счёта — `@Cron('0 6 1 * *', UTC)`: 1-го числа 06:00 UTC (11:00 Алматы),
+  идемпотентно по (subscription, period).
+- Ручной/проверочный прогон диспетчера — `POST /api/internal/notifications/dispatch`
+  (под `AdminGuard`), возвращает `{ processed, pushesSent }`.
 
 ## 10.8 Проверено e2e
 
