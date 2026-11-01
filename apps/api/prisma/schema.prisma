@@ -76,6 +76,31 @@ model User {
   members      StoreMember[]
   orders       Order[]
   devices      Device[]
+  pushTokens   PushToken[]
+}
+
+// Transactional outbox: доменные события пишутся в одной транзакции с изменением состояния.
+// Диспетчер доставляет их в пуши/SMS (at-least-once, идемпотентно).
+model OutboxEvent {
+  id            String    @id @default(uuid())
+  type          String    // order.accepted, order.substitution_needed, billing.invoice_issued, …
+  aggregateType String    // order | subscription
+  aggregateId   String
+  payload       Json?
+  attempts      Int       @default(0)
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  @@index([processedAt, createdAt])
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  platform  String   // android | ios | web
+  token     String   @unique
+  createdAt DateTime @default(now())
+  @@index([userId])
 }
 
 model Device {

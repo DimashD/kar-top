@@ -11,6 +11,7 @@ import { ShopsModule } from './modules/shops.module';
 import { OrderingModule } from './modules/ordering.module';
 import { BillingModule } from './modules/billing.module';
 import { AnalyticsModule } from './modules/analytics.module';
+import { NotificationsModule } from './modules/notifications.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
@@ -26,6 +27,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
     OrderingModule,
     BillingModule,
     AnalyticsModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],
