@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { toCsv, tiynToTenge, isoDate } from '../../common/csv';
 
 type CustomerSort = 'spend' | 'orders' | 'recent';
 
@@ -86,6 +87,24 @@ export class AdminAnalyticsService {
       .slice(0, limit);
 
     return { rows };
+  }
+
+  /** Выгрузка покупателей в CSV (кнопка «Экспорт» в админке). */
+  async customersCsv(sort: CustomerSort = 'spend') {
+    const { rows } = await this.customers(sort, 100000);
+    return toCsv(
+      ['Телефон', 'Имя', 'Заказов', 'Сумма, ₸', 'Последний заказ', 'Первый визит'],
+      rows.map((r) => [r.phone, r.name, r.ordersCount, tiynToTenge(r.spentTiyn), isoDate(r.lastOrderAt), isoDate(r.firstSeenAt)]),
+    );
+  }
+
+  /** Выгрузка магазинов в CSV. */
+  async storesCsv() {
+    const { rows } = await this.stores(100000);
+    return toCsv(
+      ['Магазин', 'Slug', 'Статус', 'Рейтинг', 'Заказов', 'GMV, ₸', 'Средний чек, ₸', 'Последний заказ'],
+      rows.map((r) => [r.name, r.slug, r.status, r.rating, r.ordersCount, tiynToTenge(r.gmvTiyn), tiynToTenge(r.avgCheckTiyn), isoDate(r.lastOrderAt)]),
+    );
   }
 
   /** Заказы конкретного покупателя (для провала из аналитики клиента). */
