@@ -10,5 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
+      - run: npm --workspace apps/api run prisma:generate
       - run: npm run lint --if-present
       - run: npm run build --if-present
+      - run: npm test --if-present
