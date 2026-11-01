@@ -12,6 +12,7 @@ import { ShopsModule } from './modules/shops.module';
 import { OrderingModule } from './modules/ordering.module';
 import { BillingModule } from './modules/billing.module';
 import { AnalyticsModule } from './modules/analytics.module';
+import { MerchantModule } from './modules/merchant.module';
 import { NotificationsModule } from './modules/notifications.module';
 import { SchedulerModule } from './modules/scheduler.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -30,6 +31,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
     OrderingModule,
     BillingModule,
     AnalyticsModule,
+    MerchantModule,
     NotificationsModule,
     SchedulerModule,
   ],

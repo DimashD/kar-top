@@ -1,0 +1,48 @@
+# 11. API: ассортимент магазина и модерация (admin)
+
+Закрывает петлю для магазина (управление витриной из мобильного приложения)
+и для платформы (модерация магазинов). Веб-кабинета магазина нет — всё из приложения.
+
+## 11.1 Авторизация
+
+- Глобальный `JwtAuthGuard` (access-токен обязателен).
+- `StoreAccess.assertMember(storeId, userId, roles?)` — проверка членства в магазине
+  (защита от IDOR). Управление ассортиментом — только `OWNER`/`MANAGER`.
+- Админ-эндпоинты — `AdminGuard` (platformRole `PLATFORM_ADMIN`/`SUPPORT`).
+
+## 11.2 Магазин: ассортимент (`/api/merchant`)
+
+| Метод | Путь                                   | Назначение |
+|-------|----------------------------------------|------------|
+| GET   | `/merchant/stores`                     | магазины, где я сотрудник (+ моя роль) |
+| GET   | `/merchant/stores/:id/catalog`         | полный ассортимент (вкл. снятые с продажи) |
+| POST  | `/merchant/stores/:id/products`        | добавить товар из мастер-каталога |
+| PATCH | `/merchant/stores/:id/products/:spId`  | цена / старая цена / наличие |
+| DELETE| `/merchant/stores/:id/products/:spId`  | убрать товар из ассортимента |
+
+`POST` body: `{ masterProductId, priceTiyn, oldPriceTiyn?, inStock? }`
+`PATCH` body: `{ priceTiyn?, oldPriceTiyn?, inStock? }`
+
+Правила: цена `> 0`; товар добавляется из мастер-каталога один раз
+(`@@unique([storeId, masterProductId])`); дубликат → 400; чужой магазин → 403.
+
+## 11.3 Платформа: модерация магазинов (`/api/admin/stores`)
+
+| Метод | Путь                          | Назначение |
+|-------|-------------------------------|------------|
+| GET   | `/admin/stores?status=…`      | список (PENDING/ACTIVE/SUSPENDED/BLOCKED) + счётчики и владелец |
+| POST  | `/admin/stores/:id/approve`   | PENDING → ACTIVE |
+| POST  | `/admin/stores/:id/suspend`   | → SUSPENDED (напр. неоплата подписки) |
+| POST  | `/admin/stores/:id/block`     | → BLOCKED (нарушение правил) |
+
+Переходы идемпотентны (`changed: false`, если статус уже такой).
+
+## 11.4 Проверено e2e
+
+Логин владельца/админа/постороннего по OTP, затем:
+- `GET /merchant/stores` → один магазин владельца;
+- посторонний к каталогу/удалению → **403** (IDOR закрыт);
+- добавление товара, дубликат → **400**, правка цены+наличия, удаление → счётчик восстановлен;
+- не-админ к `/admin/stores` → **403**;
+- список магазинов со счётчиками товаров/заказов и владельцем;
+- PENDING → approve → ACTIVE → block → BLOCKED (подтверждено в БД).
