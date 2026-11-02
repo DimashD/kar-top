@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'session.dart';
 import 'theme.dart';
 import 'lock.dart';
+import 'push.dart';
 import 'screens/login_screen.dart';
 import 'screens/stores_screen.dart';
 import 'screens/lock_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/lock_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ru');
+  await PushService.instance.init();
   final session = Session();
   await session.bootstrap();
   runApp(ChangeNotifierProvider.value(value: session, child: const KartopMerchantApp()));

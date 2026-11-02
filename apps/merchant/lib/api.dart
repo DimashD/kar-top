@@ -77,6 +77,10 @@ class Api {
   Future<void> delivering(String id) => _post('/courier/orders/$id/delivering');
   Future<void> delivered(String id, String code) => _post('/courier/orders/$id/delivered', {'code': code});
 
+  // --- Push ---
+  Future<void> registerPushToken(String platform, String token) =>
+      _post('/devices/push-token', {'platform': platform, 'token': token});
+
   // --- Catalog ---
   Future<List<CatalogItem>> catalog(String storeId) async {
     final r = await _get('/merchant/stores/$storeId/catalog') as Map<String, dynamic>;

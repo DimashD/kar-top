@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Firebase (google-services.json).
+    id("com.google.gms.google-services")
 }
 
 // Релизная подпись: ключи из android/key.properties (не в git). См. docs/23.
