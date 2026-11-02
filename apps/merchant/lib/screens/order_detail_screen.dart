@@ -4,6 +4,7 @@ import '../format.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/delivery_map.dart';
 import 'courier_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -116,13 +117,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             Text(o.fulfillment == 'PICKUP' ? 'Самовывоз' : 'Доставка', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
-            if (!o.piiVisible)
-              const Text('Данные клиента откроются после принятия заказа', style: TextStyle(color: AppColors.ink40))
-            else ...[
+            if (!o.piiVisible) ...[
+              if (o.district != null) Text('Район: ${o.district}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              const Text('Имя, телефон и точный адрес откроются после принятия заказа', style: TextStyle(color: AppColors.ink40)),
+              if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
+                const SizedBox(height: 10),
+                DeliveryMap(lat: o.lat!, lng: o.lng!, approx: true),
+              ],
+            ] else ...[
               Text(o.customerName ?? '—', style: const TextStyle(fontWeight: FontWeight.w700)),
               if (o.customerPhone != null) Text(o.customerPhone!, style: const TextStyle(color: AppColors.ink60)),
               if (o.fulfillment == 'DELIVERY' && o.addressLine != null) Text(o.addressLine!, style: const TextStyle(color: AppColors.ink60)),
               if (o.fulfillment == 'PICKUP' && o.pickupAt != null) Text('Самовывоз: ${dateTime(o.pickupAt!)}', style: const TextStyle(color: AppColors.ink60)),
+              if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
+                const SizedBox(height: 10),
+                DeliveryMap(lat: o.lat!, lng: o.lng!, approx: false),
+              ],
             ],
           ],
         ),

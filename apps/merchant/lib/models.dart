@@ -108,6 +108,11 @@ class OrderDetail {
   final String? customerName;
   final String? customerPhone;
   final String? addressLine;
+  final String? district;
+  // Точная точка (после принятия) или огрублённая зона (до принятия).
+  final double? lat;
+  final double? lng;
+  final bool approx; // true — координаты огрублены (до принятия)
   OrderDetail({
     required this.id,
     required this.number,
@@ -121,11 +126,19 @@ class OrderDetail {
     required this.customerName,
     required this.customerPhone,
     required this.addressLine,
+    required this.district,
+    required this.lat,
+    required this.lng,
+    required this.approx,
   });
   bool get piiVisible => customerPhone != null;
+  bool get hasLocation => lat != null && lng != null;
   factory OrderDetail.fromJson(Map<String, dynamic> j) {
     final pii = j['pii'] as Map<String, dynamic>?;
     final addr = pii?['address'] as Map<String, dynamic>?;
+    final approxLoc = j['approxLocation'] as Map<String, dynamic>?;
+    final exactLoc = j['location'] as Map<String, dynamic>?;
+    final loc = exactLoc ?? approxLoc;
     return OrderDetail(
       id: j['id'] as String,
       number: (j['number'] as num).toInt(),
@@ -139,6 +152,10 @@ class OrderDetail {
       customerName: pii?['name'] as String?,
       customerPhone: pii?['phone'] as String?,
       addressLine: addr?['line'] as String?,
+      district: j['district'] as String?,
+      lat: (loc?['lat'] as num?)?.toDouble(),
+      lng: (loc?['lng'] as num?)?.toDouble(),
+      approx: exactLoc == null,
     );
   }
 }

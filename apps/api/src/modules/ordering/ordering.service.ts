@@ -168,6 +168,7 @@ export class OrderingService {
     if (!o) throw new NotFoundException('Заказ не найден');
     await this.authorizeStore(o.storeId, userId);
 
+    const addr = (o.address as Record<string, any> | null) ?? null;
     const base = {
       id: o.id,
       number: o.number,
@@ -179,10 +180,17 @@ export class OrderingService {
       pickupAt: o.pickupAt,
       itemCount: o.items.length,
       items: await this.itemsWithNames(o.items), // позиции — не ПДн, нужны для сборки
+      district: addr?.district ?? null, // район — грубая зона, можно до принятия
     };
     if (!piiVisibleToMerchant(o.status)) {
-      // до принятия — только район/зона, без имени, телефона и точного адреса
-      return { ...base, pii: null, hint: 'Данные клиента откроются после принятия заказа' };
+      // До принятия: состав + приблизительная зона на карте (огрублённая точка),
+      // без имени, телефона и точного адреса.
+      return {
+        ...base,
+        pii: null,
+        approxLocation: this.coarseLocation(addr),
+        hint: 'Точный адрес и контакты откроются после принятия заказа',
+      };
     }
     return {
       ...base,
@@ -191,7 +199,14 @@ export class OrderingService {
         phone: o.customer?.phone ?? null,
         address: o.address,
       },
+      location: addr?.lat != null && addr?.lng != null ? { lat: addr.lat, lng: addr.lng } : null,
     };
+  }
+
+  /** Огрубление координат до ~1 км (2 знака) — чтобы показать зону, но не точку. */
+  private coarseLocation(addr: Record<string, any> | null): { lat: number; lng: number } | null {
+    if (!addr || addr.lat == null || addr.lng == null) return null;
+    return { lat: Math.round(addr.lat * 100) / 100, lng: Math.round(addr.lng * 100) / 100 };
   }
 
   // Статус заказа → тип уведомления (outbox). Нет записи — пуш не шлём.
