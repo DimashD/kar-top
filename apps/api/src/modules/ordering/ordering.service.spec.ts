@@ -131,6 +131,50 @@ describe('OrderingService.create — самовывоз', () => {
   });
 });
 
+describe('OrderingService.forMerchant (приватность ПДн)', () => {
+  const addr = { line: 'ул. Абая 10, кв 5', district: 'Медеуский', lat: 43.23817, lng: 76.94529 };
+  function prismaFor(status: string) {
+    return {
+      order: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'o1', number: 5, status, storeId: 'store1', subtotalTiyn: 1000, finalTiyn: null,
+          payMethod: 'CASH', fulfillment: 'DELIVERY', pickupAt: null, address: addr,
+          customer: { name: 'Айгерим', phone: '+77011112233' },
+          items: [{ id: 'i1', storeProductId: 'sp1', qtyRequestedG: 500, qtyRequested: null, qtyActualG: null, priceSnapTiyn: 1000, status: 'ok' }],
+        }),
+      },
+      storeMember: { findUnique: jest.fn().mockResolvedValue({ role: 'OWNER' }) },
+      storeProduct: { findMany: jest.fn().mockResolvedValue([{ id: 'sp1', master: { name: { ru: 'Яблоки' }, unit: 'KG' } }]) },
+    };
+  }
+
+  it('до принятия: нет ПДн, адрес скрыт, видна только огрублённая зона и район', async () => {
+    const prisma = prismaFor('PLACED');
+    const svc = new OrderingService(prisma as any);
+    const r: any = await svc.forMerchant('o1', 'user1');
+    expect(r.pii).toBeNull();
+    expect(r.district).toBe('Медеуский');
+    expect(r.items[0].name).toBe('Яблоки'); // состав виден
+    // координаты огрублены до 2 знаков (~1 км), не точные
+    expect(r.approxLocation).toEqual({ lat: 43.24, lng: 76.95 });
+    // точный адрес/телефон не утекли
+    expect(JSON.stringify(r)).not.toContain('Айгерим');
+    expect(JSON.stringify(r)).not.toContain('+77011112233');
+    expect(JSON.stringify(r)).not.toContain('Абая');
+    expect(JSON.stringify(r)).not.toContain('43.23817');
+  });
+
+  it('после принятия: точный адрес, контакты и координаты доступны', async () => {
+    const prisma = prismaFor('ACCEPTED');
+    const svc = new OrderingService(prisma as any);
+    const r: any = await svc.forMerchant('o1', 'user1');
+    expect(r.pii.name).toBe('Айгерим');
+    expect(r.pii.phone).toBe('+77011112233');
+    expect(r.pii.address.line).toContain('Абая');
+    expect(r.location).toEqual({ lat: 43.23817, lng: 76.94529 });
+  });
+});
+
 describe('OrderingService.delivered (код получения — «страховка»)', () => {
   function prismaWith(deliveryCode: string | null) {
     return {

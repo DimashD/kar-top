@@ -157,6 +157,8 @@ function CheckoutDrawer(props: {
   const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [phone, setPhone] = useState('+7');
   const [line, setLine] = useState('');
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoBusy, setGeoBusy] = useState(false);
   const [pickupAt, setPickupAt] = useState('');
   const [pay, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
   const [busy, setBusy] = useState(false);
@@ -168,6 +170,16 @@ function CheckoutDrawer(props: {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }, [store.pickupLeadMinutes]);
+
+  function locate() {
+    if (!navigator.geolocation) return;
+    setGeoBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setGeo({ lat: p.coords.latitude, lng: p.coords.longitude }); setGeoBusy(false); },
+      () => setGeoBusy(false),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   const phoneOk = /^\+7\d{10}$/.test(phone);
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
@@ -181,7 +193,7 @@ function CheckoutDrawer(props: {
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
       const body: any = { storeSlug: slug, phone, payMethod: pay, fulfillment: mode, items };
-      if (mode === 'DELIVERY') body.address = { line: line.trim() };
+      if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
       else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
@@ -237,6 +249,12 @@ function CheckoutDrawer(props: {
           {mode === 'DELIVERY' ? (
             <Field label="Адрес доставки">
               <input value={line} onChange={(e) => setLine(e.target.value)} placeholder="Улица, дом, кв." style={inputStyle(true)} />
+              <button type="button" onClick={locate} className="btn btn-ghost" style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
+                {geoBusy ? 'Определяем…' : geo ? '📍 Местоположение добавлено' : '📍 Указать местоположение на карте'}
+              </button>
+              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
+                Поможет магазину сразу увидеть примерную зону доставки. Точный адрес магазин видит только после принятия заказа.
+              </div>
             </Field>
           ) : (
             <Field label={`Время самовывоза (не ранее чем через ${store.pickupLeadMinutes} мин)`}>

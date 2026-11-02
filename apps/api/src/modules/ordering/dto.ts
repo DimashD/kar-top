@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested, IsIn, ArrayNotEmpty } from 'class-validator';
+import { IsArray, IsInt, IsNumber, IsOptional, IsString, Min, Max, ValidateNested, IsIn, ArrayNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class OrderItemDto {
@@ -15,8 +15,11 @@ export class AddressDto {
   @IsOptional() @IsString() apartment?: string;
   @IsOptional() @IsString() intercom?: string;
   @IsOptional() @IsString() comment?: string;
-  @IsOptional() @IsInt() lat?: number;
-  @IsOptional() @IsInt() lng?: number;
+  // Район/зона — не точные ПДн, можно показывать магазину до принятия.
+  @IsOptional() @IsString() district?: string;
+  // Координаты точки доставки (точные). Магазину до принятия отдаём огрублённые.
+  @IsOptional() @IsNumber() @Min(-90) @Max(90) lat?: number;
+  @IsOptional() @IsNumber() @Min(-180) @Max(180) lng?: number;
 }
 
 export class CreateOrderDto {
