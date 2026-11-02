@@ -42,3 +42,20 @@ POST /admin/stores { name, ownerPhone, city?, address?, kaspiPhone? }
 После этого остаётся добавить `firebase_messaging` в приложение магазина (регистрация
 FCM-токена → уже есть `POST /devices/push-token`; громкий сигнал нового заказа) — заскаффолдим,
 когда конфиги будут на месте.
+
+## 22.4 FCM подключён в приложении магазина (S27)
+
+- `google-services.json` (проект Firebase `kartop`, пакет `kz.kartop.kartop_merchant`)
+  добавлен в `apps/merchant/android/app/`; подключён плагин `com.google.gms.google-services`.
+- Пакеты: `firebase_core`, `firebase_messaging`, `flutter_local_notifications`.
+- `PushService` (`lib/push.dart`): инициализация, запрос разрешения, канал высокой важности
+  «Заказы» (громкий сигнал), foreground-уведомление, фоновый обработчик; регистрация
+  FCM-токена на бэкенде (`POST /devices/push-token`) после входа (StoresScreen).
+- На web не инициализируется (guard `kIsWeb`); `flutter analyze`/`flutter build web`/`flutter test` — ок.
+
+Осталось для полного end-to-end:
+- **iOS**: добавить `GoogleService-Info.plist` в `apps/merchant/ios/Runner/` (пока только Android).
+- **Сервер**: секрет `FIREBASE_SERVICE_ACCOUNT` (JSON сервис-аккаунта) в окружении — тогда
+  `FcmSender` реально отправляет пуши (иначе dev-заглушка).
+- Проверка доставки — на реальном устройстве (эмулятор web пуши не принимает).
+- Бэклог: повтор громкого сигнала нового заказа до принятия.

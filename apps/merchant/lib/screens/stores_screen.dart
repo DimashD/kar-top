@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../push.dart';
 import 'home_screen.dart';
 
 class StoresScreen extends StatefulWidget {
@@ -17,7 +18,10 @@ class _StoresScreenState extends State<StoresScreen> {
   @override
   void initState() {
     super.initState();
-    _future = context.read<Session>().api.myStores();
+    final session = context.read<Session>();
+    _future = session.api.myStores();
+    // Регистрируем FCM-токен (пуши о заказах) — пользователь уже вошёл.
+    PushService.instance.registerToken(session.api);
   }
 
   void _open(StoreSummary s) {
