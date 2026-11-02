@@ -82,3 +82,29 @@ export function setLeadStatus(id: string, status: PartnerLeadStatus, note?: stri
     body: JSON.stringify({ status, ...(note !== undefined ? { note } : {}) }),
   });
 }
+
+// --- Сотрудники платформы (доступ только у PLATFORM_ADMIN) ---
+export type StaffRole = 'PLATFORM_ADMIN' | 'SUPPORT';
+export interface Staff {
+  id: string;
+  name: string | null;
+  phone: string;
+  platformRole: StaffRole;
+  createdAt: string;
+}
+
+export function listStaff(): Promise<Staff[]> {
+  return adminFetch<Staff[]>('/admin/staff');
+}
+export function createStaff(name: string, phone: string, role: StaffRole): Promise<Staff> {
+  return adminFetch<Staff>('/admin/staff', {
+    method: 'POST',
+    body: JSON.stringify({ name, phone, role }),
+  });
+}
+export function setStaffRole(id: string, role: StaffRole | 'NONE'): Promise<Staff> {
+  return adminFetch<Staff>(`/admin/staff/${id}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}

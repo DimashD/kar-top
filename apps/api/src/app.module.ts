@@ -17,6 +17,7 @@ import { ReviewsModule } from './modules/reviews.module';
 import { NotificationsModule } from './modules/notifications.module';
 import { SchedulerModule } from './modules/scheduler.module';
 import { PartnersModule } from './modules/partners.module';
+import { StaffModule } from './modules/staff.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 
 // Модульный монолит: каждый контекст — отдельный модуль (см. docs/03-architecture.md §3).
@@ -38,6 +39,7 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
     NotificationsModule,
     SchedulerModule,
     PartnersModule,
+    StaffModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }],

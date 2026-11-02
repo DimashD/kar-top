@@ -1,15 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  PartnerLead, PartnerLeadStatus, listLeads, setLeadStatus,
-  getAdminToken, setAdminToken, clearAdminToken,
-  requestAdminOtp, verifyAdminOtp, UnauthorizedError,
-} from '../lib/admin';
+import { PartnerLead, PartnerLeadStatus, listLeads, setLeadStatus, UnauthorizedError } from '../lib/admin';
+import { useAdmin } from './AdminShell';
 
 const STATUS_META: Record<PartnerLeadStatus, { label: string; color: string; bg: string }> = {
   NEW:       { label: 'Новая',     color: 'var(--carrot-600)', bg: 'var(--carrot-50)' },
-  CONTACTED: { label: 'Связались', color: 'var(--leaf)',       bg: 'var(--leaf-50, #E9F2EB)' },
+  CONTACTED: { label: 'Связались', color: 'var(--leaf)',       bg: 'var(--leaf-50)' },
   CONVERTED: { label: 'Завели',    color: '#fff',              bg: 'var(--leaf)' },
   REJECTED:  { label: 'Отказ',     color: 'var(--ink-60)',     bg: 'var(--line)' },
 };
@@ -27,75 +24,7 @@ function fmtDate(iso: string): string {
 }
 
 export default function AdminLeads() {
-  const [authed, setAuthed] = useState<boolean | null>(null); // null = ещё не знаем
-
-  useEffect(() => { setAuthed(!!getAdminToken()); }, []);
-
-  if (authed === null) return <div className="container" style={{ padding: 40 }} />;
-  if (!authed) return <AdminLogin onDone={() => setAuthed(true)} />;
-  return <LeadsTable onUnauth={() => { clearAdminToken(); setAuthed(false); }} />;
-}
-
-function AdminLogin({ onDone }: { onDone: () => void }) {
-  const [phone, setPhone] = useState('+7');
-  const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  async function request() {
-    setErr(null); setBusy(true);
-    try { await requestAdminOtp(phone.trim()); setSent(true); }
-    catch (e) { setErr((e as Error).message); }
-    finally { setBusy(false); }
-  }
-  async function verify() {
-    setErr(null); setBusy(true);
-    try {
-      const token = await verifyAdminOtp(phone.trim(), code.trim());
-      setAdminToken(token);
-      // Проверяем, что это сотрудник платформы (иначе эндпоинт отдаст 403).
-      await listLeads('NEW');
-      onDone();
-    } catch (e) {
-      if (e instanceof UnauthorizedError) { clearAdminToken(); setErr('Этот номер не сотрудник платформы'); }
-      else setErr((e as Error).message);
-    } finally { setBusy(false); }
-  }
-
-  const input: React.CSSProperties = { width: '100%', padding: '13px 14px', fontSize: 16, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--card)', color: 'var(--ink)', fontFamily: 'inherit' };
-
-  return (
-    <div className="container" style={{ maxWidth: 400, padding: '64px 20px' }}>
-      <div style={{ fontWeight: 900, fontSize: 28, color: 'var(--carrot)', marginBottom: 4 }}>Kartop</div>
-      <div className="muted" style={{ marginBottom: 28 }}>Админка платформы</div>
-      {!sent ? (
-        <>
-          <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон сотрудника</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={input} />
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={request} style={{ marginTop: 16, height: 48 }}>
-            {busy ? 'Отправляем…' : 'Получить код'}
-          </button>
-        </>
-      ) : (
-        <>
-          <div className="muted" style={{ marginBottom: 10 }}>Код отправлен на {phone}</div>
-          <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" placeholder="••••••"
-            style={{ ...input, textAlign: 'center', fontSize: 26, letterSpacing: 8, fontWeight: 800 }} />
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={verify} style={{ marginTop: 16, height: 48 }}>
-            {busy ? 'Проверяем…' : 'Войти'}
-          </button>
-          <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => setSent(false)} style={{ marginTop: 8 }}>
-            Изменить номер
-          </button>
-        </>
-      )}
-      {err ? <p style={{ color: 'var(--sale)', fontSize: 14, marginTop: 12 }}>{err}</p> : null}
-    </div>
-  );
-}
-
-function LeadsTable({ onUnauth }: { onUnauth: () => void }) {
+  const { signOut } = useAdmin();
   const [filter, setFilter] = useState('ALL');
   const [leads, setLeads] = useState<PartnerLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,9 +34,9 @@ function LeadsTable({ onUnauth }: { onUnauth: () => void }) {
   const load = useCallback(async (f: string) => {
     setLoading(true); setErr(null);
     try { setLeads(await listLeads(f)); }
-    catch (e) { if (e instanceof UnauthorizedError) onUnauth(); else setErr((e as Error).message); }
+    catch (e) { if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message); }
     finally { setLoading(false); }
-  }, [onUnauth]);
+  }, [signOut]);
 
   useEffect(() => { load(filter); }, [filter, load]);
 
@@ -115,20 +44,16 @@ function LeadsTable({ onUnauth }: { onUnauth: () => void }) {
     setSavingId(id); setErr(null);
     try {
       await setLeadStatus(id, status);
-      // Обновляем локально; если фильтр не «Все» — перезагружаем список.
       if (filter === 'ALL') setLeads((ls) => ls.map((l) => (l.id === id ? { ...l, status } : l)));
       else await load(filter);
     } catch (e) {
-      if (e instanceof UnauthorizedError) onUnauth(); else setErr((e as Error).message);
+      if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message);
     } finally { setSavingId(null); }
   }
 
   return (
     <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 920 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h1 style={{ fontSize: 26, margin: 0 }}>Заявки партнёров</h1>
-        <button className="btn btn-ghost" onClick={onUnauth}>Выйти</button>
-      </div>
+      <h1 style={{ fontSize: 26, margin: '0 0 16px' }}>Заявки партнёров</h1>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
         {FILTERS.map((f) => (
