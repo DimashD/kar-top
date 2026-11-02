@@ -1,3 +1,18 @@
-{ "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "./dist", "experimentalDecorators": true, "emitDecoratorMetadata": true, "baseUrl": "./" },
-  "include": ["src/**/*.ts"] }
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "baseUrl": "./"
+  },
+  "include": ["src/**/*.ts"]
+}
