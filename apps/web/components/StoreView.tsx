@@ -156,6 +156,7 @@ function CheckoutDrawer(props: {
   const { slug, store, lines, subtotal, onClose, onInc, onDec, onDone } = props;
   const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [phone, setPhone] = useState('+7');
+  const [email, setEmail] = useState('');
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoBusy, setGeoBusy] = useState(false);
@@ -193,6 +194,7 @@ function CheckoutDrawer(props: {
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
       const body: any = { storeSlug: slug, phone, payMethod: pay, fulfillment: mode, items };
+      if (email.trim()) body.email = email.trim();
       if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
       else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
@@ -244,6 +246,10 @@ function CheckoutDrawer(props: {
 
           <Field label="Телефон для связи">
             <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={inputStyle(!phone || phoneOk)} />
+          </Field>
+          <Field label="Email (необязательно)">
+            <input value={email} onChange={(e) => setEmail(e.target.value)} inputMode="email" placeholder="you@example.com" style={inputStyle(true)} />
+            <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Привяжем к номеру — код для входа в приложение будет приходить на почту.</div>
           </Field>
 
           {mode === 'DELIVERY' ? (

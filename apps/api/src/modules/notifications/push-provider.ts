@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { FcmSender } from './fcm-sender';
 
 export type Platform = 'android' | 'ios' | 'web';
 
@@ -14,43 +15,28 @@ export interface PushProvider {
   send(token: string, msg: PushMessage): Promise<boolean>;
 }
 
+// Все платформы (Android/iOS/Web) обслуживает FCM: токены от firebase_messaging — FCM-токены.
+// Пока FIREBASE_SERVICE_ACCOUNT не задан, FcmSender работает как dev-заглушка (лог).
 @Injectable()
-export class FcmProvider implements PushProvider {
-  readonly platform = 'android' as const;
-  private readonly log = new Logger(FcmProvider.name);
-  async send(token: string, msg: PushMessage): Promise<boolean> {
-    // TODO: реальная отправка через FCM (service account). Пока лог в dev.
-    this.log.log(`[fcm] ${token.slice(0, 10)}… «${msg.title}: ${msg.body}»`);
-    return true;
-  }
-}
-
-@Injectable()
-export class ApnsProvider implements PushProvider {
-  readonly platform = 'ios' as const;
-  private readonly log = new Logger(ApnsProvider.name);
-  async send(token: string, msg: PushMessage): Promise<boolean> {
-    this.log.log(`[apns] ${token.slice(0, 10)}… «${msg.title}: ${msg.body}»`);
-    return true;
-  }
-}
-
-@Injectable()
-export class WebPushProvider implements PushProvider {
-  readonly platform = 'web' as const;
-  private readonly log = new Logger(WebPushProvider.name);
-  async send(token: string, msg: PushMessage): Promise<boolean> {
-    // TODO: web-push (VAPID). На iOS web push ограничен.
-    this.log.log(`[webpush] ${token.slice(0, 10)}… «${msg.title}: ${msg.body}»`);
-    return true;
+class FcmPlatformProvider implements PushProvider {
+  constructor(readonly platform: Platform, private readonly sender: FcmSender) {}
+  send(token: string, msg: PushMessage): Promise<boolean> {
+    return this.sender.send(token, msg);
   }
 }
 
 @Injectable()
 export class PushRegistry {
-  private map: Record<Platform, PushProvider>;
-  constructor(fcm: FcmProvider, apns: ApnsProvider, web: WebPushProvider) {
-    this.map = { android: fcm, ios: apns, web };
+  private readonly log = new Logger(PushRegistry.name);
+  private readonly sender = new FcmSender();
+  private readonly map: Record<Platform, PushProvider>;
+  constructor() {
+    this.map = {
+      android: new FcmPlatformProvider('android', this.sender),
+      ios: new FcmPlatformProvider('ios', this.sender),
+      web: new FcmPlatformProvider('web', this.sender),
+    };
+    this.log.log(`Push: FCM ${this.sender.enabled ? 'включён (service account)' : 'в режиме заглушки (нет FIREBASE_SERVICE_ACCOUNT)'}`);
   }
   get(platform: Platform): PushProvider | undefined {
     return this.map[platform];
