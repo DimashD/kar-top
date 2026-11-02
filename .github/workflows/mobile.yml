@@ -1,0 +1,72 @@
+name: Mobile (merchant app)
+
+# CI для Flutter-приложения магазина: проверка кода на каждый push/PR;
+# сборка релизных .aab (Android) и .ipa (iOS) — вручную или по тегу.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]          # тег vX.Y.Z запускает релизные сборки
+  pull_request:
+  workflow_dispatch: {}   # кнопка «Run workflow» для релизной сборки вручную
+
+defaults:
+  run:
+    working-directory: apps/merchant
+
+jobs:
+  # 1) Быстрая проверка: формат/анализ/тесты. Без секретов, на каждый push/PR.
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  # 2) Релизный Android .aab. Запускается вручную (workflow_dispatch) или по тегу v*.
+  android-release:
+    needs: analyze
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # Ключ подписи и пароли — из секретов репозитория (Settings → Secrets → Actions).
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > android/kartop.jks
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
+      - run: flutter build appbundle --release --dart-define=API_BASE=${{ vars.API_BASE || 'https://api.kartop.kz/api' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-merchant-aab
+          path: apps/merchant/build/app/outputs/bundle/release/app-release.aab
+
+  # 3) Релизный iOS .ipa (нужен macOS-раннер). Подпись — после настройки Apple-секретов;
+  #    пока собираем без подписи, чтобы проверить компиляцию на CI.
+  ios-build:
+    needs: analyze
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign --dart-define=API_BASE=${{ vars.API_BASE || 'https://api.kartop.kz/api' }}
