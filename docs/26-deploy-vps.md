@@ -78,14 +78,18 @@ cd /opt && git clone https://github.com/DimashD/kar-top.git && cd kar-top
 Из каталога репозитория на сервере:
 
 ```bash
-sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz
+sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz +77011115999
 ```
+
+Третий аргумент (телефон) необязателен — если указать, скрипт сразу назначит этот номер
+сотрудником платформы (вход в `/admin/*`). Без него деплой тоже пройдёт.
 
 Скрипт сам:
 - создаёт swap 2 ГБ (чтобы сборка не упала на 2 ГБ RAM),
 - ставит Docker,
 - генерирует `.env.prod` со случайными паролем БД и JWT-секретами,
-- собирает и запускает: PostgreSQL+PostGIS, Redis, API (с авто-миграциями), Web, Caddy (HTTPS).
+- собирает и запускает: PostgreSQL+PostGIS, Redis, API (с авто-миграциями), Web, Caddy (HTTPS),
+- назначает админа (если передан телефон).
 
 Первая сборка — 5–15 мин. По завершении:
 - `https://kar-top.kz` — витрина,

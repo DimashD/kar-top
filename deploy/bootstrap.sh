@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Развёртывание FreshMarket/Kartop на чистом Ubuntu-VPS (PS.KZ).
-# Запускать из корня репозитория:  sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz
+# Развёртывание Kartop на чистом Ubuntu-VPS.
+# Запускать из корня репозитория:
+#   sudo bash deploy/bootstrap.sh <домен> <email-для-TLS> [телефон-админа]
+# Пример (с автоназначением сотрудника платформы):
+#   sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz +77011115999
 set -euo pipefail
 DOMAIN="${1:?Укажите домен: bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz}"
 EMAIL="${2:?Укажите e-mail для TLS}"
+ADMIN_PHONE="${3:-}"   # необязательно: телефон, которому выдать роль PLATFORM_ADMIN
+COMPOSE="docker compose --env-file .env.prod -f docker-compose.prod.yml"
 
 # 0) Swap (для сборки на 2 ГБ RAM — иначе next/nest build может упасть по памяти)
 if [ ! -f /swapfile ] && [ "$(free -m | awk '/^Mem:/{print $2}')" -lt 3000 ]; then
@@ -41,8 +46,22 @@ ENV
 fi
 
 # 3) Запуск (миграции применяются автоматически при старте api)
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+$COMPOSE up -d --build
 
+# 4) Назначить сотрудника платформы (роль для входа в /admin/*), если передан телефон.
+#    Ждём, пока api поднимется и применит миграции — повторяем grant, пока не сработает.
+if [ -n "$ADMIN_PHONE" ]; then
+  echo "Назначаю сотрудника платформы: ${ADMIN_PHONE} (жду старт API)…"
+  granted=""
+  for _ in $(seq 1 40); do
+    if $COMPOSE exec -T api node prisma/grant-admin.js "$ADMIN_PHONE" 2>/dev/null; then granted=1; break; fi
+    sleep 5
+  done
+  [ -n "$granted" ] || echo "⚠ Админа не удалось назначить автоматически. Позже: $COMPOSE exec api node prisma/grant-admin.js ${ADMIN_PHONE}"
+fi
+
+echo ""
 echo "Готово. Витрина: https://${DOMAIN}  ·  API: https://${DOMAIN}/api/health"
-echo "Первичный сид демо-магазина (один раз):"
-echo "  docker compose --env-file .env.prod -f docker-compose.prod.yml exec api npx prisma db seed"
+[ -n "$ADMIN_PHONE" ] && echo "Админка заявок: https://${DOMAIN}/admin/partners  (вход по ${ADMIN_PHONE})"
+echo "Первичный сид демо-магазина (по желанию, один раз):"
+echo "  $COMPOSE exec api npx prisma db seed"
