@@ -2,8 +2,8 @@ import Link from 'next/link';
 import AppBanner from '../../components/AppBanner';
 
 export const metadata = {
-  title: 'Скачать приложение Kartop',
-  description: 'Приложение Kartop: заказывайте продукты с зелёного базара, следите за заказом и получайте уведомления.',
+  title: 'Kartop в браузере и приложении (Android)',
+  description: 'Заказывайте продукты с зелёного базара прямо в браузере. Для живого статуса заказа и уведомлений есть приложение для Android.',
 };
 
 export default function AppPage() {

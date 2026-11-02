@@ -1,7 +1,5 @@
-// Ссылки на магазины приложений. Задаются через окружение при публикации приложения;
-// пока — плейсхолдеры (заменить на реальные ID после релиза в App Store / Google Play).
-export const IOS_URL =
-  process.env.NEXT_PUBLIC_IOS_APP_URL || 'https://apps.apple.com/kz/app/kartop/id000000000';
+// Ссылки на приложение. Пока только Android (Google Play); iOS не выпускаем.
+// Основной способ — браузер; приложение опционально.
 export const ANDROID_URL =
   process.env.NEXT_PUBLIC_ANDROID_APP_URL || 'https://play.google.com/store/apps/details?id=kz.kartop.app';
 // Схема диплинка в приложение (открыть конкретный заказ, если приложение установлено).
