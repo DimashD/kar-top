@@ -7,6 +7,8 @@ import { OtpChannel, OtpChannelName } from './channels/otp-channel';
 import { TelegramChannel } from './channels/telegram.channel';
 import { SmsChannel } from './channels/sms.channel';
 import { WhatsappChannel } from './channels/whatsapp.channel';
+import { EmailChannel } from './channels/email.channel';
+import { PrismaService } from '../../prisma/prisma.service';
 
 const CODE_TTL_SEC = 5 * 60;
 const MAX_ATTEMPTS = 5;
@@ -22,11 +24,13 @@ export class OtpService {
   constructor(
     @Inject(REDIS) private readonly redis: Redis,
     private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
     tg: TelegramChannel,
     sms: SmsChannel,
     wa: WhatsappChannel,
+    email: EmailChannel,
   ) {
-    this.channels = { telegram: tg, sms, whatsapp: wa };
+    this.channels = { email, telegram: tg, whatsapp: wa, sms };
   }
 
   /** Только казахстанские номера; нормализуем к цифрам. */
@@ -50,10 +54,17 @@ export class OtpService {
     }
   }
 
-  /** Ответ контроллера одинаков для любого номера — нельзя узнать, зарегистрирован ли он. */
-  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<void> {
+  /**
+   * Запрос кода. Ответ контроллера одинаков для любого номера — нельзя узнать, зарегистрирован ли он.
+   * `email` можно передать для привязки email↔телефон; тогда код пойдёт на почту (дёшево).
+   * Приоритет каналов (docs/20 §3): email → Telegram → WhatsApp → SMS.
+   */
+  async request(rawPhone: string, preferred: OtpChannelName = 'telegram', email?: string): Promise<void> {
     const phone = this.normalize(rawPhone);
     await this.rateLimit(phone);
+
+    // Резолвим email: из параметра (и привязываем) либо из уже привязанного у пользователя.
+    const emailTarget = await this.resolveEmail(phone, email);
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const codeHash = await bcrypt.hash(code, 10);
@@ -64,11 +75,14 @@ export class OtpService {
       CODE_TTL_SEC,
     );
 
-    // Приоритет: Telegram (бесплатно) → WhatsApp → SMS (платно, последний резерв).
-    const order: OtpChannelName[] = [...new Set([preferred, 'whatsapp', 'sms'] as OtpChannelName[])];
+    // Порядок каналов: email (если есть) → предпочитаемый (telegram) → whatsapp → sms.
+    const order: OtpChannelName[] = [...new Set(
+      [emailTarget ? 'email' : null, preferred, 'whatsapp', 'sms'].filter(Boolean) as OtpChannelName[],
+    )];
     for (const name of order) {
+      const to = name === 'email' ? emailTarget! : rawPhone;
       try {
-        if (await this.channels[name].send(rawPhone, code)) {
+        if (await this.channels[name].send(to, code)) {
           this.log.log(`OTP отправлен каналом ${name}`);
           return;
         }
@@ -77,6 +91,28 @@ export class OtpService {
       }
     }
     this.log.error('Ни один канал не доставил код');
+  }
+
+  /** Привязка email к телефону (если передан и валиден) + возврат целевого email. */
+  private async resolveEmail(phone: string, email?: string): Promise<string | null> {
+    const normEmail = email?.trim().toLowerCase();
+    if (normEmail) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail)) return null;
+      try {
+        // Привязываем email к пользователю этого телефона (создаём, если нужно).
+        await this.prisma.user.upsert({
+          where: { phone: `+${phone}` },
+          update: { email: normEmail },
+          create: { phone: `+${phone}`, email: normEmail },
+        });
+        return normEmail;
+      } catch {
+        // email занят другим аккаунтом — не привязываем, но на эту почту код слать можно.
+        return normEmail;
+      }
+    }
+    const user = await this.prisma.user.findUnique({ where: { phone: `+${phone}` }, select: { email: true } });
+    return user?.email ?? null;
   }
 
   /** Возвращает нормализованный телефон при успехе, иначе null. */

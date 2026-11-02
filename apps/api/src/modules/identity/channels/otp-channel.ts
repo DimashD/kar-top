@@ -1,4 +1,4 @@
-export type OtpChannelName = 'telegram' | 'sms' | 'whatsapp';
+export type OtpChannelName = 'email' | 'telegram' | 'whatsapp' | 'sms';
 
 /**
  * Абстракция канала доставки кода подтверждения.

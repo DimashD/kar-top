@@ -15,7 +15,7 @@ export class OtpController {
   /** Ответ одинаков для любого номера — нельзя узнать, зарегистрирован ли он. */
   @Post('request')
   async request(@Body() dto: OtpRequestDto) {
-    await this.otp.request(dto.phone, dto.channel ?? 'telegram');
+    await this.otp.request(dto.phone, dto.channel ?? 'telegram', dto.email);
     return { sent: true };
   }
 

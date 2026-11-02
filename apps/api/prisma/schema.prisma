@@ -75,6 +75,7 @@ enum InvoiceStatus {
 model User {
   id           String   @id @default(uuid())
   phone        String   @unique
+  email        String?  @unique // привязка email↔телефон: код можно слать на почту (дешевле SMS)
   name         String?
   platformRole Role?    // сотрудник платформы (PLATFORM_ADMIN / SUPPORT); null — обычный пользователь
   createdAt    DateTime @default(now())
