@@ -26,10 +26,15 @@ services:
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set me}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set me}
+      WEB_BASE_URL: https://${DOMAIN}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
       SMS_API_KEY: ${SMS_API_KEY:-}
+      EMAIL_API_KEY: ${EMAIL_API_KEY:-}
       KASPI_MERCHANT_ID: ${KASPI_MERCHANT_ID:-}
       KASPI_API_KEY: ${KASPI_API_KEY:-}
+      # Push (FCM): положить JSON сервис-аккаунта целиком в эту переменную (.env.prod) — тогда пуши уходят реально.
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
     command: sh -c "npx prisma migrate deploy && node dist/main.js"
     depends_on: [db, redis]
     restart: unless-stopped
@@ -38,7 +43,8 @@ services:
     build: { context: ./apps/web }
     environment:
       NODE_ENV: production
-      API_BASE_URL: http://api:3000/api
+      # SSR внутри контейнера ходит на API по внутреннему адресу; браузер — на /api (через Caddy).
+      API_BASE_INTERNAL: http://api:3000/api
     depends_on: [api]
     restart: unless-stopped
 

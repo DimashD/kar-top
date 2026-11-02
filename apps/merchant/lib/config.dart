@@ -1,5 +1,6 @@
 /// Базовый URL API. Переопределяется при сборке:
-/// flutter run --dart-define=API_BASE=https://api.kartop.kz/api
+///   flutter build apk --dart-define=API_BASE=https://kar-top.kz/api
+/// (прод: API отдаётся Caddy на том же домене по префиксу /api).
 /// По умолчанию — хост-машина для Android-эмулятора (10.0.2.2).
 const String kApiBase = String.fromEnvironment(
   'API_BASE',
