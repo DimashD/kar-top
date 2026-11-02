@@ -66,21 +66,12 @@ export class OrderingService {
       };
     });
 
-    // Привязываем email к телефону, если передан (B2C: код/уведомления на почту — дешевле SMS).
-    const email = dto.email?.trim().toLowerCase() || undefined;
-    let user;
-    try {
-      user = await this.prisma.user.upsert({
-        where: { phone: dto.phone },
-        update: email ? { email } : {},
-        create: { phone: dto.phone, email },
-      });
-    } catch (e) {
-      // email занят другим аккаунтом — заводим/находим без привязки email.
-      if ((e as { code?: string }).code === 'P2002') {
-        user = await this.prisma.user.upsert({ where: { phone: dto.phone }, update: {}, create: { phone: dto.phone } });
-      } else throw e;
-    }
+    // Email НЕ привязываем здесь: спаривание требует подтверждения владения (см. auth/email/*).
+    const user = await this.prisma.user.upsert({
+      where: { phone: dto.phone },
+      update: {},
+      create: { phone: dto.phone },
+    });
 
     const order = await this.prisma.order.create({
       data: {
