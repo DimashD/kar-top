@@ -38,11 +38,11 @@ class Api {
       _decode(await http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
 
   // --- Auth ---
-  Future<void> requestOtp(String phone, {String? email}) => _post('/auth/otp/request', {
-        'phone': phone,
-        'channel': kOtpChannel,
-        if (email != null && email.isNotEmpty) 'email': email,
-      });
+  Future<void> requestOtp(String phone) => _post('/auth/otp/request', {'phone': phone, 'channel': kOtpChannel});
+
+  /// Привязка email (телефон уже подтверждён): шаг 1 — код на почту, шаг 2 — подтверждение.
+  Future<void> requestEmailCode(String email) => _post('/auth/email/request', {'email': email});
+  Future<void> verifyEmailCode(String code) => _post('/auth/email/verify', {'code': code});
   Future<String> verifyOtp(String phone, String code) async {
     final r = await _post('/auth/otp/verify', {'phone': phone, 'code': code});
     return (r as Map<String, dynamic>)['accessToken'] as String;

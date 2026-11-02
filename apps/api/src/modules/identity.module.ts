@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { OtpController } from './identity/otp.controller';
+import { EmailController } from './identity/email.controller';
 import { OtpService } from './identity/otp.service';
 import { AuthService } from './identity/auth.service';
 import { TokenService } from './identity/token.service';
@@ -11,7 +12,7 @@ import { EmailChannel } from './identity/channels/email.channel';
 
 @Module({
   imports: [JwtModule.register({})],
-  controllers: [OtpController],
+  controllers: [OtpController, EmailController],
   providers: [OtpService, AuthService, TokenService, TelegramChannel, SmsChannel, WhatsappChannel, EmailChannel],
 })
 export class IdentityModule {}

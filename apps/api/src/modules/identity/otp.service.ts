@@ -59,12 +59,12 @@ export class OtpService {
    * `email` можно передать для привязки email↔телефон; тогда код пойдёт на почту (дёшево).
    * Приоритет каналов (docs/20 §3): email → Telegram → WhatsApp → SMS.
    */
-  async request(rawPhone: string, preferred: OtpChannelName = 'telegram', email?: string): Promise<void> {
+  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<void> {
     const phone = this.normalize(rawPhone);
     await this.rateLimit(phone);
 
-    // Резолвим email: из параметра (и привязываем) либо из уже привязанного у пользователя.
-    const emailTarget = await this.resolveEmail(phone, email);
+    // Только УЖЕ ПОДТВЕРЖДЁННЫЙ (спаренный) email — код пойдёт на почту. Непроверенный email не используется.
+    const emailTarget = await this.pairedEmail(phone);
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const codeHash = await bcrypt.hash(code, 10);
@@ -93,26 +93,53 @@ export class OtpService {
     this.log.error('Ни один канал не доставил код');
   }
 
-  /** Привязка email к телефону (если передан и валиден) + возврат целевого email. */
-  private async resolveEmail(phone: string, email?: string): Promise<string | null> {
-    const normEmail = email?.trim().toLowerCase();
-    if (normEmail) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail)) return null;
-      try {
-        // Привязываем email к пользователю этого телефона (создаём, если нужно).
-        await this.prisma.user.upsert({
-          where: { phone: `+${phone}` },
-          update: { email: normEmail },
-          create: { phone: `+${phone}`, email: normEmail },
-        });
-        return normEmail;
-      } catch {
-        // email занят другим аккаунтом — не привязываем, но на эту почту код слать можно.
-        return normEmail;
-      }
-    }
+  /** Подтверждённый (спаренный) email пользователя по телефону. Непроверенный email в User.email не попадает. */
+  private async pairedEmail(phone: string): Promise<string | null> {
     const user = await this.prisma.user.findUnique({ where: { phone: `+${phone}` }, select: { email: true } });
     return user?.email ?? null;
+  }
+
+  /**
+   * Шаг 1 привязки email: отправить код на указанную почту (телефон уже подтверждён — userId из сессии).
+   * Привязка произойдёт только после verifyEmail. Email, занятый другим аккаунтом, не принимаем.
+   */
+  async requestEmailCode(userId: string, rawEmail: string): Promise<void> {
+    const email = rawEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new BadRequestException('Некорректный email');
+    const taken = await this.prisma.user.findUnique({ where: { email }, select: { id: true } });
+    if (taken && taken.id !== userId) throw new BadRequestException('Этот email уже привязан к другому аккаунту');
+
+    const rlKey = `email:rl:${userId}`;
+    const c = await this.redis.incr(rlKey);
+    if (c === 1) await this.redis.expire(rlKey, 15 * 60);
+    if (c > RATE_PER_15MIN) throw new HttpException('Слишком много запросов. Попробуйте позже.', HttpStatus.TOO_MANY_REQUESTS);
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = await bcrypt.hash(code, 10);
+    await this.redis.set(`email:code:${userId}`, JSON.stringify({ codeHash, email, attempts: 0 }), 'EX', CODE_TTL_SEC);
+    await this.channels.email.send(email, code);
+  }
+
+  /** Шаг 2: подтвердить код из письма → СПАРИТЬ email с телефоном (оба подтверждены). */
+  async verifyEmailCode(userId: string, code: string): Promise<string> {
+    const key = `email:code:${userId}`;
+    const raw = await this.redis.get(key);
+    if (!raw) throw new BadRequestException('Код не запрашивался или истёк');
+    const data = JSON.parse(raw) as { codeHash: string; email: string; attempts: number };
+    if (data.attempts >= MAX_ATTEMPTS) { await this.redis.del(key); throw new BadRequestException('Слишком много попыток'); }
+    if (!(await bcrypt.compare(code, data.codeHash))) {
+      data.attempts += 1;
+      const ttl = await this.redis.ttl(key);
+      await this.redis.set(key, JSON.stringify(data), 'EX', ttl > 0 ? ttl : CODE_TTL_SEC);
+      throw new BadRequestException('Неверный код');
+    }
+    await this.redis.del(key);
+    try {
+      await this.prisma.user.update({ where: { id: userId }, data: { email: data.email } });
+    } catch {
+      throw new BadRequestException('Этот email уже привязан к другому аккаунту');
+    }
+    return data.email;
   }
 
   /** Возвращает нормализованный телефон при успехе, иначе null. */

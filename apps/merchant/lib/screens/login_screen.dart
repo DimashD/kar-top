@@ -11,7 +11,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _phone = TextEditingController(text: '+7');
-  final _email = TextEditingController();
   final _code = TextEditingController();
   bool _sent = false;
   bool _busy = false;
@@ -20,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _request() async {
     setState(() { _busy = true; _error = null; });
     try {
-      await context.read<Session>().api.requestOtp(_phone.text.trim(), email: _email.text.trim());
+      await context.read<Session>().api.requestOtp(_phone.text.trim());
       setState(() => _sent = true);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -61,10 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text('Телефон', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
                   const SizedBox(height: 6),
                   TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+77011234567')),
-                  const SizedBox(height: 12),
-                  const Text('Email (чтобы код приходил на почту)', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
-                  const SizedBox(height: 6),
-                  TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(hintText: 'you@example.com')),
                   const SizedBox(height: 16),
                   ElevatedButton(onPressed: _busy ? null : _request, child: Text(_busy ? 'Отправляем…' : 'Получить код')),
                 ] else ...[
