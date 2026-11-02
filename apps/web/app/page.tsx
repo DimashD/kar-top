@@ -23,6 +23,7 @@ export default function Home() {
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <div style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)' }}>Kartop</div>
           <div style={{ display: 'flex', gap: 8 }}>
+            <Link className="btn btn-ghost" href="/partner">Стать партнёром</Link>
             <Link className="btn btn-ghost" href="/app">Приложение</Link>
             <Link className="btn btn-primary" href="/ruslan-fruits">Открыть витрину</Link>
           </div>
@@ -74,8 +75,23 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="container" style={{ padding: '32px 20px', color: 'var(--ink-40)', fontSize: 14 }}>
-        Kartop · онлайн зелёный базар · Казахстан
+      {/* CTA для магазинов */}
+      <section className="container" style={{ padding: '48px 20px' }}>
+        <div className="card" style={{ padding: 32, textAlign: 'center', background: 'var(--carrot-50)', border: '1px solid var(--line)' }}>
+          <h2 style={{ fontSize: 26, margin: '0 0 8px' }}>У вас магазин на базаре?</h2>
+          <p className="muted" style={{ fontSize: 17, margin: '0 0 20px', maxWidth: 560, marginInline: 'auto' }}>
+            Подключайтесь к Kartop — онлайн-витрина, заказы и доставка для вашего района.
+            Оставьте заявку, и мы свяжемся с вами.
+          </p>
+          <Link className="btn btn-primary" href="/partner" style={{ fontSize: 16, padding: '14px 28px' }}>
+            Стать партнёром →
+          </Link>
+        </div>
+      </section>
+
+      <footer className="container" style={{ padding: '32px 20px', color: 'var(--ink-40)', fontSize: 14, display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <span>Kartop · онлайн зелёный базар · Казахстан</span>
+        <Link href="/partner" style={{ color: 'var(--ink-40)' }}>Стать партнёром</Link>
       </footer>
     </main>
   );

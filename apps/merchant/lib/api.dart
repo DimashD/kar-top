@@ -40,6 +40,16 @@ class Api {
   // --- Auth ---
   Future<void> requestOtp(String phone) => _post('/auth/otp/request', {'phone': phone, 'channel': kOtpChannel});
 
+  /// Заявка «Стать партнёром» (публичная, без авторизации). Телефон и имя обязательны.
+  Future<void> applyPartner({required String name, required String phone, String? company, String? twogisUrl}) =>
+      _post('/partners/apply', {
+        'name': name,
+        'phone': phone,
+        if (company != null && company.isNotEmpty) 'company': company,
+        if (twogisUrl != null && twogisUrl.isNotEmpty) 'twogisUrl': twogisUrl,
+        'source': 'merchant_app',
+      });
+
   /// Привязка email (телефон уже подтверждён): шаг 1 — код на почту, шаг 2 — подтверждение.
   Future<void> requestEmailCode(String email) => _post('/auth/email/request', {'email': email});
   Future<void> verifyEmailCode(String code) => _post('/auth/email/verify', {'code': code});

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../session.dart';
 import '../theme.dart';
+import 'partner_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -79,6 +80,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(_error!, style: const TextStyle(color: AppColors.sale)),
+                ],
+                if (!_sent) ...[
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  const Text('Ещё не партнёр Kartop?',
+                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.ink60)),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const PartnerScreen())),
+                    child: const Text('Стать партнёром'),
+                  ),
                 ],
               ],
             ),

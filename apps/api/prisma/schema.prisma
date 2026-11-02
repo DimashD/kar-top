@@ -72,6 +72,13 @@ enum InvoiceStatus {
   VOID
 }
 
+enum PartnerLeadStatus {
+  NEW        // заявка пришла, с партнёром ещё не связались
+  CONTACTED  // связались
+  CONVERTED  // завели магазин (invite-only)
+  REJECTED   // отказ
+}
+
 model User {
   id           String   @id @default(uuid())
   phone        String   @unique
@@ -297,4 +304,20 @@ model Invoice {
   issuedAt       DateTime?
   paidAt         DateTime?
   @@unique([subscriptionId, period]) // один счёт за месяц (идемпотентность)
+}
+
+// Заявка «Стать партнёром» (лид мерчанта) с сайта/приложения. Свободной регистрации нет —
+// платформа связывается по телефону и заводит магазин вручную (invite-only). docs/22 §invite.
+model PartnerLead {
+  id        String            @id @default(uuid())
+  name      String            // обязательное
+  phone     String            // обязательное, +77XXXXXXXXX
+  company   String?           // название компании — необязательно
+  twogisUrl String?           // ссылка/карточка 2ГИС — необязательно
+  source    String            @default("web") // web | merchant_app
+  status    PartnerLeadStatus @default(NEW)
+  note      String?           // внутренняя пометка платформы
+  createdAt DateTime          @default(now())
+  @@index([status, createdAt])
+  @@index([phone])
 }
