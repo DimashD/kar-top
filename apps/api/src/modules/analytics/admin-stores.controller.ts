@@ -1,9 +1,18 @@
-import { Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 import { StoreStatus } from '@prisma/client';
 import { AdminStoresService } from './admin-stores.service';
 import { AdminGuard } from '../../common/auth/admin.guard';
 
-// Модерация магазинов. JwtAuthGuard глобально + роль платформы.
+class ProvisionStoreDto {
+  @IsString() @MinLength(2) name!: string;
+  @IsString() ownerPhone!: string;
+  @IsOptional() @IsString() city?: string;
+  @IsOptional() @IsString() address?: string;
+  @IsOptional() @IsString() kaspiPhone?: string;
+}
+
+// Модерация и заведение магазинов. JwtAuthGuard глобально + роль платформы.
 @UseGuards(AdminGuard)
 @Controller('admin/stores')
 export class AdminStoresController {
@@ -13,6 +22,12 @@ export class AdminStoresController {
   @Get()
   list(@Query('status') status?: StoreStatus, @Query('limit') limit?: string) {
     return this.stores.list(status, limit ? Number(limit) : 100);
+  }
+
+  /** Завести магазин (invite-only): создаёт магазин PENDING + владельца по телефону. */
+  @Post()
+  provision(@Body() dto: ProvisionStoreDto) {
+    return this.stores.provision(dto);
   }
 
   @Post(':id/approve')

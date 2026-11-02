@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsNumber, IsOptional, IsString, Min, Max, ValidateNested, IsIn, ArrayNotEmpty } from 'class-validator';
+import { IsArray, IsInt, IsNumber, IsOptional, IsString, IsEmail, Min, Max, ValidateNested, IsIn, ArrayNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class OrderItemDto {
@@ -25,6 +25,8 @@ export class AddressDto {
 export class CreateOrderDto {
   @IsString() storeSlug!: string;
   @IsString() phone!: string;
+  // Привязка email↔телефон (B2C): код/уведомления смогут идти на почту (дешевле SMS).
+  @IsOptional() @IsEmail() email?: string;
   @IsArray() @ArrayNotEmpty() @ValidateNested({ each: true }) @Type(() => OrderItemDto) items!: OrderItemDto[];
   @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
   @IsIn(['CASH', 'CARD_COURIER', 'KASPI_TRANSFER']) payMethod!: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
