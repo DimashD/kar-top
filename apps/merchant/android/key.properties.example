@@ -1,0 +1,7 @@
+# Релизная подпись Android. Скопируйте в android/key.properties и заполните.
+# Ключ создаётся один раз (НИКОГДА не коммитить .jks и key.properties):
+#   keytool -genkey -v -keystore ~/kartop-merchant.jks -keyalg RSA -keysize 2048 -validity 10000 -alias kartop
+storePassword=ВАШ_ПАРОЛЬ_ХРАНИЛИЩА
+keyPassword=ВАШ_ПАРОЛЬ_КЛЮЧА
+keyAlias=kartop
+storeFile=/абсолютный/путь/к/kartop-merchant.jks
