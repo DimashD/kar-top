@@ -59,3 +59,20 @@ FCM-токена → уже есть `POST /devices/push-token`; громкий 
   `FcmSender` реально отправляет пуши (иначе dev-заглушка).
 - Проверка доставки — на реальном устройстве (эмулятор web пуши не принимает).
 - Бэклог: повтор громкого сигнала нового заказа до принятия.
+
+## 22.5 iOS Firebase подключён (S28)
+
+- `GoogleService-Info.plist` (проект kartop, iOS app) добавлен в `apps/merchant/ios/Runner/`.
+- Инициализация переведена на `firebase_options.dart` (`Firebase.initializeApp(options:…)`),
+  значения для Android и iOS зашиты из конфигов — не зависит от нативного бандла.
+- **Bundle ID на iOS выровнен** под Firebase-файл: было `kz.kartop.kartopMerchant`,
+  стало `kz.kartop.kartopmerchant` (plist так зарегистрирован). Android — без изменений
+  (`kz.kartop.kartop_merchant`). Платформы имеют разные id — это допустимо.
+- Info.plist: `UIBackgroundModes = remote-notification`.
+
+Осталось для реального iOS-push (нужен Apple Developer):
+- Включить Push Notifications для App ID; создать **APNs Auth Key (.p8)**.
+- Загрузить ключ в Firebase (Project settings → Cloud Messaging → Apple app → APNs key).
+- В Xcode: добавить `GoogleService-Info.plist` в таргет Runner; включить capability
+  Push Notifications + Background Modes (Remote notifications).
+- Проверка — на реальном iPhone.

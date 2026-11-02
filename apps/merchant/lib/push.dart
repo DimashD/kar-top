@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api.dart';
+import 'firebase_options.dart';
 
 /// Фоновый обработчик (должен быть top-level). Срабатывает, когда приложение в фоне/закрыто.
 @pragma('vm:entry-point')
@@ -31,7 +32,7 @@ class PushService {
   Future<void> init() async {
     if (kIsWeb || _ready) return;
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
       FirebaseMessaging.onBackgroundMessage(_bgHandler);
       await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
 
