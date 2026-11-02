@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../lock.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,12 +14,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   StoreSettings? _s;
   bool _loading = true;
+  bool _lockEnabled = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     _load();
+    AppLock.isEnabled().then((v) => setState(() => _lockEnabled = v));
   }
 
   Future<void> _load() async {
@@ -29,6 +32,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  Future<void> _toggleLock(bool on) async {
+    if (!on) {
+      await AppLock.disable();
+      setState(() => _lockEnabled = false);
+      return;
+    }
+    final pin = await _askPin();
+    if (pin != null && pin.length == 4) {
+      await AppLock.enable(pin);
+      setState(() => _lockEnabled = true);
+    }
+  }
+
+  Future<String?> _askPin() {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Задайте PIN (4 цифры)'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          maxLength: 4,
+          decoration: const InputDecoration(hintText: '••••'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Включить')),
+        ],
+      ),
+    );
   }
 
   Future<void> _save(Map<String, dynamic> patch) async {
@@ -87,6 +124,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: s.pickupEnabled ? _editLead : null,
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Text('Безопасность', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        const SizedBox(height: 8),
+        Card(
+          child: SwitchListTile(
+            value: _lockEnabled,
+            activeThumbColor: AppColors.leaf,
+            secondary: const Icon(Icons.lock_outline, color: AppColors.carrot),
+            title: const Text('Защита входа'),
+            subtitle: const Text('Face ID / отпечаток или PIN при открытии'),
+            onChanged: _toggleLock,
           ),
         ),
         const SizedBox(height: 20),

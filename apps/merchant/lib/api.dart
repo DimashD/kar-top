@@ -38,7 +38,11 @@ class Api {
       _decode(await http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
 
   // --- Auth ---
-  Future<void> requestOtp(String phone) => _post('/auth/otp/request', {'phone': phone, 'channel': kOtpChannel});
+  Future<void> requestOtp(String phone, {String? email}) => _post('/auth/otp/request', {
+        'phone': phone,
+        'channel': kOtpChannel,
+        if (email != null && email.isNotEmpty) 'email': email,
+      });
   Future<String> verifyOtp(String phone, String code) async {
     final r = await _post('/auth/otp/verify', {'phone': phone, 'code': code});
     return (r as Map<String, dynamic>)['accessToken'] as String;

@@ -7,10 +7,11 @@ import { TokenService } from './identity/token.service';
 import { TelegramChannel } from './identity/channels/telegram.channel';
 import { SmsChannel } from './identity/channels/sms.channel';
 import { WhatsappChannel } from './identity/channels/whatsapp.channel';
+import { EmailChannel } from './identity/channels/email.channel';
 
 @Module({
   imports: [JwtModule.register({})],
   controllers: [OtpController],
-  providers: [OtpService, AuthService, TokenService, TelegramChannel, SmsChannel, WhatsappChannel],
+  providers: [OtpService, AuthService, TokenService, TelegramChannel, SmsChannel, WhatsappChannel, EmailChannel],
 })
 export class IdentityModule {}
