@@ -45,7 +45,12 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          echo "$KEYSTORE_B64" | base64 -d > android/kartop.jks
+          # Вычищаем пробелы/переносы (частая проблема при вставке длинного base64) и декодируем.
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          echo "keystore size: $(wc -c < android/kartop.jks) bytes"
+          # Проверяем, что ключ читается указанным паролем — иначе понятная ошибка.
+          keytool -list -keystore android/kartop.jks -storepass "$STORE_PASSWORD" >/dev/null \
+            || { echo "::error::Keystore invalid or wrong password — re-check ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD secrets"; exit 1; }
           cat > android/key.properties <<EOF
           storePassword=$STORE_PASSWORD
           keyPassword=$KEY_PASSWORD
