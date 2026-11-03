@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Staff, StaffRole, listStaff, createStaff, setStaffRole, UnauthorizedError } from '../lib/admin';
+import { Staff, StaffRole, listStaff, createStaff, setStaffRole, setStaffPassword, UnauthorizedError } from '../lib/admin';
 import { useAdmin } from './AdminShell';
+import { isValidKzPhone, kzPhoneE164, formatKzPhone } from '../lib/phone';
+import PhoneInput from './PhoneInput';
 
 const ROLE_META: Record<StaffRole, { label: string; color: string; bg: string; hint: string }> = {
   PLATFORM_ADMIN: { label: 'Администратор', color: '#fff', bg: 'var(--carrot)', hint: 'Полный доступ: заявки и управление сотрудниками.' },
@@ -24,6 +26,7 @@ export default function AdminStaff() {
   // форма создания
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('+7');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<StaffRole>('SUPPORT');
   const [adding, setAdding] = useState(false);
   const [formErr, setFormErr] = useState<string | null>(null);
@@ -41,15 +44,15 @@ export default function AdminStaff() {
 
   useEffect(() => { load(); }, [load]);
 
-  const phoneOk = /^(7|8)7\d{9}$/.test(phone.replace(/\D/g, ''));
-  const canAdd = name.trim().length >= 2 && phoneOk && !adding;
+  const phoneOk = isValidKzPhone(phone);
+  const canAdd = name.trim().length >= 2 && phoneOk && password.length >= 6 && !adding;
 
   async function add() {
     if (!canAdd) return;
     setFormErr(null); setAdding(true);
     try {
-      await createStaff(name.trim(), phone.trim(), role);
-      setName(''); setPhone('+7'); setRole('SUPPORT');
+      await createStaff(name.trim(), kzPhoneE164(phone), password, role);
+      setName(''); setPhone('+7'); setPassword(''); setRole('SUPPORT');
       await load();
     } catch (e) {
       if (e instanceof UnauthorizedError) setNoAccess(true);
@@ -60,6 +63,16 @@ export default function AdminStaff() {
   async function change(id: string, newRole: StaffRole | 'NONE') {
     setSavingId(id); setErr(null);
     try { await setStaffRole(id, newRole); await load(); }
+    catch (e) { if (e instanceof UnauthorizedError) setNoAccess(true); else setErr((e as Error).message); }
+    finally { setSavingId(null); }
+  }
+
+  async function resetPwd(id: string) {
+    const pwd = window.prompt('Новый пароль сотрудника (минимум 6 символов):');
+    if (pwd === null) return;
+    if (pwd.length < 6) { setErr('Пароль — минимум 6 символов'); return; }
+    setSavingId(id); setErr(null);
+    try { await setStaffPassword(id, pwd); window.alert('Пароль обновлён'); }
     catch (e) { if (e instanceof UnauthorizedError) setNoAccess(true); else setErr((e as Error).message); }
     finally { setSavingId(null); }
   }
@@ -95,7 +108,11 @@ export default function AdminStaff() {
           </div>
           <div>
             <label style={{ fontWeight: 700, fontSize: 13, display: 'block', marginBottom: 6 }}>Телефон</label>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={input} />
+            <PhoneInput value={phone} onChange={setPhone} style={input} />
+          </div>
+          <div>
+            <label style={{ fontWeight: 700, fontSize: 13, display: 'block', marginBottom: 6 }}>Пароль</label>
+            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="минимум 6 символов" style={input} autoComplete="new-password" />
           </div>
           <div>
             <label style={{ fontWeight: 700, fontSize: 13, display: 'block', marginBottom: 6 }}>Роль</label>
@@ -105,6 +122,9 @@ export default function AdminStaff() {
             </select>
           </div>
         </div>
+        <p className="muted" style={{ fontSize: 13, margin: '8px 0 0' }}>
+          Сотрудник войдёт по своему телефону и этому паролю на этой же странице. Пароль можно потом сменить.
+        </p>
         <p className="muted" style={{ fontSize: 13, margin: '10px 0 0' }}>{ROLE_META[role].hint}</p>
         {formErr ? <p style={{ color: 'var(--sale)', fontSize: 14, margin: '10px 0 0' }}>{formErr}</p> : null}
         <button className="btn btn-primary" disabled={!canAdd} onClick={add} style={{ marginTop: 14, height: 46, opacity: canAdd ? 1 : 0.6 }}>
@@ -123,7 +143,7 @@ export default function AdminStaff() {
               <div key={s.id} className="card" style={{ padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 180 }}>
                   <div style={{ fontWeight: 800, fontSize: 16 }}>{s.name || '—'}</div>
-                  <div className="muted" style={{ fontSize: 14 }}>{s.phone}</div>
+                  <div className="muted" style={{ fontSize: 14 }}>{formatKzPhone(s.phone)}</div>
                   <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>с {fmtDate(s.createdAt)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -140,6 +160,10 @@ export default function AdminStaff() {
                     <option value="PLATFORM_ADMIN">Администратор</option>
                     <option value="NONE">Отозвать доступ</option>
                   </select>
+                  <button className="btn btn-ghost" disabled={savingId === s.id}
+                    onClick={() => resetPwd(s.id)} style={{ padding: '8px 12px', fontSize: 13 }}>
+                    Сменить пароль
+                  </button>
                 </div>
               </div>
             );

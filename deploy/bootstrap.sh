@@ -7,7 +7,8 @@
 set -euo pipefail
 DOMAIN="${1:?Укажите домен: bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz}"
 EMAIL="${2:?Укажите e-mail для TLS}"
-ADMIN_PHONE="${3:-}"   # необязательно: телефон, которому выдать роль PLATFORM_ADMIN
+ADMIN_PHONE="${3:-}"     # необязательно: телефон, которому выдать роль PLATFORM_ADMIN
+ADMIN_PASSWORD="${4:-}"  # необязательно: пароль этого администратора для входа в /admin
 COMPOSE="docker compose --env-file .env.prod -f docker-compose.prod.yml"
 
 # 0) Swap (для сборки на 2 ГБ RAM — иначе next/nest build может упасть по памяти)
@@ -54,7 +55,7 @@ if [ -n "$ADMIN_PHONE" ]; then
   echo "Назначаю сотрудника платформы: ${ADMIN_PHONE} (жду старт API)…"
   granted=""
   for _ in $(seq 1 40); do
-    if $COMPOSE exec -T api node prisma/grant-admin.js "$ADMIN_PHONE" 2>/dev/null; then granted=1; break; fi
+    if $COMPOSE exec -T api node prisma/grant-admin.js "$ADMIN_PHONE" "$ADMIN_PASSWORD" 2>/dev/null; then granted=1; break; fi
     sleep 5
   done
   [ -n "$granted" ] || echo "⚠ Админа не удалось назначить автоматически. Позже: $COMPOSE exec api node prisma/grant-admin.js ${ADMIN_PHONE}"

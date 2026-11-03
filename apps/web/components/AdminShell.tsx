@@ -4,9 +4,10 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  getAdminToken, setAdminToken, clearAdminToken,
-  requestAdminOtp, verifyAdminOtp, listLeads, UnauthorizedError,
+  getAdminToken, setAdminToken, clearAdminToken, staffLogin,
 } from '../lib/admin';
+import { kzPhoneE164 } from '../lib/phone';
+import PhoneInput from './PhoneInput';
 
 interface AdminCtx { signOut: () => void }
 const Ctx = createContext<AdminCtx>({ signOut: () => {} });
@@ -58,27 +59,20 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
 function AdminLogin({ onDone }: { onDone: () => void }) {
   const [phone, setPhone] = useState('+7');
-  const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function request() {
-    setErr(null); setBusy(true);
-    try { await requestAdminOtp(phone.trim()); setSent(true); }
-    catch (e) { setErr((e as Error).message); }
-    finally { setBusy(false); }
-  }
-  async function verify() {
+  async function login() {
+    if (!password) return;
     setErr(null); setBusy(true);
     try {
-      const token = await verifyAdminOtp(phone.trim(), code.trim());
+      const token = await staffLogin(kzPhoneE164(phone), password);
       setAdminToken(token);
-      await listLeads('NEW'); // проверка, что номер — сотрудник платформы (иначе 403)
       onDone();
     } catch (e) {
-      if (e instanceof UnauthorizedError) { clearAdminToken(); setErr('Этот номер не сотрудник платформы'); }
-      else setErr((e as Error).message);
+      clearAdminToken();
+      setErr((e as Error).message);
     } finally { setBusy(false); }
   }
 
@@ -88,27 +82,15 @@ function AdminLogin({ onDone }: { onDone: () => void }) {
     <div className="container" style={{ maxWidth: 400, padding: '64px 20px' }}>
       <div style={{ fontWeight: 900, fontSize: 28, color: 'var(--carrot)', marginBottom: 4 }}>Kartop</div>
       <div className="muted" style={{ marginBottom: 28 }}>Админка платформы</div>
-      {!sent ? (
-        <>
-          <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон сотрудника</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={input} />
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={request} style={{ marginTop: 16, height: 48 }}>
-            {busy ? 'Отправляем…' : 'Получить код'}
-          </button>
-        </>
-      ) : (
-        <>
-          <div className="muted" style={{ marginBottom: 10 }}>Код отправлен на {phone}</div>
-          <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" placeholder="••••••"
-            style={{ ...input, textAlign: 'center', fontSize: 26, letterSpacing: 8, fontWeight: 800 }} />
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={verify} style={{ marginTop: 16, height: 48 }}>
-            {busy ? 'Проверяем…' : 'Войти'}
-          </button>
-          <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => setSent(false)} style={{ marginTop: 8 }}>
-            Изменить номер
-          </button>
-        </>
-      )}
+      <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон</label>
+      <PhoneInput value={phone} onChange={setPhone} style={input} />
+      <label style={{ fontWeight: 700, fontSize: 14, display: 'block', margin: '14px 0 6px' }}>Пароль</label>
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+        placeholder="Ваш пароль" style={input}
+        onKeyDown={(e) => { if (e.key === 'Enter') login(); }} />
+      <button className="btn btn-primary btn-block" disabled={busy || !password} onClick={login} style={{ marginTop: 16, height: 48 }}>
+        {busy ? 'Входим…' : 'Войти'}
+      </button>
       {err ? <p style={{ color: 'var(--sale)', fontSize: 14, marginTop: 12 }}>{err}</p> : null}
     </div>
   );

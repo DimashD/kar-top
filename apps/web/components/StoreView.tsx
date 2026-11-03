@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, grams } from '../lib/format';
 import { categoryStyle } from '../lib/category';
+import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
+import PhoneInput from './PhoneInput';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -181,7 +183,7 @@ function CheckoutDrawer(props: {
     );
   }
 
-  const phoneOk = /^\+7\d{10}$/.test(phone);
+  const phoneOk = isValidKzPhone(phone);
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
   const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
   const canSubmit = lines.length > 0 && phoneOk && addrOk && pickupOk && !busy;
@@ -192,7 +194,7 @@ function CheckoutDrawer(props: {
       const items = lines.map((l) => isWeighted(l.product.unit)
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
-      const body: any = { storeSlug: slug, phone, payMethod: pay, fulfillment: mode, items };
+      const body: any = { storeSlug: slug, phone: kzPhoneE164(phone), payMethod: pay, fulfillment: mode, items };
       if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
       else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
@@ -243,7 +245,7 @@ function CheckoutDrawer(props: {
           </Field>
 
           <Field label="Телефон для связи">
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="+77011234567" style={inputStyle(!phone || phoneOk)} />
+            <PhoneInput value={phone} onChange={(v) => setPhone(v)} style={inputStyle(!phone || phone === '+7' || phoneOk)} />
           </Field>
 
           {mode === 'DELIVERY' ? (

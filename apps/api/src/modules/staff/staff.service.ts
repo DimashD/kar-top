@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -27,23 +28,34 @@ export class StaffService {
     });
   }
 
-  /** Создать/назначить сотрудника по телефону. Если пользователь уже есть — выдаём ему роль. */
-  async create(input: { name: string; phone: string; role: Role }) {
+  /** Создать/назначить сотрудника по телефону + паролю. Если пользователь уже есть — выдаём ему роль. */
+  async create(input: { name: string; phone: string; role: Role; password: string }) {
     const name = (input.name || '').trim();
     if (name.length < 2) throw new BadRequestException('Укажите имя');
     if (!STAFF_ROLES.includes(input.role)) throw new BadRequestException('Недопустимая роль');
+    if (!input.password || input.password.length < 6) throw new BadRequestException('Пароль — минимум 6 символов');
     const phone = normalizePhone(input.phone);
+    const passwordHash = await bcrypt.hash(input.password, 10);
 
     const existing = await this.prisma.user.findUnique({ where: { phone }, select: { id: true, platformRole: true } });
     if (existing?.platformRole) throw new ConflictException('У этого номера уже есть доступ в админку');
 
     const user = await this.prisma.user.upsert({
       where: { phone },
-      update: { platformRole: input.role, ...(name ? { name } : {}) },
-      create: { phone, name, platformRole: input.role },
+      update: { platformRole: input.role, passwordHash, ...(name ? { name } : {}) },
+      create: { phone, name, platformRole: input.role, passwordHash },
       select: SELECT,
     });
     return user;
+  }
+
+  /** Сбросить пароль сотрудника (только администратор). */
+  async setPassword(id: string, password: string) {
+    if (!password || password.length < 6) throw new BadRequestException('Пароль — минимум 6 символов');
+    const target = await this.prisma.user.findUnique({ where: { id }, select: { platformRole: true } });
+    if (!target?.platformRole) throw new NotFoundException('Сотрудник не найден');
+    await this.prisma.user.update({ where: { id }, data: { passwordHash: await bcrypt.hash(password, 10) } });
+    return { ok: true };
   }
 
   /** Сменить роль или отозвать доступ (role = null). Нельзя снять последнего админа и себя. */

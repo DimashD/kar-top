@@ -1,7 +1,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OtpService } from './otp.service';
 import { TokenService, TokenPair } from './token.service';
+
+/** Телефон РК → +77XXXXXXXXX. */
+function toE164(raw: string): string {
+  const d = (raw || '').replace(/\D/g, '');
+  const n = d.startsWith('8') && d.length === 11 ? '7' + d.slice(1) : d;
+  return '+' + n;
+}
 
 @Injectable()
 export class AuthService {
@@ -31,5 +39,20 @@ export class AuthService {
 
     const pair = await this.tokens.issue(user.id);
     return { ...pair, userId: user.id };
+  }
+
+  /** Вход сотрудника платформы по телефону+паролю (без OTP — для админки, дешевле). */
+  async loginStaff(rawPhone: string, password: string): Promise<{ accessToken: string; userId: string; name: string | null; role: string }> {
+    const phone = toE164(rawPhone);
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+      select: { id: true, name: true, platformRole: true, passwordHash: true },
+    });
+    const fail = () => { throw new UnauthorizedException('Неверный телефон или пароль'); };
+    if (!user || !user.platformRole || !user.passwordHash) return fail();
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return fail();
+    const pair = await this.tokens.issue(user.id);
+    return { accessToken: pair.accessToken, userId: user.id, name: user.name, role: user.platformRole };
   }
 }

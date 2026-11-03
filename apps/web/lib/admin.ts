@@ -38,21 +38,14 @@ export async function adminFetch<T = unknown>(path: string, init?: RequestInit):
   return data as T;
 }
 
-// --- Auth (OTP вход сотрудника) ---
-export async function requestAdminOtp(phone: string): Promise<void> {
-  const r = await fetch(`${CLIENT_API}/auth/otp/request`, {
+// --- Auth (вход сотрудника по паролю, без OTP) ---
+export async function staffLogin(phone: string, password: string): Promise<string> {
+  const r = await fetch(`${CLIENT_API}/auth/staff/login`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone }),
-  });
-  if (!r.ok) throw new Error('Не удалось отправить код');
-}
-export async function verifyAdminOtp(phone: string, code: string): Promise<string> {
-  const r = await fetch(`${CLIENT_API}/auth/otp/verify`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone, code }),
+    body: JSON.stringify({ phone, password }),
   });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || 'Неверный код'));
+  if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || 'Неверный телефон или пароль'));
   const token = data.accessToken as string | undefined;
   if (!token) throw new Error('Не получен токен');
   return token;
@@ -96,15 +89,21 @@ export interface Staff {
 export function listStaff(): Promise<Staff[]> {
   return adminFetch<Staff[]>('/admin/staff');
 }
-export function createStaff(name: string, phone: string, role: StaffRole): Promise<Staff> {
+export function createStaff(name: string, phone: string, password: string, role: StaffRole): Promise<Staff> {
   return adminFetch<Staff>('/admin/staff', {
     method: 'POST',
-    body: JSON.stringify({ name, phone, role }),
+    body: JSON.stringify({ name, phone, password, role }),
   });
 }
 export function setStaffRole(id: string, role: StaffRole | 'NONE'): Promise<Staff> {
   return adminFetch<Staff>(`/admin/staff/${id}/role`, {
     method: 'PATCH',
     body: JSON.stringify({ role }),
+  });
+}
+export function setStaffPassword(id: string, password: string): Promise<{ ok: boolean }> {
+  return adminFetch<{ ok: boolean }>(`/admin/staff/${id}/password`, {
+    method: 'PATCH',
+    body: JSON.stringify({ password }),
   });
 }

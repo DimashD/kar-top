@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { CLIENT_API } from '../lib/api';
+import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
+import PhoneInput from './PhoneInput';
 
 /** Заявка «Стать партнёром». Телефон и имя — обязательны; 2ГИС и компания — нет. */
 export default function PartnerForm() {
@@ -13,8 +15,7 @@ export default function PartnerForm() {
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const digits = phone.replace(/\D/g, '');
-  const phoneOk = /^(7|8)7\d{9}$/.test(digits);
+  const phoneOk = isValidKzPhone(phone);
   const canSubmit = name.trim().length >= 2 && phoneOk && !busy;
 
   async function submit() {
@@ -26,7 +27,7 @@ export default function PartnerForm() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
-          phone: phone.trim(),
+          phone: kzPhoneE164(phone),
           company: company.trim() || undefined,
           twogisUrl: twogis.trim() || undefined,
           source: 'web',
@@ -72,8 +73,7 @@ export default function PartnerForm() {
         placeholder="Как к вам обращаться" style={inputStyle} autoComplete="name" />
 
       <label style={labelStyle}>Телефон <span style={{ color: 'var(--sale)' }}>*</span></label>
-      <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" maxLength={20}
-        placeholder="+7 7xx xxx xx xx" style={inputStyle} autoComplete="tel" />
+      <PhoneInput value={phone} onChange={setPhone} style={inputStyle} />
 
       <label style={labelStyle}>Название компании <span className="muted" style={{ fontWeight: 400 }}>— необязательно</span></label>
       <input value={company} onChange={(e) => setCompany(e.target.value)} maxLength={200}

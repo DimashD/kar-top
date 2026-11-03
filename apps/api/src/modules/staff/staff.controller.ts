@@ -8,12 +8,17 @@ import { CurrentUser, RequestUser } from '../../common/auth/current-user.decorat
 class CreateStaffDto {
   @IsString() @MinLength(2) @MaxLength(120) name!: string;
   @IsString() @MinLength(10) @MaxLength(20) phone!: string;
+  @IsString() @MinLength(6) @MaxLength(100) password!: string;
   @IsIn(['PLATFORM_ADMIN', 'SUPPORT']) role!: Role;
 }
 
 class SetRoleDto {
   // NONE = отозвать доступ.
   @IsIn(['PLATFORM_ADMIN', 'SUPPORT', 'NONE']) role!: 'PLATFORM_ADMIN' | 'SUPPORT' | 'NONE';
+}
+
+class SetPasswordDto {
+  @IsString() @MinLength(6) @MaxLength(100) password!: string;
 }
 
 @UseGuards(PlatformAdminGuard)
@@ -35,5 +40,10 @@ export class StaffController {
   setRole(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body() dto: SetRoleDto) {
     const role = dto.role === 'NONE' ? null : (dto.role as Role);
     return this.staff.setRole(user.userId, id, role);
+  }
+
+  @Patch(':id/password')
+  setPassword(@Param('id') id: string, @Body() dto: SetPasswordDto) {
+    return this.staff.setPassword(id, dto.password);
   }
 }

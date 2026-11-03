@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PartnerLead, PartnerLeadStatus, listLeads, setLeadStatus, UnauthorizedError } from '../lib/admin';
 import { useAdmin } from './AdminShell';
+import { formatKzPhone } from '../lib/phone';
 
 const STATUS_META: Record<PartnerLeadStatus, { label: string; color: string; bg: string }> = {
   NEW:       { label: 'Новая',     color: 'var(--carrot-600)', bg: 'var(--carrot-50)' },
@@ -84,7 +85,7 @@ export default function AdminLeads() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 200 }}>
                     <div style={{ fontWeight: 800, fontSize: 17 }}>{l.name}</div>
-                    <a href={`tel:${l.phone}`} style={{ color: 'var(--carrot-600)', fontWeight: 600, textDecoration: 'none' }}>{l.phone}</a>
+                    <a href={`tel:${l.phone}`} style={{ color: 'var(--carrot-600)', fontWeight: 600, textDecoration: 'none' }}>{formatKzPhone(l.phone)}</a>
                     {l.company ? <div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{l.company}</div> : null}
                     {l.twogisUrl ? (
                       <div style={{ fontSize: 14, marginTop: 2 }}>
