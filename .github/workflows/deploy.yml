@@ -7,6 +7,10 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'apps/merchant/**'   # мобилка деплой VPS не затрагивает
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
 
 concurrency:
