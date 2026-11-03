@@ -41,14 +41,16 @@ export class AuthService {
     return { ...pair, userId: user.id };
   }
 
-  /** Вход сотрудника платформы по телефону+паролю (без OTP — для админки, дешевле). */
-  async loginStaff(rawPhone: string, password: string): Promise<{ accessToken: string; userId: string; name: string | null; role: string }> {
-    const phone = toE164(rawPhone);
+  /** Вход сотрудника платформы по телефону ИЛИ email + пароль (без OTP — для админки, дешевле). */
+  async loginStaff(login: string, password: string): Promise<{ accessToken: string; userId: string; name: string | null; role: string }> {
+    const raw = (login || '').trim();
+    const isEmail = raw.includes('@');
+    const where = isEmail ? { email: raw.toLowerCase() } : { phone: toE164(raw) };
     const user = await this.prisma.user.findUnique({
-      where: { phone },
+      where: where as any,
       select: { id: true, name: true, platformRole: true, passwordHash: true },
     });
-    const fail = () => { throw new UnauthorizedException('Неверный телефон или пароль'); };
+    const fail = () => { throw new UnauthorizedException('Неверный логин или пароль'); };
     if (!user || !user.platformRole || !user.passwordHash) return fail();
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return fail();

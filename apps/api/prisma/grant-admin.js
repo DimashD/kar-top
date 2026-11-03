@@ -18,17 +18,21 @@ function normalizePhone(raw) {
 (async () => {
   const phone = normalizePhone(process.argv[2]);
   const password = process.argv[3];
+  const email = (process.argv[4] || '').trim().toLowerCase() || undefined;
   if (password && password.length < 6) { console.error('Пароль — минимум 6 символов.'); process.exit(1); }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { console.error('Некорректный email:', email); process.exit(1); }
   const passwordHash = password ? await bcrypt.hash(password, 10) : undefined;
   const prisma = new PrismaClient();
   try {
+    const data = { platformRole: 'PLATFORM_ADMIN', ...(passwordHash ? { passwordHash } : {}), ...(email ? { email } : {}) };
     const user = await prisma.user.upsert({
       where: { phone },
-      update: { platformRole: 'PLATFORM_ADMIN', ...(passwordHash ? { passwordHash } : {}) },
-      create: { phone, name: 'Админ платформы', platformRole: 'PLATFORM_ADMIN', ...(passwordHash ? { passwordHash } : {}) },
-      select: { id: true, phone: true, platformRole: true },
+      update: data,
+      create: { phone, name: 'Админ платформы', ...data },
+      select: { id: true, phone: true, email: true, platformRole: true },
     });
-    console.log('Готово. Сотрудник платформы:', user.phone, '→', user.platformRole, password ? '(пароль установлен)' : '(пароль НЕ задан — укажите вторым аргументом)');
+    console.log('Готово. Сотрудник платформы:', user.phone, user.email ? `(email: ${user.email})` : '', '→', user.platformRole,
+      password ? '(пароль установлен)' : '(пароль НЕ задан — укажите вторым аргументом)');
   } catch (e) {
     console.error('Ошибка:', e.message);
     process.exit(1);

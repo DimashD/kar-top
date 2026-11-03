@@ -38,11 +38,11 @@ export async function adminFetch<T = unknown>(path: string, init?: RequestInit):
   return data as T;
 }
 
-// --- Auth (вход сотрудника по паролю, без OTP) ---
-export async function staffLogin(phone: string, password: string): Promise<string> {
+// --- Auth (вход сотрудника по паролю, без OTP). login — телефон или email ---
+export async function staffLogin(login: string, password: string): Promise<string> {
   const r = await fetch(`${CLIENT_API}/auth/staff/login`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ phone, password }),
+    body: JSON.stringify({ login, password }),
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || 'Неверный телефон или пароль'));

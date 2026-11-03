@@ -7,7 +7,6 @@ import {
   getAdminToken, setAdminToken, clearAdminToken, staffLogin,
 } from '../lib/admin';
 import { kzPhoneE164 } from '../lib/phone';
-import PhoneInput from './PhoneInput';
 
 interface AdminCtx { signOut: () => void }
 const Ctx = createContext<AdminCtx>({ signOut: () => {} });
@@ -62,16 +61,19 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 }
 
 function AdminLogin({ onDone }: { onDone: () => void }) {
-  const [phone, setPhone] = useState('+7');
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  async function login() {
-    if (!password) return;
+  // Телефон нормализуем, email — как есть.
+  const ident = login.includes('@') ? login.trim() : (login ? kzPhoneE164(login) : '');
+
+  async function doLogin() {
+    if (!password || !login) return;
     setErr(null); setBusy(true);
     try {
-      const token = await staffLogin(kzPhoneE164(phone), password);
+      const token = await staffLogin(ident, password);
       setAdminToken(token);
       onDone();
     } catch (e) {
@@ -86,13 +88,15 @@ function AdminLogin({ onDone }: { onDone: () => void }) {
     <div className="container" style={{ maxWidth: 400, padding: '64px 20px' }}>
       <div style={{ fontWeight: 900, fontSize: 28, color: 'var(--carrot)', marginBottom: 4 }}>Kartop</div>
       <div className="muted" style={{ marginBottom: 28 }}>Админка платформы</div>
-      <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон</label>
-      <PhoneInput value={phone} onChange={setPhone} style={input} />
+      <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон или email</label>
+      <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username"
+        placeholder="+7 701 234 56 78 или you@mail.com" style={input}
+        onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }} />
       <label style={{ fontWeight: 700, fontSize: 14, display: 'block', margin: '14px 0 6px' }}>Пароль</label>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
         placeholder="Ваш пароль" style={input}
-        onKeyDown={(e) => { if (e.key === 'Enter') login(); }} />
-      <button className="btn btn-primary btn-block" disabled={busy || !password} onClick={login} style={{ marginTop: 16, height: 48 }}>
+        onKeyDown={(e) => { if (e.key === 'Enter') doLogin(); }} />
+      <button className="btn btn-primary btn-block" disabled={busy || !password || !login} onClick={doLogin} style={{ marginTop: 16, height: 48 }}>
         {busy ? 'Входим…' : 'Войти'}
       </button>
       {err ? <p style={{ color: 'var(--sale)', fontSize: 14, marginTop: 12 }}>{err}</p> : null}

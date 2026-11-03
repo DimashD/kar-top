@@ -4,7 +4,8 @@ import { AuthService } from './auth.service';
 import { Public } from '../../common/auth/public.decorator';
 
 class StaffLoginDto {
-  @IsString() @MinLength(10) phone!: string;
+  // login — телефон (+77...) или email.
+  @IsString() @MinLength(5) login!: string;
   @IsString() @MinLength(1) password!: string;
 }
 
@@ -16,6 +17,6 @@ export class StaffAuthController {
 
   @Post('login')
   login(@Body() dto: StaffLoginDto) {
-    return this.auth.loginStaff(dto.phone, dto.password);
+    return this.auth.loginStaff(dto.login, dto.password);
   }
 }
