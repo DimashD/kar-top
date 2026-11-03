@@ -127,6 +127,24 @@ export class AdminAnalyticsService {
     return { customer, orders: orders.map(this.mapOrderRow) };
   }
 
+  /** Все заказы платформы (последние), с фильтром по статусу. */
+  async recentOrders(limit = 100, status?: string) {
+    const valid = ['CREATED','PLACED','ACCEPTED','PICKING','AWAITING_CUSTOMER','READY','COURIER_ASSIGNED','DELIVERING','DELIVERED','COMPLETED','CANCELLED'];
+    const orders = await this.prisma.order.findMany({
+      where: status && valid.includes(status) ? { status: status as any } : {},
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 300),
+      select: {
+        id: true, number: true, status: true, createdAt: true,
+        finalTiyn: true, subtotalTiyn: true, payMethod: true, fulfillment: true,
+        store: { select: { name: true, slug: true } },
+        customer: { select: { name: true, phone: true } },
+        _count: { select: { items: true } },
+      },
+    });
+    return { orders: orders.map((o) => ({ ...this.mapOrderRow(o), fulfillment: o.fulfillment })) };
+  }
+
   /** Заказы конкретного магазина (для провала из аналитики магазина). */
   async storeOrders(storeId: string, limit = 100) {
     const store = await this.prisma.store.findUnique({

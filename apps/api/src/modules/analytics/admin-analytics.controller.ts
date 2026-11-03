@@ -48,6 +48,12 @@ export class AdminAnalyticsController {
     return this.analytics.storeOrders(id, limit ? Number(limit) : 100);
   }
 
+  /** Все заказы платформы (последние), фильтр по статусу. */
+  @Get('orders')
+  recentOrders(@Query('limit') limit?: string, @Query('status') status?: string) {
+    return this.analytics.recentOrders(limit ? Number(limit) : 100, status);
+  }
+
   /** Карточка заказа (позиции, события). */
   @Get('orders/:id')
   orderDetail(@Param('id') id: string) {

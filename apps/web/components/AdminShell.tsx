@@ -15,8 +15,10 @@ export function useAdmin() { return useContext(Ctx); }
 
 const NAV = [
   { href: '/admin/stores', label: 'Магазины' },
-  { href: '/admin/partners', label: 'Заявки' },
+  { href: '/admin/catalog', label: 'Каталог' },
+  { href: '/admin/orders', label: 'Заказы' },
   { href: '/admin/analytics', label: 'Аналитика' },
+  { href: '/admin/partners', label: 'Заявки' },
   { href: '/admin/staff', label: 'Сотрудники' },
 ];
 

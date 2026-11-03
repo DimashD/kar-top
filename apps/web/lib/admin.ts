@@ -146,6 +146,49 @@ export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend'
   return adminFetch<CustomersResult>(`/admin/customers?sort=${sort}`);
 }
 
+// --- Мастер-каталог ---
+export type I18nName = { ru: string; kk?: string; en?: string };
+export type Unit = 'KG' | 'G' | 'PCS' | 'BUNCH' | 'PACK';
+export const UNIT_LABEL: Record<Unit, string> = { KG: 'кг', G: 'г', PCS: 'шт', BUNCH: 'пучок', PACK: 'упак.' };
+
+export interface Category {
+  id: string; name: I18nName; perishable: boolean; coldChain: boolean; sort: number; _count?: { products: number };
+}
+export interface MasterProduct {
+  id: string; categoryId: string; name: I18nName; unit: Unit; stepG: number | null; avgPieceG: number | null;
+  perishable: boolean; storage: string | null; _count?: { storeProducts: number };
+}
+
+export const listCategories = () => adminFetch<Category[]>('/admin/catalog/categories');
+export const createCategory = (b: { name: I18nName; perishable?: boolean; coldChain?: boolean; sort?: number }) =>
+  adminFetch<Category>('/admin/catalog/categories', { method: 'POST', body: JSON.stringify(b) });
+export const updateCategory = (id: string, b: Partial<{ name: I18nName; perishable: boolean; coldChain: boolean; sort: number }>) =>
+  adminFetch<Category>(`/admin/catalog/categories/${id}`, { method: 'PATCH', body: JSON.stringify(b) });
+export const deleteCategory = (id: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/catalog/categories/${id}`, { method: 'DELETE' });
+
+export const listMasterProducts = (categoryId?: string) =>
+  adminFetch<MasterProduct[]>(`/admin/catalog/products${categoryId ? `?categoryId=${categoryId}` : ''}`);
+export const createProduct = (b: { categoryId: string; name: I18nName; unit: Unit; stepG?: number; avgPieceG?: number; perishable?: boolean; storage?: string }) =>
+  adminFetch<MasterProduct>('/admin/catalog/products', { method: 'POST', body: JSON.stringify(b) });
+export const updateProduct = (id: string, b: Partial<{ categoryId: string; name: I18nName; unit: Unit; stepG: number; avgPieceG: number; perishable: boolean; storage: string }>) =>
+  adminFetch<MasterProduct>(`/admin/catalog/products/${id}`, { method: 'PATCH', body: JSON.stringify(b) });
+export const deleteProduct = (id: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/catalog/products/${id}`, { method: 'DELETE' });
+
+// --- Заказы ---
+export interface OrderRow {
+  id: string; number: number; status: string; createdAt: string; amountTiyn: number;
+  payMethod: string; fulfillment?: string; itemCount: number | null;
+  store?: { name: string; slug: string }; customer?: { name: string | null; phone: string | null };
+}
+export const listOrders = (status?: string, limit = 100) => {
+  const q = new URLSearchParams();
+  if (status && status !== 'ALL') q.set('status', status);
+  q.set('limit', String(limit));
+  return adminFetch<{ orders: OrderRow[] }>(`/admin/orders?${q.toString()}`);
+};
+
 /** Скачать CSV с авторизацией (обычная ссылка не передаёт токен). */
 export async function downloadCsv(path: string, filename: string): Promise<void> {
   const token = getAdminToken();
