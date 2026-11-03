@@ -54,7 +54,7 @@ export class AuthService {
     if (!user || !user.platformRole || !user.passwordHash) return fail();
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return fail();
-    const pair = await this.tokens.issue(user.id);
-    return { accessToken: pair.accessToken, userId: user.id, name: user.name, role: user.platformRole };
+    const accessToken = await this.tokens.issueStaff(user.id); // длинная сессия (7 дней)
+    return { accessToken, userId: user.id, name: user.name, role: user.platformRole };
   }
 }

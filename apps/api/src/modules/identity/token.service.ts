@@ -15,6 +15,14 @@ export class TokenService {
     private readonly config: ConfigService,
   ) {}
 
+  /** Длинный access-токен для сотрудников админки (чтобы не вылетать каждые 15 мин). */
+  async issueStaff(userId: string): Promise<string> {
+    return this.jwt.signAsync(
+      { sub: userId, typ: 'access' },
+      { secret: this.config.get('JWT_ACCESS_SECRET'), expiresIn: '7d' },
+    );
+  }
+
   async issue(userId: string): Promise<TokenPair> {
     const accessToken = await this.jwt.signAsync(
       { sub: userId, typ: 'access' },
