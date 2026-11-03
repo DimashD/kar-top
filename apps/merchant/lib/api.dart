@@ -99,4 +99,13 @@ class Api {
 
   Future<void> updateProduct(String storeId, String spId, Map<String, dynamic> body) =>
       _patch('/merchant/stores/$storeId/products/$spId', body);
+
+  // --- Заявки на каталог ---
+  Future<void> submitCatalogRequest(String storeId, Map<String, dynamic> body) =>
+      _post('/merchant/stores/$storeId/catalog-requests', body);
+
+  Future<List<Map<String, dynamic>>> myCatalogRequests(String storeId) async {
+    final r = await _get('/merchant/stores/$storeId/catalog-requests') as List;
+    return r.cast<Map<String, dynamic>>();
+  }
 }

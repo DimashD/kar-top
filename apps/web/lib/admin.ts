@@ -176,6 +176,20 @@ export const updateProduct = (id: string, b: Partial<{ categoryId: string; name:
 export const deleteProduct = (id: string) =>
   adminFetch<{ ok: boolean }>(`/admin/catalog/products/${id}`, { method: 'DELETE' });
 
+// --- Заявки магазинов на каталог ---
+export interface CatalogRequest {
+  id: string; type: 'CATEGORY' | 'PRODUCT'; name: string;
+  categoryId: string | null; categoryName: string | null; unit: Unit | null;
+  note: string | null; status: 'PENDING' | 'APPROVED' | 'REJECTED'; createdAt: string;
+  store?: { name: string; slug: string };
+}
+export const listCatalogRequests = (status = 'PENDING') =>
+  adminFetch<CatalogRequest[]>(`/admin/catalog/requests?status=${status}`);
+export const approveCatalogRequest = (id: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/catalog/requests/${id}/approve`, { method: 'POST' });
+export const rejectCatalogRequest = (id: string) =>
+  adminFetch<{ ok: boolean }>(`/admin/catalog/requests/${id}/reject`, { method: 'POST' });
+
 // --- Заказы ---
 export interface OrderRow {
   id: string; number: number; status: string; createdAt: string; amountTiyn: number;

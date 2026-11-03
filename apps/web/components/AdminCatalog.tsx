@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Category, MasterProduct, Unit, UNIT_LABEL,
+  Category, MasterProduct, Unit, UNIT_LABEL, CatalogRequest,
   listCategories, createCategory, deleteCategory,
-  listMasterProducts, createProduct, deleteProduct, UnauthorizedError,
+  listMasterProducts, createProduct, deleteProduct,
+  listCatalogRequests, approveCatalogRequest, rejectCatalogRequest, UnauthorizedError,
 } from '../lib/admin';
 import { useAdmin } from './AdminShell';
 
@@ -29,6 +30,10 @@ export default function AdminCatalog() {
   const [pAvg, setPAvg] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // заявки магазинов
+  const [reqs, setReqs] = useState<CatalogRequest[]>([]);
+  const [reqBusy, setReqBusy] = useState<string | null>(null);
+
   const handle = useCallback((e: unknown) => {
     if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message);
   }, [signOut]);
@@ -47,8 +52,21 @@ export default function AdminCatalog() {
     try { setProducts(await listMasterProducts(catId)); } catch (e) { handle(e); }
   }, [handle]);
 
-  useEffect(() => { loadCats(); }, [loadCats]);
+  const loadReqs = useCallback(async () => {
+    try { setReqs(await listCatalogRequests('PENDING')); } catch (e) { handle(e); }
+  }, [handle]);
+
+  useEffect(() => { loadCats(); loadReqs(); }, [loadCats, loadReqs]);
   useEffect(() => { if (sel) loadProducts(sel); }, [sel, loadProducts]);
+
+  async function resolveReq(id: string, action: 'approve' | 'reject') {
+    setReqBusy(id); setErr(null);
+    try {
+      if (action === 'approve') await approveCatalogRequest(id); else await rejectCatalogRequest(id);
+      await loadReqs();
+      if (action === 'approve') { await loadCats(); if (sel) await loadProducts(sel); }
+    } catch (e) { handle(e); } finally { setReqBusy(null); }
+  }
 
   async function addCat() {
     if (catName.trim().length < 2) return;
@@ -93,6 +111,37 @@ export default function AdminCatalog() {
       </p>
 
       {err ? <p style={{ color: 'var(--sale)' }}>{err}</p> : null}
+
+      {/* Заявки магазинов на каталог */}
+      {reqs.length > 0 ? (
+        <div className="card" style={{ padding: 18, marginBottom: 20, background: 'var(--carrot-50)', borderColor: 'var(--carrot)' }}>
+          <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>
+            Заявки магазинов ({reqs.length})
+          </div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {reqs.map((r) => (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)' }}>
+                <div style={{ minWidth: 200 }}>
+                  <span style={{ fontWeight: 700 }}>{r.name}</span>
+                  <span className="muted" style={{ fontSize: 13 }}>
+                    {' · '}{r.type === 'CATEGORY' ? 'категория' : 'товар'}
+                    {r.type === 'PRODUCT' && r.unit ? `, ${UNIT_LABEL[r.unit]}` : ''}
+                    {r.type === 'PRODUCT' && r.categoryName ? `, в «${r.categoryName}»` : ''}
+                  </span>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                    от {r.store?.name ?? 'магазина'}{r.note ? ` · «${r.note}»` : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-primary" disabled={reqBusy === r.id} onClick={() => resolveReq(r.id, 'approve')} style={{ padding: '6px 12px', fontSize: 13 }}>Одобрить</button>
+                  <button className="btn btn-ghost" disabled={reqBusy === r.id} onClick={() => resolveReq(r.id, 'reject')} style={{ padding: '6px 12px', fontSize: 13, color: 'var(--sale)' }}>Отклонить</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="muted" style={{ fontSize: 12, margin: '10px 0 0' }}>«Одобрить» создаёт категорию/товар в каталоге автоматически.</p>
+        </div>
+      ) : null}
 
       {/* Категории */}
       <div className="card" style={{ padding: 18, marginBottom: 20 }}>

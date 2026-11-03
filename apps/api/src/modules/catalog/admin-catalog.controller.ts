@@ -51,4 +51,14 @@ export class AdminCatalogController {
 
   @Delete('products/:id')
   deleteProduct(@Param('id') id: string) { return this.catalog.deleteProduct(id); }
+
+  // --- Заявки магазинов на категорию/товар ---
+  @Get('requests')
+  requests(@Query('status') status?: string) { return this.catalog.listRequests(status); }
+
+  @Post('requests/:id/approve')
+  approveRequest(@Param('id') id: string) { return this.catalog.approveRequest(id); }
+
+  @Post('requests/:id/reject')
+  rejectRequest(@Param('id') id: string) { return this.catalog.rejectRequest(id); }
 }

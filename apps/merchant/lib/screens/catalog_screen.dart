@@ -4,6 +4,7 @@ import '../format.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import 'catalog_request_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -67,6 +68,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
     }
   }
 
+  Widget _proposeButton() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: OutlinedButton.icon(
+          onPressed: () async {
+            await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CatalogRequestScreen()));
+            if (mounted) setState(_load);
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Предложить товар или категорию'),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -77,11 +90,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
           if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
           if (snap.hasError) return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('${snap.error}', style: const TextStyle(color: AppColors.sale)))]);
           final items = snap.data ?? [];
-          if (items.isEmpty) return ListView(children: const [Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Ассортимент пуст', style: TextStyle(color: AppColors.ink60))))]);
+          if (items.isEmpty) {
+            return ListView(padding: const EdgeInsets.all(16), children: [
+              _proposeButton(),
+              const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Ассортимент пуст', style: TextStyle(color: AppColors.ink60)))),
+            ]);
+          }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            itemBuilder: (context, i) {
+            itemCount: items.length + 1,
+            itemBuilder: (context, idx) {
+              if (idx == 0) return _proposeButton();
+              final i = idx - 1;
               final it = items[i];
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),

@@ -79,6 +79,17 @@ enum PartnerLeadStatus {
   REJECTED   // отказ
 }
 
+enum CatalogRequestType {
+  CATEGORY
+  PRODUCT
+}
+
+enum CatalogRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(uuid())
   phone        String   @unique
@@ -188,6 +199,7 @@ model Store {
   orders    Order[]
   reviews   Review[]
   subscription Subscription?
+  catalogRequests CatalogRequest[]
 }
 
 model StoreMember {
@@ -321,4 +333,23 @@ model PartnerLead {
   createdAt DateTime          @default(now())
   @@index([status, createdAt])
   @@index([phone])
+}
+
+// Заявка магазина на добавление категории/товара в мастер-каталог. Админ одобряет/отклоняет.
+model CatalogRequest {
+  id           String               @id @default(uuid())
+  storeId      String
+  store        Store                @relation(fields: [storeId], references: [id])
+  requestedBy  String?              // userId, кто подал
+  type         CatalogRequestType
+  name         String               // предлагаемое название товара/категории
+  categoryId   String?              // для товара: в какую существующую категорию
+  categoryName String?              // или имя новой категории (если подходящей нет)
+  unit         Unit?                // для товара
+  note         String?              // комментарий магазина
+  status       CatalogRequestStatus @default(PENDING)
+  resultId     String?              // id созданной категории/товара после одобрения
+  createdAt    DateTime             @default(now())
+  @@index([status, createdAt])
+  @@index([storeId])
 }

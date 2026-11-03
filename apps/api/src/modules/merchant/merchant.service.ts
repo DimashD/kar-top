@@ -117,4 +117,36 @@ export class MerchantService {
     await this.prisma.storeProduct.delete({ where: { id: spId } });
     return { removed: true };
   }
+
+  /** Заявка магазина на новую категорию/товар в мастер-каталог (админ одобряет). */
+  async submitCatalogRequest(storeId: string, userId: string, dto: {
+    type: 'CATEGORY' | 'PRODUCT'; name: string; categoryId?: string; categoryName?: string; unit?: string; note?: string;
+  }) {
+    await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    const name = (dto.name || '').trim();
+    if (name.length < 2) throw new BadRequestException('Укажите название');
+    if (dto.type !== 'CATEGORY' && dto.type !== 'PRODUCT') throw new BadRequestException('Неверный тип заявки');
+    const req = await this.prisma.catalogRequest.create({
+      data: {
+        storeId, requestedBy: userId, type: dto.type, name,
+        categoryId: dto.categoryId || null,
+        categoryName: dto.categoryName?.trim() || null,
+        unit: (dto.type === 'PRODUCT' && dto.unit ? dto.unit : null) as any,
+        note: dto.note?.trim() || null,
+      },
+      select: { id: true, status: true, createdAt: true },
+    });
+    return req;
+  }
+
+  /** Заявки магазина (чтобы видеть статус). */
+  async myCatalogRequests(storeId: string, userId: string) {
+    await this.access.assertMember(storeId, userId);
+    return this.prisma.catalogRequest.findMany({
+      where: { storeId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { id: true, type: true, name: true, categoryName: true, unit: true, status: true, note: true, createdAt: true },
+    });
+  }
 }

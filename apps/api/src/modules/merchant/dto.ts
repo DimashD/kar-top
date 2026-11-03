@@ -20,3 +20,12 @@ export class StoreSettingsDto {
   @IsOptional() @IsInt() @Min(0) pickupLeadMinutes?: number;
   @IsOptional() @IsIn(['OWN', 'SERVICE', 'BOTH']) deliveryMode?: 'OWN' | 'SERVICE' | 'BOTH';
 }
+
+export class CatalogRequestDto {
+  @IsIn(['CATEGORY', 'PRODUCT']) type!: 'CATEGORY' | 'PRODUCT';
+  @IsString() name!: string;
+  @IsOptional() @IsString() categoryId?: string;
+  @IsOptional() @IsString() categoryName?: string;
+  @IsOptional() @IsIn(['KG', 'G', 'PCS', 'BUNCH', 'PACK']) unit?: string;
+  @IsOptional() @IsString() note?: string;
+}

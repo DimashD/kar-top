@@ -121,4 +121,48 @@ export class AdminCatalogService {
     const c = await this.prisma.category.findUnique({ where: { id }, select: { id: true } });
     if (!c) throw new NotFoundException('Категория не найдена');
   }
+
+  // --- Заявки магазинов на категорию/товар ---
+  listRequests(status?: string) {
+    const valid = ['PENDING', 'APPROVED', 'REJECTED'];
+    return this.prisma.catalogRequest.findMany({
+      where: status && valid.includes(status) ? { status: status as any } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: { store: { select: { name: true, slug: true } } },
+    });
+  }
+
+  /** Одобрить заявку: создаёт категорию или товар (если ещё нет) и помечает заявку. */
+  async approveRequest(id: string) {
+    const r = await this.prisma.catalogRequest.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Заявка не найдена');
+    if (r.status !== 'PENDING') throw new BadRequestException('Заявка уже рассмотрена');
+
+    let resultId: string;
+    if (r.type === 'CATEGORY') {
+      const existing = await this.prisma.category.findFirst({ where: { name: { path: ['ru'], equals: r.name } }, select: { id: true } });
+      resultId = existing?.id ?? (await this.createCategory({ name: { ru: r.name } })).id;
+    } else {
+      // товар: определяем категорию (существующую или создаём по имени)
+      let categoryId = r.categoryId ?? undefined;
+      if (!categoryId) {
+        const catName = r.categoryName?.trim() || 'Прочее';
+        const found = await this.prisma.category.findFirst({ where: { name: { path: ['ru'], equals: catName } }, select: { id: true } });
+        categoryId = found?.id ?? (await this.createCategory({ name: { ru: catName } })).id;
+      }
+      const existing = await this.prisma.masterProduct.findFirst({ where: { categoryId, name: { path: ['ru'], equals: r.name } }, select: { id: true } });
+      resultId = existing?.id ?? (await this.createProduct({ categoryId, name: { ru: r.name }, unit: (r.unit as Unit) ?? 'KG' })).id;
+    }
+    await this.prisma.catalogRequest.update({ where: { id }, data: { status: 'APPROVED', resultId } });
+    return { ok: true, resultId };
+  }
+
+  async rejectRequest(id: string) {
+    const r = await this.prisma.catalogRequest.findUnique({ where: { id }, select: { status: true } });
+    if (!r) throw new NotFoundException('Заявка не найдена');
+    if (r.status !== 'PENDING') throw new BadRequestException('Заявка уже рассмотрена');
+    await this.prisma.catalogRequest.update({ where: { id }, data: { status: 'REJECTED' } });
+    return { ok: true };
+  }
 }
