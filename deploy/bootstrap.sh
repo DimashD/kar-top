@@ -37,6 +37,12 @@ CORS_ORIGINS=*
 TELEGRAM_GATEWAY_TOKEN=
 SMS_API_KEY=
 EMAIL_API_KEY=
+# Email SMTP (коды на почту, письма сброса пароля). Напр. почта домена на hoster.kz:
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=
 KASPI_MERCHANT_ID=
 KASPI_API_KEY=
 # Push (FCM): сюда — JSON сервис-аккаунта Firebase ОДНОЙ строкой в кавычках, например:

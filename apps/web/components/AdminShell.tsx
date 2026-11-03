@@ -14,7 +14,9 @@ const Ctx = createContext<AdminCtx>({ signOut: () => {} });
 export function useAdmin() { return useContext(Ctx); }
 
 const NAV = [
+  { href: '/admin/stores', label: 'Магазины' },
   { href: '/admin/partners', label: 'Заявки' },
+  { href: '/admin/analytics', label: 'Аналитика' },
   { href: '/admin/staff', label: 'Сотрудники' },
 ];
 

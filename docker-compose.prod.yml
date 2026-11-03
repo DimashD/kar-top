@@ -31,6 +31,12 @@ services:
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
       SMS_API_KEY: ${SMS_API_KEY:-}
       EMAIL_API_KEY: ${EMAIL_API_KEY:-}
+      # Email через SMTP (nodemailer): для кодов на почту и писем сброса пароля.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
       KASPI_MERCHANT_ID: ${KASPI_MERCHANT_ID:-}
       KASPI_API_KEY: ${KASPI_API_KEY:-}
       # Push (FCM): положить JSON сервис-аккаунта целиком в эту переменную (.env.prod) — тогда пуши уходят реально.

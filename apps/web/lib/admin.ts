@@ -107,3 +107,53 @@ export function setStaffPassword(id: string, password: string): Promise<{ ok: bo
     body: JSON.stringify({ password }),
   });
 }
+
+// --- Магазины (invite-only: заводит платформа) ---
+export type StoreStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'BLOCKED';
+export interface AdminStore {
+  id: string; slug: string; name: string; status: StoreStatus;
+  phone: string | null; address: string | null; deliveryMode: string;
+  createdAt: string; productCount: number; orderCount: number;
+  owner: { phone: string; name: string | null } | null;
+}
+
+export function listStores(status?: string): Promise<AdminStore[]> {
+  const q = status && status !== 'ALL' ? `?status=${status}` : '';
+  return adminFetch<AdminStore[]>(`/admin/stores${q}`);
+}
+export function createStore(input: { name: string; ownerPhone: string; city?: string; address?: string; kaspiPhone?: string }) {
+  return adminFetch('/admin/stores', { method: 'POST', body: JSON.stringify(input) });
+}
+export function storeAction(id: string, action: 'approve' | 'suspend' | 'block') {
+  return adminFetch(`/admin/stores/${id}/${action}`, { method: 'POST' });
+}
+
+// --- Аналитика ---
+export interface StoreStat {
+  storeId: string; name: string | null; slug: string | null; status: string | null;
+  rating: number | null; ordersCount: number; gmvTiyn: number; avgCheckTiyn: number; lastOrderAt: string | null;
+}
+export interface CustomerRow {
+  customerId: string; name: string | null; phone: string | null;
+  ordersCount: number; spentTiyn: number; lastOrderAt: string | null; firstSeenAt: string | null;
+}
+export interface CustomersResult { totals: { customers: number; gmvTiyn: number; orders: number }; rows: CustomerRow[] }
+
+export function analyticsStores(): Promise<{ rows: StoreStat[] }> {
+  return adminFetch<{ rows: StoreStat[] }>('/admin/analytics/stores');
+}
+export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend'): Promise<CustomersResult> {
+  return adminFetch<CustomersResult>(`/admin/customers?sort=${sort}`);
+}
+
+/** Скачать CSV с авторизацией (обычная ссылка не передаёт токен). */
+export async function downloadCsv(path: string, filename: string): Promise<void> {
+  const token = getAdminToken();
+  const r = await fetch(`${CLIENT_API}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+  if (!r.ok) throw new Error('Не удалось выгрузить');
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
