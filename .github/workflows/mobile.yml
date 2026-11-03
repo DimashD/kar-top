@@ -52,21 +52,9 @@ jobs:
           keyAlias=$KEY_ALIAS
           storeFile=$(pwd)/android/kartop.jks
           EOF
-      - run: flutter build appbundle --release --dart-define=API_BASE=${{ vars.API_BASE || 'https://api.kartop.kz/api' }}
+      - run: flutter build appbundle --release --dart-define=API_BASE=${{ vars.API_BASE || 'https://kar-top.kz/api' }}
       - uses: actions/upload-artifact@v4
         with:
           name: kartop-merchant-aab
           path: apps/merchant/build/app/outputs/bundle/release/app-release.aab
-
-  # 3) Релизный iOS .ipa (нужен macOS-раннер). Подпись — после настройки Apple-секретов;
-  #    пока собираем без подписи, чтобы проверить компиляцию на CI.
-  ios-build:
-    needs: analyze
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
-      - run: flutter pub get
-      - run: flutter build ios --release --no-codesign --dart-define=API_BASE=${{ vars.API_BASE || 'https://api.kartop.kz/api' }}
+          retention-days: 14
