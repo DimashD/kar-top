@@ -75,3 +75,8 @@ Actions → **Deploy** → Run workflow → выбрать окружение и
 
 ## Безопасность (рекомендация)
 Деплой сейчас ходит на сервер под `root` по паролю. Лучше завести пользователя `deploy` с SSH-ключом, положить ключ в секрет `SERVER_SSH_KEY`, а `SERVER_PASSWORD` удалить. Workflow уже поддерживает ключ.
+
+## Операции на сервере (Actions → Server ops)
+- `install-ssh-key` — добавляет ключ деплоя (`deploy/deploy_key.pub`) на сервер.
+- `disable-password-login` — после того как приватный ключ положен в секрет `SERVER_SSH_KEY`: сначала проверяет вход по ключу, и только потом отключает вход по паролю. Аварийный доступ остаётся через веб-консоль hoster.kz. После этого секрет `SERVER_PASSWORD` можно удалить.
+- `firebase-staging-app` — регистрирует тестовое приложение `kz.kartop.kartop_merchant.staging` в Firebase и включает пуши в тестовой среде.

@@ -1,0 +1,130 @@
+name: Server ops
+
+# Разовые операции на сервере (ручной запуск: Actions → Server ops → Run workflow).
+#   install-ssh-key        — добавить публичный ключ deploy/deploy_key.pub в authorized_keys (root).
+#                            Вход по паролю пока продолжает работать.
+#   disable-password-login — ТОЛЬКО после того, как приватный ключ положен в секрет SERVER_SSH_KEY:
+#                            проверяет вход по ключу (без пароля) и лишь потом отключает вход по паролю.
+#                            Аварийный доступ остаётся через веб-консоль hoster.kz.
+#   firebase-staging-app   — регистрирует в Firebase тестовое приложение kz.kartop.kartop_merchant.staging,
+#                            печатает его google-services.json и включает пуши в тестовой среде
+#                            (копирует FIREBASE_SERVICE_ACCOUNT из .env.prod в .env.staging, тот же проект).
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Операция'
+        type: choice
+        options: [install-ssh-key, disable-password-login, firebase-staging-app]
+
+permissions:
+  contents: read
+
+jobs:
+  install-ssh-key:
+    if: inputs.task == 'install-ssh-key'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: k
+        run: echo "line=$(head -n1 deploy/deploy_key.pub)" >> "$GITHUB_OUTPUT"
+      - name: Add deploy public key to authorized_keys
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          KEY_LINE: ${{ steps.k.outputs.line }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          envs: KEY_LINE
+          script: |
+            set -e
+            case "$KEY_LINE" in ssh-ed25519\ *) ;; *) echo "Некорректный ключ"; exit 1 ;; esac
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+            grep -qF "$KEY_LINE" ~/.ssh/authorized_keys || echo "$KEY_LINE" >> ~/.ssh/authorized_keys
+            echo "Ключ деплоя установлен. Ключей в authorized_keys: $(grep -c . ~/.ssh/authorized_keys)"
+
+  disable-password-login:
+    if: inputs.task == 'disable-password-login'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret SERVER_SSH_KEY is set
+        env:
+          K: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          [ -n "$K" ] || { echo "::error::Сначала добавьте секрет SERVER_SSH_KEY (приватный ключ)."; exit 1; }
+      # Шаг 1: вход ТОЛЬКО по ключу. Если не получится — дальше не идём, пароль остаётся рабочим.
+      - name: Verify key-only login
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: echo "Вход по ключу работает ($(whoami)@$(hostname))"
+      - name: Disable password authentication
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            # 00- — чтобы правило шло раньше 50-cloud-init.conf (в sshd побеждает первое значение).
+            cat > /etc/ssh/sshd_config.d/00-kartop-hardening.conf <<'CONF'
+            PasswordAuthentication no
+            KbdInteractiveAuthentication no
+            PermitRootLogin prohibit-password
+            CONF
+            sed -i 's/^[[:space:]]*//' /etc/ssh/sshd_config.d/00-kartop-hardening.conf
+            sshd -t
+            systemctl reload ssh || systemctl reload sshd
+            echo "Вход по паролю отключён. Действующие настройки:"
+            sshd -T | grep -Ei '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) '
+      - name: Re-check key login after reload
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: echo "После перезагрузки sshd вход по ключу работает"
+
+  firebase-staging-app:
+    if: inputs.task == 'firebase-staging-app'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: deploy/ops/firebase-staging-app.js
+          target: /opt/kar-top
+          overwrite: true
+      - name: Register staging app & enable push in staging
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /opt/kar-top
+            docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml exec -T api node - < deploy/ops/firebase-staging-app.js
+            # Пуши в тестовой среде: тот же проект Firebase → тот же сервис-аккаунт.
+            SA_LINE="$(grep '^FIREBASE_SERVICE_ACCOUNT=' .env.prod || true)"
+            if [ -n "$SA_LINE" ] && [ -f /opt/kar-top-staging/.env.staging ]; then
+              cd /opt/kar-top-staging
+              grep -v '^FIREBASE_SERVICE_ACCOUNT=' .env.staging > .env.staging.tmp
+              printf '%s\n' "$SA_LINE" >> .env.staging.tmp
+              mv .env.staging.tmp .env.staging && chmod 600 .env.staging
+              . ./.deployed
+              export API_IMAGE WEB_IMAGE APP_VERSION
+              docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml up -d --no-build staging-api
+              echo "Пуши в тестовой среде включены (staging-api перезапущен)."
+            fi
