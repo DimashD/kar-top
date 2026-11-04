@@ -33,7 +33,7 @@ on:
         default: false
 
 permissions:
-  contents: read
+  contents: write   # служебная ветка store-screenshots (просмотр снимков без скачивания артефакта)
 
 jobs:
   screenshots:
@@ -62,6 +62,16 @@ jobs:
           sleep 2
           NODE_PATH="${{ runner.temp }}/node_modules" node store/screenshots.js \
             http://localhost:8080/ https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}/api "$RUNNER_TEMP/shots"
+      - name: Publish screenshots to branch store-screenshots
+        if: always()
+        working-directory: ${{ runner.temp }}
+        run: |
+          [ -d shots ] || exit 0
+          cd shots
+          git init -q -b store-screenshots
+          git config user.name "github-actions"; git config user.email "actions@github.com"
+          git add -A && git commit -qm "screenshots ${GITHUB_SHA::7}" || exit 0
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" store-screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
