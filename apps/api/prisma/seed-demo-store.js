@@ -7,7 +7,9 @@
 //     exec -T staging-api node prisma/seed-demo-store.js +77011234567
 const { PrismaClient } = require('@prisma/client');
 
-const SLUG = 'demo';
+// Тот же адрес, что у кнопок «Открыть витрину» на главной (apps/web/app/page.tsx).
+const SLUG = 'ruslan-fruits';
+const OLD_SLUGS = ['demo']; // ранние запуски создавали /demo — переименовываем
 const PER_CATEGORY = 8; // сколько товаров каждой категории выставить в демо-магазин
 
 function normalizePhone(raw) {
@@ -33,6 +35,13 @@ function priceFor(name, unit) {
   const prisma = new PrismaClient();
   try {
     let store = await prisma.store.findUnique({ where: { slug: SLUG } });
+    if (!store) {
+      const old = await prisma.store.findFirst({ where: { slug: { in: OLD_SLUGS } } });
+      if (old) {
+        store = await prisma.store.update({ where: { id: old.id }, data: { slug: SLUG } });
+        console.log(`Магазин /${old.slug} переименован в /${SLUG}`);
+      }
+    }
     if (!store) {
       store = await prisma.store.create({
         data: {
