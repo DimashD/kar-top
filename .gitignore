@@ -28,3 +28,6 @@ dump.rdb
 # Сгенерированные фото товаров (dev/MVP)
 apps/web/public/products/*.png
 apps/web/public/products/*.webp
+
+# Скачанные CI-артефакты (сборки .aab и т.п.) — не хранить в репо
+artifacts/
