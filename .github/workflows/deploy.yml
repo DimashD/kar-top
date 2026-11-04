@@ -71,7 +71,10 @@ jobs:
           fi
           prefix="ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')/kar-top"
           if [ -n "$IN_TAG" ]; then tag="$IN_TAG"
-          else tag="t-$(git rev-parse --short=12 HEAD^{tree})"; fi
+          else
+            # Тег зависит только от кода api и web: правки мобилки/доков не вызывают пересборку.
+            tag="t-$(printf '%s %s' "$(git rev-parse HEAD:apps/api)" "$(git rev-parse HEAD:apps/web)" | sha1sum | cut -c1-12)"
+          fi
 
           need_build=true
           if docker manifest inspect "$prefix-api:$tag" >/dev/null 2>&1 && \
