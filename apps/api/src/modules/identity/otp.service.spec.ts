@@ -82,4 +82,20 @@ describe('OtpService тестовый OTP-код (только staging)', () => 
     expect(tg.send).toHaveBeenCalledWith('+77011234567', expect.stringMatching(/^\d{6}$/));
     await expect(svc.verify('+77011234567', '111111')).resolves.toBeNull();
   });
+
+  it('staging: лимит запросов кода не применяется (SMS не тратятся)', async () => {
+    const { svc } = makeEnv({ APP_ENV: 'staging', TEST_OTP_CODE: '111111' });
+    for (let i = 0; i < 5; i++) await svc.request('+77011234567');
+    await expect(svc.verify('+77011234567', '111111')).resolves.toBe('77011234567');
+  });
+
+  it('production: 4-й запрос за 15 минут → 429', async () => {
+    const { svc } = makeEnv({ APP_ENV: 'production' });
+    const counters: Record<string, number> = {};
+    (svc as any).redis.incr = jest.fn(async (k: string) => (counters[k] = (counters[k] ?? 0) + 1));
+    await svc.request('+77011234567');
+    await svc.request('+77011234567');
+    await svc.request('+77011234567');
+    await expect(svc.request('+77011234567')).rejects.toMatchObject({ status: 429 });
+  });
 });
