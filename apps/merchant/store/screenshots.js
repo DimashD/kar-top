@@ -48,9 +48,10 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 360, height: 640 }, deviceScaleFactor: 3, locale: 'ru-RU', isMobile: true, hasTouch: true });
   page.on('console', (m) => { if (m.type() === 'error') console.log('[app]', m.text()); });
   let n = 0;
-  const shot = async (name) => {
+  const shot = async (name, num) => {
+    await page.mouse.move(2, 2); // убрать «наведение» с карточек
     await sleep(1500);
-    const f = path.join(OUT, `${++n}_${name}.png`);
+    const f = path.join(OUT, `${num || ++n}_${name}.png`);
     await page.screenshot({ path: f });
     console.log('📸', f);
   };
@@ -89,7 +90,7 @@ async function main() {
 
     // 1. Вход
     await typeInto(0, PHONE);
-    await shot('login');
+    await shot('login', 9); // экран входа — последним
     await tapText('Получить код');
     await sleep(2000);
     await typeInto('last', CODE);
@@ -98,23 +99,30 @@ async function main() {
     await enableSemantics();
 
     // 2. Выбор магазина (если их несколько) → главный экран
-    try { await tapText('Демо-магазин', { timeout: 8000 }); await sleep(3000); } catch { /* сразу главный экран */ }
+    try { await tapText('Руслана', { timeout: 8000 }); await sleep(3000); } catch { /* сразу главный экран */ }
     await enableSemantics();
     await shot('orders');
 
-    // 3. Карточка заказа
+    // 3. Карточка нового заказа → принять → экран сборки (взвешивание)
     try {
       await tapText('№', { timeout: 8000 });
       await sleep(2500);
       await shot('order');
+      try {
+        await tapText('Принять заказ', { timeout: 8000 });
+        await sleep(3000);
+        await enableSemantics();
+        await shot('picking');
+      } catch (e) { console.warn('принять:', e.message); await debug('picking'); }
       await page.goBack().catch(() => {});
-      await sleep(1500);
+      await sleep(2000);
       await enableSemantics();
     } catch (e) { console.warn('карточка заказа:', e.message); await debug('order'); }
 
-    // 4. Товары и настройки
-    try { await tapText('Товары', { exact: true }); await shot('catalog'); } catch (e) { console.warn('товары:', e.message); await debug('catalog'); }
-    try { await tapText('Настройки', { exact: true }); await shot('settings'); } catch (e) { console.warn('настройки:', e.message); await debug('settings'); }
+    // 4. Вкладки нижнего меню — по координатам (360×640: высота меню ~56 px, 3 вкладки по 120 px).
+    const tab = async (i) => { await page.mouse.click(60 + 120 * i, 640 - 28); await sleep(2500); };
+    try { await tab(1); await shot('catalog'); } catch (e) { console.warn('товары:', e.message); await debug('catalog'); }
+    try { await tab(2); await shot('settings'); } catch (e) { console.warn('настройки:', e.message); await debug('settings'); }
   } catch (e) {
     console.error('Ошибка сценария:', e.message);
     await debug('fail');

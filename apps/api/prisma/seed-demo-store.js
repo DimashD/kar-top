@@ -9,7 +9,8 @@ const { PrismaClient } = require('@prisma/client');
 
 // Тот же адрес, что у кнопок «Открыть витрину» на главной (apps/web/app/page.tsx).
 const SLUG = 'ruslan-fruits';
-const OLD_SLUGS = ['demo']; // ранние запуски создавали /demo — переименовываем
+const OLD_SLUGS = ['demo'];
+const STORE_NAME = 'Фрукты у Руслана'; // реалистичное имя — попадает в скриншоты Google Play // ранние запуски создавали /demo — переименовываем
 const PER_CATEGORY = 8; // сколько товаров каждой категории выставить в демо-магазин
 
 function normalizePhone(raw) {
@@ -46,7 +47,7 @@ function priceFor(name, unit) {
       store = await prisma.store.create({
         data: {
           slug: SLUG,
-          name: 'Демо-магазин (тест)',
+          name: STORE_NAME,
           status: 'ACTIVE',
           phone: '+77010000000',
           kaspiPhone: '+77010000000',
@@ -70,6 +71,7 @@ function priceFor(name, unit) {
       });
       console.log(`Создан магазин /${SLUG}`);
     } else {
+      if (store.name !== STORE_NAME) store = await prisma.store.update({ where: { id: store.id }, data: { name: STORE_NAME } });
       console.log(`Магазин /${SLUG} уже есть — дополняю товары`);
     }
 
