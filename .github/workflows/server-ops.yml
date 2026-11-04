@@ -6,7 +6,9 @@ name: Server ops
 #   disable-password-login — ТОЛЬКО после того, как приватный ключ положен в секрет SERVER_SSH_KEY:
 #                            проверяет вход по ключу (без пароля) и лишь потом отключает вход по паролю.
 #                            Аварийный доступ остаётся через веб-консоль hoster.kz.
-#   firebase-staging-app   — регистрирует в Firebase тестовое приложение kz.kartop.kartop_merchant.staging,
+#   firebase-staging-app   — (если задан секрет FIREBASE_SERVICE_ACCOUNT_JSON — сначала прописывает его
+#                            в .env.prod и .env.staging и перезапускает api: пуши начинают реально уходить),
+#                            затем регистрирует в Firebase тестовое приложение kz.kartop.kartop_merchant.staging,
 #                            печатает его google-services.json и включает пуши в тестовой среде
 #                            (копирует FIREBASE_SERVICE_ACCOUNT из .env.prod в .env.staging, тот же проект).
 on:
@@ -94,6 +96,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare service account (from secret, optional)
+        id: sa
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$SA_JSON" ]; then echo "b64=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          # Проверяем, что это JSON сервис-аккаунта, сжимаем в одну строку и кодируем (без утечки в логи).
+          b64=$(printf '%s' "$SA_JSON" | python3 -c 'import json,sys,base64;d=json.load(sys.stdin);assert d.get("type")=="service_account" and d.get("private_key") and d.get("client_email"),"не сервис-аккаунт";print(base64.b64encode(json.dumps(d,separators=(",",":")).encode()).decode())')
+          echo "::add-mask::$b64"
+          echo "b64=$b64" >> "$GITHUB_OUTPUT"
       - name: Upload script
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -106,15 +118,33 @@ jobs:
           overwrite: true
       - name: Register staging app & enable push in staging
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          SA_B64: ${{ steps.sa.outputs.b64 }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 10m
+          envs: SA_B64
           script: |
             set -e
             cd /opt/kar-top
+            if [ -n "$SA_B64" ]; then
+              # Прописываем ключ в .env.prod одной строкой (в одинарных кавычках) и перезапускаем прод-api.
+              SA_LINE="FIREBASE_SERVICE_ACCOUNT='$(printf '%s' "$SA_B64" | base64 -d)'"
+              grep -v '^FIREBASE_SERVICE_ACCOUNT=' .env.prod > .env.prod.tmp
+              printf '%s\n' "$SA_LINE" >> .env.prod.tmp
+              cp .env.prod ".env.prod.bak-$(date +%Y%m%d%H%M%S)"
+              mv .env.prod.tmp .env.prod && chmod 600 .env.prod
+              . ./.deployed; export API_IMAGE WEB_IMAGE APP_VERSION
+              docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml up -d --no-build api
+              echo "Ключ Firebase прописан в прод, api перезапущен — ждём старта…"
+              for i in $(seq 1 30); do
+                docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml exec -T api node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" 2>/dev/null && break
+                sleep 3
+              done
+            fi
             docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml exec -T api node - < deploy/ops/firebase-staging-app.js
             # Пуши в тестовой среде: тот же проект Firebase → тот же сервис-аккаунт.
             SA_LINE="$(grep '^FIREBASE_SERVICE_ACCOUNT=' .env.prod || true)"

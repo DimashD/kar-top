@@ -61,9 +61,10 @@ export class OtpService {
    */
   async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<void> {
     const phone = this.normalize(rawPhone);
-    await this.rateLimit(phone);
-
     const fixed = this.testOtpCode();
+    // Лимит защищает от SMS-pumping; в тестовой среде с фиксированным кодом SMS не отправляются — лимит не нужен.
+    if (!fixed) await this.rateLimit(phone);
+
     const code = fixed ?? String(Math.floor(100000 + Math.random() * 900000));
     const codeHash = await bcrypt.hash(code, 10);
     await this.redis.set(
