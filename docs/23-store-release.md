@@ -32,7 +32,7 @@
    Заполнить `android/key.properties` по образцу `key.properties.example`.
 3. Собрать AAB:
    ```
-   flutter build appbundle --release --dart-define=API_BASE=https://api.kartop.kz/api
+   flutter build appbundle --release --flavor prod --dart-define=API_BASE=https://api.kartop.kz/api
    ```
    (нужен установленный Android SDK; в этом окружении SDK нет — собрать локально или в CI.)
 4. В Play Console: создать приложение, загрузить AAB, заполнить **Data safety** (телефон,

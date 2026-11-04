@@ -1,0 +1,15 @@
+# Caddy для случая, когда тестовая среда стоит на ОТДЕЛЬНОМ сервере
+# (docker compose --profile standalone ...). На общем с продом сервере не используется.
+{
+    email {$ACME_EMAIL}
+}
+{$DOMAIN} {
+    encode gzip
+    header X-Robots-Tag "noindex, nofollow"
+    handle /api/* {
+        reverse_proxy staging-api:3000
+    }
+    handle {
+        reverse_proxy staging-web:3001
+    }
+}

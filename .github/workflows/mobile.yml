@@ -1,10 +1,13 @@
 name: Mobile (merchant app)
 
-# CI для Flutter-приложения магазина: проверка кода на каждый push/PR;
-# сборка релизных .aab (Android) и .ipa (iOS) — вручную или по тегу.
+# CI для Flutter-приложения магазина:
+#   каждый push/PR — анализ и тесты;
+#   push в develop — ТЕСТОВОЕ приложение (flavor staging, «Kartop ТЕСТ», API test.kar-top.kz) → .apk в артефактах
+#                    (+ Firebase App Distribution, если заданы секреты FIREBASE_APP_ID_STAGING и FIREBASE_SERVICE_ACCOUNT_JSON);
+#   тег vX.Y.Z или ручной запуск — боевой .aab (flavor prod) для Google Play.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     tags: ["v*"]          # тег vX.Y.Z запускает релизные сборки
   pull_request:
   workflow_dispatch: {}   # кнопка «Run workflow» для релизной сборки вручную
@@ -25,7 +28,42 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-  # 2) Релизный Android .aab. Запускается вручную (workflow_dispatch) или по тегу v*.
+  # 2) Тестовое приложение (ставится рядом с боевым, ходит на тестовую среду).
+  android-staging:
+    needs: analyze
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # Без key.properties сборка подписывается debug-ключом — для тестового .apk это нормально.
+      - run: >-
+          flutter build apk --release --flavor staging
+          --build-number=${{ github.run_number }}
+          --dart-define=APP_ENV=staging
+          --dart-define=API_BASE=https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}/api
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-merchant-TEST-apk
+          path: apps/merchant/build/app/outputs/flutter-apk/app-staging-release.apk
+          retention-days: 30
+      - name: Firebase App Distribution (если настроено)
+        env:
+          APP_ID: ${{ secrets.FIREBASE_APP_ID_STAGING }}
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          TESTERS: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$SA_JSON" ]; then echo "App Distribution не настроен — .apk лежит в артефактах."; exit 0; fi
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx -y firebase-tools@13 appdistribution:distribute build/app/outputs/flutter-apk/app-staging-release.apk \
+            --app "$APP_ID" --groups "$TESTERS" --release-notes "develop ${GITHUB_SHA::7}: $(git log -1 --pretty=%s)"
+
+  # 3) Релизный Android .aab. Запускается вручную (workflow_dispatch) или по тегу v*.
   android-release:
     needs: analyze
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
@@ -57,9 +95,9 @@ jobs:
           keyAlias=$KEY_ALIAS
           storeFile=$(pwd)/android/kartop.jks
           EOF
-      - run: flutter build appbundle --release --dart-define=API_BASE=${{ vars.API_BASE || 'https://kar-top.kz/api' }}
+      - run: flutter build appbundle --release --flavor prod --dart-define=APP_ENV=prod --dart-define=API_BASE=${{ vars.API_BASE || 'https://kar-top.kz/api' }}
       - uses: actions/upload-artifact@v4
         with:
           name: kartop-merchant-aab
-          path: apps/merchant/build/app/outputs/bundle/release/app-release.aab
+          path: apps/merchant/build/app/outputs/bundle/prodRelease/app-prod-release.aab
           retention-days: 14

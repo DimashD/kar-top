@@ -1,50 +1,198 @@
-name: Deploy to VPS
+name: Deploy
 
-# Авто-деплой: любой пуш в main (или ручной запуск) заливает код на сервер и пересобирает.
-# Серверу не нужен доступ к GitHub — код загружает runner по SSH.
-# Нужны секреты репозитория (Settings → Secrets and variables → Actions):
-#   SERVER_HOST=89.126.205.212  SERVER_USER=root  SERVER_PASSWORD=<пароль root>
+# Конвейер: тесты → сборка Docker-образов (GHCR) → деплой → smoke-тест.
+#   push в develop → ТЕСТОВАЯ среда (test.kar-top.kz), автоматически;
+#   push в main    → ПРОД (kar-top.kz), только после подтверждения в окружении `production`
+#                    (Settings → Environments → production → Required reviewers).
+# На прод уходит ТОТ ЖЕ образ, что проверяли на тесте: тег образа = хэш дерева файлов (git tree),
+# поэтому после merge develop → main пересборки нет — берётся уже проверенный образ.
+# Ручной запуск (Actions → Deploy → Run workflow): выбрать окружение и, при необходимости,
+# тег образа — так делается откат на любую прошлую версию.
+#
+# Секреты (уровень репозитория или окружения): SERVER_HOST, SERVER_USER, SERVER_PASSWORD
+# (или SERVER_SSH_KEY). Если тест на отдельном сервере — задать их в окружении `staging`.
+# Переменные (необязательно): STAGING_DOMAIN (test.kar-top.kz), PROD_DOMAIN (kar-top.kz).
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
     paths-ignore:
-      - 'apps/merchant/**'   # мобилка деплой VPS не затрагивает
+      - 'apps/merchant/**'   # мобилка сервер не затрагивает
       - 'docs/**'
       - '**/*.md'
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Куда деплоить'
+        type: choice
+        options: [staging, production]
+        default: staging
+      tag:
+        description: 'Тег образа для деплоя/отката (пусто = текущий коммит)'
+        required: false
+        default: ''
 
-concurrency:
-  group: deploy-vps
-  cancel-in-progress: false
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  deploy:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.p.outputs.env }}
+      url: ${{ steps.p.outputs.url }}
+      dir: ${{ steps.p.outputs.dir }}
+      compose: ${{ steps.p.outputs.compose }}
+      tag: ${{ steps.p.outputs.tag }}
+      prefix: ${{ steps.p.outputs.prefix }}
+      need_build: ${{ steps.p.outputs.need_build }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref_name }}
+          IN_TARGET: ${{ inputs.target }}
+          IN_TAG: ${{ inputs.tag }}
+          OWNER: ${{ github.repository_owner }}
+          STAGING_DOMAIN: ${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}
+          PROD_DOMAIN: ${{ vars.PROD_DOMAIN || 'kar-top.kz' }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then target="$IN_TARGET"
+          elif [ "$REF" = main ]; then target=production
+          else target=staging; fi
+          if [ "$target" = production ] && [ "$EVENT" = workflow_dispatch ] && [ -z "$IN_TAG" ] && [ "$REF" != main ]; then
+            echo "::error::Прод собирается только из main (или укажите тег уже проверенного образа)."; exit 1
+          fi
+          prefix="ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')/kar-top"
+          if [ -n "$IN_TAG" ]; then tag="$IN_TAG"
+          else tag="t-$(git rev-parse --short=12 HEAD^{tree})"; fi
+
+          need_build=true
+          if docker manifest inspect "$prefix-api:$tag" >/dev/null 2>&1 && \
+             docker manifest inspect "$prefix-web:$tag" >/dev/null 2>&1; then
+            need_build=false
+            echo "Образы $tag уже есть (проверены на тесте) — пересборки не будет."
+          elif [ -n "$IN_TAG" ]; then
+            echo "::error::Образов с тегом $IN_TAG нет в GHCR."; exit 1
+          elif [ "$target" = production ]; then
+            echo "::warning::Этот код не проходил через тестовую среду (образа $tag нет). Нормальный путь: develop → тест → PR в main."
+          fi
+
+          if [ "$target" = production ]; then
+            echo "url=https://$PROD_DOMAIN"     >> "$GITHUB_OUTPUT"
+            echo "dir=/opt/kar-top"            >> "$GITHUB_OUTPUT"
+            echo "compose=docker-compose.prod.yml" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://$STAGING_DOMAIN"  >> "$GITHUB_OUTPUT"
+            echo "dir=/opt/kar-top-staging"    >> "$GITHUB_OUTPUT"
+            echo "compose=docker-compose.staging.yml" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo "env=$target"; echo "tag=$tag"; echo "prefix=$prefix"; echo "need_build=$need_build"
+          } >> "$GITHUB_OUTPUT"
+          echo "### $target ← $tag" >> "$GITHUB_STEP_SUMMARY"
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.need_build == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - run: npm --workspace apps/api run prisma:generate
+      # Линтер пока не настроен (eslint не установлен в api, нет конфига в web) — не блокирует.
+      - run: npm run lint --if-present
+        continue-on-error: true
+      - run: npm run build --if-present
+      - run: npm test --if-present
 
-      - name: Upload code to server
+  build:
+    needs: [plan, test]
+    if: needs.plan.outputs.need_build == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: apps/${{ matrix.app }}
+          push: true
+          tags: ${{ needs.plan.outputs.prefix }}-${{ matrix.app }}:${{ needs.plan.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  deploy:
+    needs: [plan, test, build]
+    # Сборка может быть пропущена (образ уже проверен на тесте) — это не ошибка.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.plan.outputs.env }}
+      url: ${{ needs.plan.outputs.url }}
+    concurrency:
+      group: deploy-${{ needs.plan.outputs.env }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload compose & deploy scripts
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "."
-          target: "/opt/kar-top"
-          rm: false
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "${{ needs.plan.outputs.compose }},deploy"
+          target: ${{ needs.plan.outputs.dir }}
           overwrite: true
 
-      - name: Build & restart
+      - name: Deploy (backup → pull → restart → health check → auto-rollback)
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_ENV: ${{ needs.plan.outputs.env }}
+          API_IMG: ${{ needs.plan.outputs.prefix }}-api:${{ needs.plan.outputs.tag }}
+          WEB_IMG: ${{ needs.plan.outputs.prefix }}-web:${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.tag }}
+          DIR: ${{ needs.plan.outputs.dir }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STAGING_DOMAIN: ${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          command_timeout: 30m
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 20m
+          envs: DEPLOY_ENV,API_IMG,WEB_IMG,VERSION,DIR,GHCR_USER,GHCR_TOKEN,STAGING_DOMAIN
           script: |
             set -e
-            cd /opt/kar-top
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
-            docker image prune -f
-            echo "Deploy OK"
+            cd "$DIR"
+            bash deploy/deploy.sh "$DEPLOY_ENV" "$API_IMG" "$WEB_IMG" "$VERSION"
+
+  smoke:
+    needs: [plan, deploy]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke test ${{ needs.plan.outputs.url }}
+        run: bash deploy/smoke.sh "${{ needs.plan.outputs.url }}" "${{ needs.plan.outputs.tag }}"

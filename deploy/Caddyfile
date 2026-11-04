@@ -1,7 +1,9 @@
-# Авто-HTTPS (Let's Encrypt). DOMAIN и ACME_EMAIL берутся из окружения.
+# Авто-HTTPS (Let's Encrypt). DOMAIN, STAGING_DOMAIN и ACME_EMAIL берутся из окружения.
 {
     email {$ACME_EMAIL}
 }
+
+# ПРОД
 {$DOMAIN} {
     encode gzip
     handle /api/* {
@@ -9,5 +11,19 @@
     }
     handle {
         reverse_proxy web:3001
+    }
+}
+
+# ТЕСТОВАЯ СРЕДА (staging) на этом же сервере — контейнеры из docker-compose.staging.yml.
+# Если staging не запущен, этот домен просто отдаёт 502 — прод это не затрагивает.
+{$STAGING_DOMAIN:test.kar-top.kz} {
+    encode gzip
+    # Тест не должен попадать в поиск.
+    header X-Robots-Tag "noindex, nofollow"
+    handle /api/* {
+        reverse_proxy staging-api:3000
+    }
+    handle {
+        reverse_proxy staging-web:3001
     }
 }

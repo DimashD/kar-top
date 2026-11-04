@@ -63,10 +63,8 @@ export class OtpService {
     const phone = this.normalize(rawPhone);
     await this.rateLimit(phone);
 
-    // Только УЖЕ ПОДТВЕРЖДЁННЫЙ (спаренный) email — код пойдёт на почту. Непроверенный email не используется.
-    const emailTarget = await this.pairedEmail(phone);
-
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const fixed = this.testOtpCode();
+    const code = fixed ?? String(Math.floor(100000 + Math.random() * 900000));
     const codeHash = await bcrypt.hash(code, 10);
     await this.redis.set(
       `otp:code:${phone}`,
@@ -74,6 +72,14 @@ export class OtpService {
       'EX',
       CODE_TTL_SEC,
     );
+    if (fixed) {
+      // Тестовая среда: никуда не отправляем (не тратим SMS), код фиксированный.
+      this.log.log('OTP (staging): используется фиксированный тестовый код');
+      return;
+    }
+
+    // Только УЖЕ ПОДТВЕРЖДЁННЫЙ (спаренный) email — код пойдёт на почту. Непроверенный email не используется.
+    const emailTarget = await this.pairedEmail(phone);
 
     // Порядок каналов: email (если есть) → предпочитаемый (telegram) → whatsapp → sms.
     const order: OtpChannelName[] = [...new Set(
@@ -91,6 +97,16 @@ export class OtpService {
       }
     }
     this.log.error('Ни один канал не доставил код');
+  }
+
+  /**
+   * Фиксированный OTP-код — ТОЛЬКО в тестовой среде (APP_ENV=staging + TEST_OTP_CODE из 6 цифр).
+   * На проде (APP_ENV=production или не задан) всегда null, даже если TEST_OTP_CODE задан по ошибке.
+   */
+  private testOtpCode(): string | null {
+    if (this.config.get<string>('APP_ENV') !== 'staging') return null;
+    const code = this.config.get<string>('TEST_OTP_CODE');
+    return code && /^\d{6}$/.test(code) ? code : null;
   }
 
   /** Подтверждённый (спаренный) email пользователя по телефону. Непроверенный email в User.email не попадает. */

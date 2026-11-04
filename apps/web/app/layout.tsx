@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import './globals.css';
+import { EnvBanner } from '../components/EnvBanner';
 
 export const metadata = {
   title: 'Kartop — зелёный базар рядом',
@@ -24,7 +25,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <EnvBanner />
+        {children}
+      </body>
     </html>
   );
 }

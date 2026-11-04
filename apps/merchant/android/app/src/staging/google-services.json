@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "244786869533",
+    "project_id": "kartop",
+    "storage_bucket": "kartop.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:244786869533:android:513616669015bfb86fddf4",
+        "android_client_info": {
+          "package_name": "kz.kartop.kartop_merchant.staging"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvM06xzBmwU1K90PIswHENj1ApbqZu_PA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

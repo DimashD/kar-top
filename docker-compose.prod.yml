@@ -1,7 +1,7 @@
-# Развёртывание для staging/прод (напр. VPS PS.KZ, Ubuntu):
+# ПРОД (kar-top.kz). Тестовая среда — docker-compose.staging.yml (см. docs/28-environments.md).
+# Обычный деплой делает GitHub Actions: готовые образы из GHCR (API_IMAGE/WEB_IMAGE) → deploy/deploy.sh.
+# Первичная установка на чистый сервер (сборка на месте):
 #   sudo bash deploy/bootstrap.sh kar-top.kz admin@kar-top.kz
-# либо вручную:
-#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 # ВАЖНО: ПДн граждан РК по закону хранятся в Казахстане — размещать в КЗ (PS.KZ / Yandex Cloud kz1).
 services:
   db:
@@ -18,9 +18,12 @@ services:
     restart: unless-stopped
 
   api:
+    image: ${API_IMAGE:-kar-top-api:local}
     build: { context: ./apps/api }
     environment:
       NODE_ENV: production
+      APP_ENV: production
+      APP_VERSION: ${APP_VERSION:-local}
       PORT: 3000
       DATABASE_URL: postgresql://freshmarket:${DB_PASSWORD:-freshmarket}@db:5432/freshmarket?schema=public
       REDIS_URL: redis://redis:6379
@@ -46,6 +49,7 @@ services:
     restart: unless-stopped
 
   web:
+    image: ${WEB_IMAGE:-kar-top-web:local}
     build: { context: ./apps/web }
     environment:
       NODE_ENV: production
@@ -60,12 +64,21 @@ services:
     environment:
       DOMAIN: ${DOMAIN:?set DOMAIN, напр. kar-top.kz}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+      # Тестовая среда на этом же сервере: Caddy проксирует её домен на контейнеры staging-*.
+      STAGING_DOMAIN: ${STAGING_DOMAIN:-test.kar-top.kz}
+    networks: [default, edge]
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     ports: ["80:80", "443:443"]
     restart: unless-stopped
+
+networks:
+  # Общая сеть «прод-Caddy ↔ staging-контейнеры». Создаётся deploy.sh / bootstrap.sh.
+  edge:
+    name: kartop-edge
+    external: true
 
 volumes:
   pgdata:
