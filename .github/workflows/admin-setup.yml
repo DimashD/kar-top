@@ -4,6 +4,11 @@ name: Admin setup
 on:
   workflow_dispatch:
     inputs:
+      target:
+        description: 'Окружение'
+        type: choice
+        options: [staging, production]
+        default: staging
       password:
         description: 'Новый пароль админа (минимум 6 символов)'
         required: true
@@ -19,6 +24,8 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    # Для production сработает подтверждение окружения (Required reviewers).
+    environment: ${{ inputs.target }}
     steps:
       - name: Set admin password & email on server
         uses: appleboy/ssh-action@v1.2.0
@@ -33,5 +40,9 @@ jobs:
           command_timeout: 10m
           envs: IN_PASS,IN_EMAIL,IN_PHONE
           script: |
-            cd /opt/kar-top
-            docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T api node prisma/grant-admin.js "$IN_PHONE" "$IN_PASS" "$IN_EMAIL"
+            if [ "${{ inputs.target }}" = production ]; then
+              cd /opt/kar-top && C="docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml" && SVC=api
+            else
+              cd /opt/kar-top-staging && C="docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml" && SVC=staging-api
+            fi
+            $C exec -T $SVC node prisma/grant-admin.js "$IN_PHONE" "$IN_PASS" "$IN_EMAIL"

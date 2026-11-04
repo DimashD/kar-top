@@ -1,5 +1,7 @@
 # 26. Боевой деплой на VPS (hoster.kz Cloud 2-2-50)
 
+> Актуальная схема выкатки (тест → прод, образы из GHCR) — см. [28-environments.md](28-environments.md). Ниже — первичная установка сервера.
+
 Сервер: **89.126.205.212** · Ubuntu 24.04 · 2 vCPU / 2 GB RAM / 50 GB NVMe · Алматы
 Домен: **kar-top.kz** (куплен на hoster.kz)
 
@@ -151,6 +153,6 @@ df -h /
 ## Сборка мобильного приложения под этот сервер
 
 ```bash
-flutter build apk --dart-define=API_BASE=https://kar-top.kz/api
+flutter build apk --flavor prod --dart-define=API_BASE=https://kar-top.kz/api
 ```
 (API живёт на том же домене, Caddy отдаёт его по префиксу `/api`.)

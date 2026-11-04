@@ -9,3 +9,8 @@ const String kApiBase = String.fromEnvironment(
 
 /// Канал OTP по умолчанию (как на бэкенде: telegram → whatsapp → sms).
 const String kOtpChannel = 'sms';
+
+/// Окружение сборки: `prod` или `staging` (--dart-define=APP_ENV=staging).
+/// В тестовой сборке поверх приложения показывается красная лента «ТЕСТ».
+const String kAppEnv = String.fromEnvironment('APP_ENV', defaultValue: 'prod');
+bool get kIsStaging => kAppEnv == 'staging';

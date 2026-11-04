@@ -44,6 +44,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Два варианта приложения (ставятся на телефон РЯДОМ):
+    //   prod    — kz.kartop.kartop_merchant,         «Kartop Магазин», API kar-top.kz;
+    //   staging — kz.kartop.kartop_merchant.staging, «Kartop ТЕСТ»,    API test.kar-top.kz.
+    // Сборка: flutter build apk --flavor staging --dart-define=API_BASE=... (см. docs/28-environments.md).
+    flavorDimensions += "env"
+    productFlavors {
+        create("prod") {
+            dimension = "env"
+            manifestPlaceholders["appName"] = "Kartop Магазин"
+        }
+        create("staging") {
+            dimension = "env"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            manifestPlaceholders["appName"] = "Kartop ТЕСТ"
+        }
+    }
+
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {

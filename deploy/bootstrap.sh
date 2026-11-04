@@ -53,6 +53,8 @@ ENV
 fi
 
 # 3) Запуск (миграции применяются автоматически при старте api)
+# Общая сеть прод-Caddy и тестовой среды (staging) — нужна до запуска compose.
+docker network create kartop-edge >/dev/null 2>&1 || true
 $COMPOSE up -d --build
 
 # 4) Назначить сотрудника платформы (роль для входа в /admin/*), если передан телефон.

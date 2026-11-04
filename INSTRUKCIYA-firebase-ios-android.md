@@ -12,7 +12,7 @@
 1. **Создать проект.** console.firebase.google.com → Add project → имя «Kartop».
 2. **Android-приложение.** В проекте → Add app → Android:
    - Package name: `kz.kartop.kartop_merchant`
-   - Скачать `google-services.json` → положить в `apps/merchant/android/app/google-services.json`.
+   - Скачать `google-services.json` → положить в `apps/merchant/android/app/src/prod/google-services.json` (тестовое приложение — `src/staging/`, пакет `kz.kartop.kartop_merchant.staging`).
 3. **iOS-приложение.** Add app → iOS:
    - Bundle ID: `kz.kartop.kartop_merchant`
    - Скачать `GoogleService-Info.plist` → положить в `apps/merchant/ios/Runner/GoogleService-Info.plist`

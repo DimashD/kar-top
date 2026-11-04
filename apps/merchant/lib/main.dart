@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'config.dart';
 import 'session.dart';
 import 'theme.dart';
 import 'lock.dart';
@@ -26,6 +27,15 @@ class KartopMerchantApp extends StatelessWidget {
       title: 'Kartop — магазин',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      // Тестовая сборка (flavor staging) — лента «ТЕСТ», чтобы не перепутать с боевым приложением.
+      builder: kIsStaging
+          ? (context, child) => Banner(
+                message: 'ТЕСТ',
+                location: BannerLocation.topEnd,
+                color: const Color(0xFFC62828),
+                child: child ?? const SizedBox.shrink(),
+              )
+          : null,
       home: Consumer<Session>(
         builder: (context, session, _) {
           if (session.loading) {

@@ -19,9 +19,9 @@
 ```bash
 flutter pub get
 # Android-эмулятор (хост доступен как 10.0.2.2):
-flutter run --dart-define=API_BASE=http://10.0.2.2:3000/api
+flutter run --flavor staging --dart-define=APP_ENV=staging --dart-define=API_BASE=http://10.0.2.2:3000/api
 # Реальное устройство/прод:
-flutter run --dart-define=API_BASE=https://api.kartop.kz/api
+flutter run --flavor prod --dart-define=API_BASE=https://kar-top.kz/api
 ```
 
 API должен разрешать CORS для клиента (на бэкенде включается `app.enableCors`,

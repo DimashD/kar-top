@@ -1,0 +1,84 @@
+# ТЕСТОВАЯ СРЕДА (staging): test.kar-top.kz. Своя БД/Redis/секреты, ненастоящие данные.
+# Разворачивается автоматически из ветки develop (см. .github/workflows/deploy.yml, docs/28-environments.md).
+#   docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml up -d
+# Сервисы названы staging-* — чтобы прод-Caddy (общая сеть kartop-edge) не путал их с продом.
+# На отдельном сервере без прода: добавить --profile standalone (поднимет свой Caddy).
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: freshmarket
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set me}
+      POSTGRES_DB: freshmarket
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    mem_limit: 384m
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    mem_limit: 64m
+    restart: unless-stopped
+
+  staging-api:
+    image: ${API_IMAGE:-kar-top-api:local}   # реальный тег подставляет deploy/deploy.sh
+    environment:
+      NODE_ENV: production
+      APP_ENV: staging
+      APP_VERSION: ${APP_VERSION:-unknown}
+      PORT: 3000
+      DATABASE_URL: postgresql://freshmarket:${DB_PASSWORD}@db:5432/freshmarket?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set me}
+      WEB_BASE_URL: https://${DOMAIN}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Фиксированный код входа для тестировщиков (работает ТОЛЬКО при APP_ENV=staging).
+      TEST_OTP_CODE: ${TEST_OTP_CODE:-111111}
+      # Интеграции в тесте по умолчанию выключены (SMS/Kaspi — заглушки). Включать только sandbox-ключи.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      KASPI_MERCHANT_ID: ${KASPI_MERCHANT_ID:-}
+      KASPI_API_KEY: ${KASPI_API_KEY:-}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+    command: sh -c "npx prisma migrate deploy && node dist/main.js"
+    depends_on: [db, redis]
+    networks: [default, edge]
+    mem_limit: 448m
+    restart: unless-stopped
+
+  staging-web:
+    image: ${WEB_IMAGE:-kar-top-web:local}
+    environment:
+      NODE_ENV: production
+      API_BASE_INTERNAL: http://staging-api:3000/api
+    depends_on: [staging-api]
+    networks: [default, edge]
+    mem_limit: 448m
+    restart: unless-stopped
+
+  caddy:
+    profiles: [standalone]
+    image: caddy:2-alpine
+    depends_on: [staging-api, staging-web]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile.staging:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports: ["80:80", "443:443"]
+    restart: unless-stopped
+
+networks:
+  edge:
+    name: kartop-edge
+    external: true
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
