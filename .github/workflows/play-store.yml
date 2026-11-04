@@ -1,0 +1,144 @@
+name: Play Store
+
+# Публикация приложения магазина (apps/merchant) в Google Play — ручной запуск:
+#   Actions → Play Store → Run workflow.
+# Что делает:
+#   1) screenshots — собирает веб-версию приложения, входит в демо-магазин тестовой среды
+#      (код 111111) и снимает реальные скриншоты 1080×1920;
+#   2) publish — собирает подписанный .aab (flavor prod, API kar-top.kz) и через Google Play API
+#      загружает: сборку в выбранный трек, тексты, иконку, баннер и скриншоты
+#      (apps/merchant/fastlane/metadata/android/ru-RU).
+# Нужен секрет PLAY_SERVICE_ACCOUNT_JSON — ключ сервисного аккаунта с доступом к Play Console
+# (см. docs/29-google-play.md). Без него выполняется только шаг скриншотов.
+on:
+  # Пуш в develop с изменением сценария скриншотов — только перегенерировать скриншоты.
+  push:
+    branches: [develop]
+    paths: ['apps/merchant/store/**', 'apps/merchant/fastlane/**', '.github/workflows/play-store.yml']
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Трек Google Play'
+        type: choice
+        options: [internal, alpha, beta, production]
+        default: internal
+      release_status:
+        description: 'draft — черновик (обязательно, пока приложение не прошло первую проверку); completed — выпустить'
+        type: choice
+        options: [draft, completed]
+        default: draft
+      screenshots_only:
+        description: 'Только снять скриншоты (без загрузки в Play)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/merchant
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      # Веб-версия той же кодовой базы, но смотрит на тестовую среду (демо-данные, без ленты «ТЕСТ»).
+      - run: flutter build web --release --dart-define=APP_ENV=prod --dart-define=API_BASE=https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}/api
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install Playwright
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.47.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+      - name: Take screenshots
+        run: |
+          (cd build/web && python3 -m http.server 8080 >/dev/null 2>&1 &)
+          sleep 2
+          NODE_PATH="${{ runner.temp }}/node_modules" node store/screenshots.js \
+            http://localhost:8080/ https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}/api "$RUNNER_TEMP/shots"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: play-screenshots
+          path: ${{ runner.temp }}/shots
+          retention-days: 30
+
+  publish:
+    needs: screenshots
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.screenshots_only }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/merchant
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Play API key
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          [ -n "$PLAY_JSON" ] || { echo "::error::Нет секрета PLAY_SERVICE_ACCOUNT_JSON (см. docs/29-google-play.md)."; exit 1; }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          keytool -list -keystore android/kartop.jks -storepass "$STORE_PASSWORD" >/dev/null \
+            || { echo "::error::Keystore invalid or wrong password"; exit 1; }
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
+      # versionCode должен расти с каждой загрузкой — берём минуты с 1970 г. (монотонно, < 2^31).
+      - name: Build signed AAB
+        run: |
+          CODE=$(( $(date +%s) / 60 ))
+          echo "versionCode=$CODE"
+          flutter build appbundle --release --flavor prod --build-number=$CODE \
+            --dart-define=APP_ENV=prod --dart-define=API_BASE=${{ vars.API_BASE || 'https://kar-top.kz/api' }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: play-screenshots
+          path: ${{ runner.temp }}/shots
+      - name: Put screenshots into store metadata
+        run: |
+          D=fastlane/metadata/android/ru-RU/images/phoneScreenshots
+          mkdir -p "$D"
+          for f in "$RUNNER_TEMP"/shots/[0-9]*_*.png; do cp "$f" "$D/"; done
+          ls -la "$D"
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: '3.3' }
+      - run: gem install fastlane -N --quiet
+      - name: Upload to Google Play
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          fastlane run upload_to_play_store \
+            package_name:kz.kartop.kartop_merchant \
+            json_key_data:"$PLAY_JSON" \
+            track:${{ inputs.track }} \
+            release_status:${{ inputs.release_status }} \
+            aab:build/app/outputs/bundle/prodRelease/app-prod-release.aab \
+            metadata_path:fastlane/metadata/android \
+            sync_image_upload:true \
+            skip_upload_apk:true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-merchant-play-aab
+          path: apps/merchant/build/app/outputs/bundle/prodRelease/app-prod-release.aab
+          retention-days: 30
