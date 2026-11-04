@@ -52,13 +52,13 @@ android {
     productFlavors {
         create("prod") {
             dimension = "env"
-            resValue("string", "app_name", "Kartop Магазин")
+            manifestPlaceholders["appName"] = "Kartop Магазин"
         }
         create("staging") {
             dimension = "env"
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
-            resValue("string", "app_name", "Kartop ТЕСТ")
+            manifestPlaceholders["appName"] = "Kartop ТЕСТ"
         }
     }
 
