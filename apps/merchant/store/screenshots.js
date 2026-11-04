@@ -69,11 +69,15 @@ async function main() {
     await loc.waitFor({ timeout: opts.timeout || 20000 });
     await loc.click();
   };
+  // Поле ввода: index — номер поля, 'last' — последнее. Содержимое заменяется целиком (в поле телефона уже есть «+7»).
   const typeInto = async (index, value) => {
-    const box = page.getByRole('textbox').nth(index);
+    const all = page.getByRole('textbox');
+    const box = index === 'last' ? all.last() : all.nth(index);
     await box.waitFor({ timeout: 20000 });
     await box.click();
     await sleep(300);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
     await page.keyboard.type(value, { delay: 40 });
   };
 
@@ -84,11 +88,11 @@ async function main() {
     await enableSemantics();
 
     // 1. Вход
-    await typeInto(0, PHONE.replace('+', ''));
+    await typeInto(0, PHONE);
     await shot('login');
     await tapText('Получить код');
     await sleep(2000);
-    await typeInto(1, CODE);
+    await typeInto('last', CODE);
     await tapText('Войти', { exact: true });
     await sleep(4000);
     await enableSemantics();
