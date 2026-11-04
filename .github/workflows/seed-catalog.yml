@@ -1,6 +1,8 @@
 name: Seed catalog
 
 # Ручной запуск: наполняет мастер-каталог на сервере (идемпотентно).
+# В тестовой среде дополнительно создаёт «Демо-магазин (тест)» → https://test.kar-top.kz/demo
+# с товарами и владельцем (телефон ниже; вход в приложение «Kartop ТЕСТ» кодом 111111).
 on:
   workflow_dispatch:
     inputs:
@@ -9,6 +11,10 @@ on:
         type: choice
         options: [staging, production]
         default: staging
+      owner_phone:
+        description: 'Тест: телефон владельца демо-магазина'
+        required: false
+        default: '+77011115999'
 
 jobs:
   seed:
@@ -18,16 +24,23 @@ jobs:
     steps:
       - name: Run catalog seed on server
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          OWNER_PHONE: ${{ inputs.owner_phone }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 10m
+          envs: OWNER_PHONE
           script: |
+            set -e
             if [ "${{ inputs.target }}" = production ]; then
               cd /opt/kar-top && C="docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml" && SVC=api
             else
               cd /opt/kar-top-staging && C="docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml" && SVC=staging-api
             fi
             $C exec -T $SVC node prisma/seed-catalog.js
+            if [ "${{ inputs.target }}" = staging ]; then
+              $C exec -T $SVC node prisma/seed-demo-store.js "$OWNER_PHONE"
+            fi
