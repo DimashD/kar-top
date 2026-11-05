@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LngLat, pointInPolygon, haversineMeters } from '../../common/geo';
+import { LngLat, haversineMeters } from '../../common/geo';
+import { findZone } from '../../common/zones';
 
 @Injectable()
 export class ShopsService {
@@ -71,19 +72,17 @@ export class ShopsService {
     if (!store) throw new NotFoundException('Магазин не найден');
 
     const point: LngLat = [lng, lat];
-    for (const zone of store.zones) {
-      if (pointInPolygon(point, zone.polygon as any)) {
-        const storePt = (store.geom as any)?.coordinates as LngLat | undefined;
-        const distance = storePt ? Math.round(haversineMeters(storePt, point)) : null;
-        return {
-          inZone: true,
-          feeTiyn: zone.feeTiyn,
-          minOrderTiyn: zone.minOrderTiyn,
-          freeFromTiyn: zone.freeFromTiyn,
-          distanceMeters: distance,
-        };
-      }
-    }
-    return { inZone: false };
+    // Магазин ещё не задал зоны — доставка без ограничений (как было до зон).
+    if (!store.zones.length) return { inZone: true, noZones: true, feeTiyn: 0, minOrderTiyn: 0, freeFromTiyn: null, distanceMeters: null };
+    const zone = findZone(store.zones, point);
+    if (!zone) return { inZone: false };
+    const storePt = (store.geom as any)?.coordinates as LngLat | undefined;
+    return {
+      inZone: true,
+      feeTiyn: zone.feeTiyn,
+      minOrderTiyn: zone.minOrderTiyn,
+      freeFromTiyn: zone.freeFromTiyn,
+      distanceMeters: storePt ? Math.round(haversineMeters(storePt, point)) : null,
+    };
   }
 }

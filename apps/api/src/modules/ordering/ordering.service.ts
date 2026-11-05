@@ -5,6 +5,7 @@ import { CreateOrderDto } from './dto';
 import { piiVisibleToMerchant, canTransition } from './order-state';
 import { weightRange } from './weight-tolerance';
 import { allowedPayMethods } from './payment-rules';
+import { deliveryFee, findZone } from '../../common/zones';
 
 @Injectable()
 export class OrderingService {
@@ -26,7 +27,7 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, zones: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
@@ -81,6 +82,20 @@ export class OrderingService {
       };
     });
 
+    // Доставка: если магазин задал зоны — точка обязательна, должна попасть в зону, сумма — не ниже минимальной.
+    let deliveryFeeTiyn = 0;
+    if (fulfillment === 'DELIVERY' && store.zones?.length) {
+      const lat = dto.address?.lat;
+      const lng = dto.address?.lng;
+      if (lat == null || lng == null) throw new BadRequestException('Укажите точку доставки на карте');
+      const zone = findZone(store.zones, [lng, lat]);
+      if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите самовывоз');
+      if (subtotal < zone.minOrderTiyn) {
+        throw new BadRequestException(`Минимальная сумма заказа с доставкой — ${Math.round(zone.minOrderTiyn / 100)} ₸`);
+      }
+      deliveryFeeTiyn = deliveryFee(zone, subtotal);
+    }
+
     // Email НЕ привязываем здесь: спаривание требует подтверждения владения (см. auth/email/*).
     const user = await this.prisma.user.upsert({
       where: { phone: dto.phone! },
@@ -99,6 +114,7 @@ export class OrderingService {
         address: fulfillment === 'DELIVERY' && dto.address ? (dto.address as object) : undefined,
         payMethod: dto.payMethod,
         subtotalTiyn: subtotal,
+        deliveryFeeTiyn,
         items: { create: itemsData },
         events: { create: { to: 'PLACED', actor: 'customer' } },
       },
@@ -117,7 +133,7 @@ export class OrderingService {
       }),
     ]);
 
-    return { ...order, estimatedTiyn: subtotal, trackUrl, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
+    return { ...order, estimatedTiyn: subtotal + deliveryFeeTiyn, deliveryFeeTiyn, trackUrl, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
   }
 
   /** Проверка, что пользователь — сотрудник магазина заказа (защита от IDOR). */
@@ -284,7 +300,7 @@ export class OrderingService {
       where: { id: orderId },
       select: {
         id: true, number: true, status: true, createdAt: true,
-        subtotalTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
         fulfillment: true, pickupAt: true,
         store: { select: { name: true, slug: true, address: true, kaspiPhone: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
@@ -319,7 +335,8 @@ export class OrderingService {
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
       pickupAt: o.pickupAt,
-      estimatedTiyn: o.subtotalTiyn,
+      estimatedTiyn: o.subtotalTiyn + o.deliveryFeeTiyn,
+      deliveryFeeTiyn: o.deliveryFeeTiyn,
       finalTiyn: o.finalTiyn,
       itemCount: o.items.length,
       missingCount: o.items.filter((i) => i.status === 'missing').length,
@@ -404,6 +421,8 @@ export class OrderingService {
       else if (it.qtyRequestedG != null) final += Math.round((it.priceSnapTiyn * it.qtyRequestedG) / 1000);
       else if (it.qtyRequested != null) final += it.priceSnapTiyn * it.qtyRequested;
     }
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { deliveryFeeTiyn: true } });
+    final += o?.deliveryFeeTiyn ?? 0;
     await this.prisma.order.update({ where: { id: orderId }, data: { finalTiyn: final } });
     return { orderId, finalTiyn: final };
   }

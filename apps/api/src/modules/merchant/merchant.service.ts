@@ -2,7 +2,9 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoreAccess } from '../../common/auth/store-access.service';
-import { AddProductDto, UpdateProductDto, StoreSettingsDto } from './dto';
+import { AddProductDto, UpdateProductDto, StoreSettingsDto, ZonesDto } from './dto';
+import { LngLat, haversineMeters } from '../../common/geo';
+import { circlePolygon, ZoneShape } from '../../common/zones';
 
 // Роли, которым разрешено управлять ассортиментом.
 const CATALOG_ROLES: Role[] = [Role.OWNER, Role.MANAGER];
@@ -57,6 +59,66 @@ export class MerchantService {
       select: { id: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
     return s;
+  }
+
+  /** Точка магазина и зоны доставки — для экрана «Зона доставки». */
+  async getZones(storeId: string, userId: string) {
+    await this.access.assertMember(storeId, userId);
+    const s = await this.prisma.store.findUnique({ where: { id: storeId }, select: { geom: true, zones: true } });
+    if (!s) throw new NotFoundException('Магазин не найден');
+    const c = (s.geom as any)?.coordinates as [number, number] | undefined;
+    return {
+      location: c ? { lat: c[1], lng: c[0] } : null,
+      zones: s.zones.map((z) => {
+        const shape = z.polygon as unknown as ZoneShape;
+        return {
+          id: z.id,
+          kind: shape.kind ?? 'polygon',
+          radiusM: shape.radiusM ?? null,
+          points: shape.kind === 'radius' ? [] : (shape.coordinates?.[0] ?? []).slice(0, -1).map(([lng, lat]) => [lat, lng]),
+          feeTiyn: z.feeTiyn,
+          minOrderTiyn: z.minOrderTiyn,
+          freeFromTiyn: z.freeFromTiyn,
+        };
+      }),
+    };
+  }
+
+  /** Сохранить точку магазина и зоны (заменяет все зоны). Только OWNER/MANAGER. */
+  async saveZones(storeId: string, userId: string, dto: ZonesDto) {
+    await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    const center: LngLat = [dto.lng, dto.lat];
+    const shapes: ZoneShape[] = dto.zones.map((z) => {
+      if (z.kind === 'radius') {
+        if (!z.radiusM) throw new BadRequestException('Укажите радиус зоны');
+        return { type: 'Polygon', kind: 'radius', radiusM: z.radiusM, coordinates: [circlePolygon(center, z.radiusM)] };
+      }
+      const pts = (z.points ?? []).filter((p) => Array.isArray(p) && p.length === 2);
+      if (pts.length < 3 || pts.length > 200) throw new BadRequestException('Обведите зону минимум по трём точкам');
+      // Защита от опечаток: все точки — не дальше 30 км от магазина.
+      if (pts.some(([lat, lng]) => haversineMeters(center, [lng, lat]) > 30_000)) {
+        throw new BadRequestException('Зона доставки не может быть дальше 30 км от магазина');
+      }
+      const ring: LngLat[] = pts.map(([lat, lng]) => [lng, lat]);
+      ring.push(ring[0]);
+      return { type: 'Polygon', kind: 'polygon', coordinates: [ring] };
+    });
+    await this.prisma.$transaction([
+      this.prisma.store.update({ where: { id: storeId }, data: { geom: { type: 'Point', coordinates: center } } }),
+      this.prisma.deliveryZone.deleteMany({ where: { storeId } }),
+      ...shapes.map((polygon, i) =>
+        this.prisma.deliveryZone.create({
+          data: {
+            storeId,
+            polygon: polygon as any,
+            feeTiyn: dto.zones[i].feeTiyn,
+            minOrderTiyn: dto.zones[i].minOrderTiyn,
+            freeFromTiyn: dto.zones[i].freeFromTiyn ?? null,
+          },
+        }),
+      ),
+    ]);
+    return this.getZones(storeId, userId);
   }
 
   /** Полный ассортимент магазина (включая снятые с продажи) — только для сотрудников. */
