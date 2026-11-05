@@ -132,9 +132,7 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() { _listening = true; _heard = ''; });
     final locale = switch (lang) { 'kk' => 'kk_KZ', 'en' => 'en_US', _ => 'ru_RU' };
     await _speech.listen(
-      localeId: locale,
-      listenFor: const Duration(seconds: 60),
-      pauseFor: const Duration(seconds: 4),
+      listenOptions: SpeechListenOptions(localeId: locale, listenFor: const Duration(seconds: 60), pauseFor: const Duration(seconds: 4)),
       onResult: (r) => setState(() => _heard = r.recognizedWords),
     );
   }

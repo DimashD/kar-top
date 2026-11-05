@@ -8,8 +8,8 @@ bool isOwnPage(Uri uri, {String base = kWebBase}) {
 }
 
 /// Диплинк → адрес страницы витрины:
-///   kartop://order/<id>  → <base>/order/<id>
-///   https://<наш хост>/… → как есть.
+///   `kartop://order/{id}`  → `{base}/order/{id}`
+///   `https://{наш хост}/…` → как есть.
 /// null — ссылка не наша.
 Uri? pageForLink(Uri link, {String base = kWebBase}) {
   if (link.scheme == 'kartop') {
@@ -19,7 +19,7 @@ Uri? pageForLink(Uri link, {String base = kWebBase}) {
   return isOwnPage(link, base: base) ? link : null;
 }
 
-/// Страница витрины магазина (kar-top.kz/<slug>) — её запоминаем, чтобы открывать при следующем запуске.
+/// Страница витрины магазина (`kar-top.kz/{slug}`) — её запоминаем, чтобы открывать при следующем запуске.
 String? shopSlugOf(Uri uri, {String base = kWebBase}) {
   if (!isOwnPage(uri, base: base) || uri.pathSegments.length != 1) return null;
   const reserved = {'app', 'partner', 'privacy', 'terms', 'delete-account', 'admin'};
