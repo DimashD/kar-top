@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, qtyLabel, grams } from '../lib/format';
@@ -300,12 +300,23 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
   );
 }
 
-/** Шторка выбора веса: быстрые 0,5 / 1 / 1,5 / 2 кг, подстройка по 100 г, честная подсказка про взвешивание. */
+/**
+ * Шторка выбора веса: лента 0,5 · 1 · 1,5 · 2 · 2,5 · 3 кг… (листается влево-вправо, шаг полкило),
+ * точная подстройка «−/+» по 100 г, честная подсказка про взвешивание.
+ */
 function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initial: number; onClose: () => void; onSave: (g: number) => void }) {
   const t = useT();
   const lang = useLang();
   const [g, setG] = useState(initial > 0 ? initial : 1000);
-  const presets = [500, 1000, 1500, 2000];
+  // Лента «до бесконечности»: до 30 кг и всегда на 5 кг дальше выбранного веса.
+  const maxPreset = Math.max(30000, Math.ceil(g / 500) * 500 + 5000);
+  const presets = Array.from({ length: maxPreset / 500 }, (_, i) => (i + 1) * 500);
+  const strip = useRef<HTMLDivElement>(null);
+  // Выбранный (или ближайший) вес — по центру ленты.
+  useEffect(() => {
+    const near = Math.max(500, Math.round(g / 500) * 500);
+    strip.current?.querySelector<HTMLElement>(`[data-g="${near}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [g]);
   const pieces = p.avgPieceG ? Math.max(1, Math.round(g / p.avgPieceG)) : null;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 25, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -316,10 +327,10 @@ function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initi
           <div className="muted" style={{ fontSize: 15 }}>{tenge(p.priceTiyn)} {perUnit(p.unit, t)}</div>
         </div>
         <div style={{ fontWeight: 800 }}>{t.howMuch}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+        <div ref={strip} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', scrollbarWidth: 'none', margin: '0 -20px', padding: '2px 20px' }}>
           {presets.map((v) => (
-            <button key={v} onClick={() => setG(v)}
-              style={{ height: 50, borderRadius: 12, font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+            <button key={v} data-g={v} onClick={() => setG(v)}
+              style={{ flex: '0 0 auto', minWidth: 76, height: 50, borderRadius: 12, font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer', scrollSnapAlign: 'center',
                 border: g === v ? '2px solid var(--carrot)' : '1px solid var(--line)', background: g === v ? 'var(--carrot-50)' : 'var(--card)', color: 'var(--ink)' }}>
               {grams(v, t)}
             </button>
