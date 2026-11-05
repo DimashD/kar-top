@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
+import '../phone.dart';
 import '../session.dart';
 import '../theme.dart';
 import '../widgets/language_picker.dart';
@@ -22,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _request() async {
     setState(() { _busy = true; _error = null; });
     try {
-      await context.read<Session>().api.requestOtp(_phone.text.trim());
+      await context.read<Session>().api.requestOtp(kzPhoneE164(_phone.text));
       setState(() => _sent = true);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -35,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _busy = true; _error = null; });
     final session = context.read<Session>();
     try {
-      final token = await session.api.verifyOtp(_phone.text.trim(), _code.text.trim());
+      final token = await session.api.verifyOtp(kzPhoneE164(_phone.text), _code.text.trim());
       await session.setToken(token);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -66,11 +67,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (!_sent) ...[
                       Text(s.phone, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
                       const SizedBox(height: 6),
-                      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+77011234567')),
+                      TextField(
+                        controller: _phone,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [KzPhoneFormatter()],
+                        decoration: const InputDecoration(hintText: '+7 701 123 45 67'),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(onPressed: _busy ? null : _request, child: Text(_busy ? s.sending : s.getCode)),
                     ] else ...[
-                      Text(s.codeSentTo(_phone.text), style: const TextStyle(color: AppColors.ink60)),
+                      Text(s.codeSentTo(formatKzPhone(_phone.text)), style: const TextStyle(color: AppColors.ink60)),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _code,

@@ -189,6 +189,10 @@ model Store {
   // Самовывоз: клиент забирает сам. pickupLeadMinutes — минимум времени от оформления до готовности к выдаче.
   pickupEnabled     Boolean @default(true)
   pickupLeadMinutes Int     @default(60)
+  // Доставка курьерской службой: через сколько минут после оформления заказ готов к передаче курьеру.
+  courierHandoverMinutes Int @default(30)
+  // Своя доставка магазина: средняя продолжительность от оформления до вручения (минуты).
+  ownDeliveryMinutes Int @default(60)
   rating    Float    @default(0)
   reviewCount Int    @default(0)
   settings  Json?

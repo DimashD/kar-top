@@ -64,6 +64,19 @@ abstract class S {
   String get payCardCourier;
   String get payKaspi;
   Map<String, String> get statuses;
+  Map<String, String> get roles;
+  Map<String, String> get storeStatuses;
+  String get total;
+  String get estimateNote;
+  String get weigh;
+  String get customer;
+  String ordered(String qty);
+  String get weighed;
+  String get changeWeight;
+  String get weightGrams;
+  String sumPreview(String amount);
+  String perKgPrice(String price);
+  String get buildRoute;
 
   // Вход
   String get merchantCabinet;
@@ -140,6 +153,13 @@ abstract class S {
   String get pricePerPcs;
   String get proposeItem;
   String get catalogEmpty;
+  String get searchProducts;
+  String get all;
+  String get inStockFilter;
+  String get hiddenFilter;
+  String get nothingFound;
+  String get otherCategory;
+  String get inStockLabel;
 
   // Настройки
   String get setPin;
@@ -150,6 +170,11 @@ abstract class S {
   String get deliveryAndPickup;
   String get pickupSubtitle;
   String pickupLeadValue(int n);
+  String get courierHandover;
+  String get courierHandoverHelper;
+  String get ownDelivery;
+  String get ownDeliveryHelper;
+  String aboutMinutes(int n);
   String get security;
   String get appLock;
   String get appLockSubtitle;
@@ -217,6 +242,19 @@ class _Ru extends S {
         'COMPLETED': 'Завершён',
         'CANCELLED': 'Отменён',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Владелец', 'MANAGER': 'Менеджер', 'PICKER': 'Сборщик', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'На модерации', 'SUSPENDED': 'Приостановлен', 'BLOCKED': 'Заблокирован'};
+  @override String get total => 'Итого';
+  @override String get estimateNote => 'Оценочно — точная сумма после взвешивания';
+  @override String get weigh => 'Взвесить';
+  @override String get customer => 'Клиент';
+  @override String ordered(String qty) => 'Заказано: $qty';
+  @override String get weighed => 'Взвешено';
+  @override String get changeWeight => 'Изменить вес';
+  @override String get weightGrams => 'Вес, г';
+  @override String sumPreview(String amount) => 'Сумма: $amount';
+  @override String perKgPrice(String price) => '$price за кг';
+  @override String get buildRoute => 'Построить маршрут';
   @override String get merchantCabinet => 'Кабинет магазина';
   @override String get phone => 'Телефон';
   @override String get sending => 'Отправляем…';
@@ -281,6 +319,13 @@ class _Ru extends S {
   @override String get pricePerPcs => 'Цена за шт';
   @override String get proposeItem => 'Предложить товар или категорию';
   @override String get catalogEmpty => 'Ассортимент пуст';
+  @override String get searchProducts => 'Поиск товаров';
+  @override String get all => 'Все';
+  @override String get inStockFilter => 'В наличии';
+  @override String get hiddenFilter => 'Скрыты';
+  @override String get nothingFound => 'Ничего не найдено';
+  @override String get otherCategory => 'Прочее';
+  @override String get inStockLabel => 'Есть в наличии';
   @override String get setPin => 'Задайте PIN (4 цифры)';
   @override String get enable => 'Включить';
   @override String get pickupReadiness => 'Готовность к самовывозу';
@@ -289,6 +334,11 @@ class _Ru extends S {
   @override String get deliveryAndPickup => 'Доставка и самовывоз';
   @override String get pickupSubtitle => 'Клиент забирает заказ сам';
   @override String pickupLeadValue(int n) => '$n мин после оформления';
+  @override String get courierHandover => 'Передача курьерской службе';
+  @override String get courierHandoverHelper => 'Через сколько минут после заказа его можно отдать курьеру службы доставки';
+  @override String get ownDelivery => 'Своя доставка: среднее время';
+  @override String get ownDeliveryHelper => 'Сколько в среднем минут от заказа до вручения клиенту';
+  @override String aboutMinutes(int n) => '≈ $n мин от оформления до вручения';
   @override String get security => 'Безопасность';
   @override String get appLock => 'Защита входа';
   @override String get appLockSubtitle => 'Face ID / отпечаток или PIN при открытии';
@@ -352,6 +402,19 @@ class _Kk extends S {
         'COMPLETED': 'Аяқталды',
         'CANCELLED': 'Бас тартылды',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Иесі', 'MANAGER': 'Менеджер', 'PICKER': 'Жинаушы', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Модерацияда', 'SUSPENDED': 'Тоқтатылған', 'BLOCKED': 'Бұғатталған'};
+  @override String get total => 'Барлығы';
+  @override String get estimateNote => 'Шамамен — нақты сома өлшегеннен кейін';
+  @override String get weigh => 'Өлшеу';
+  @override String get customer => 'Клиент';
+  @override String ordered(String qty) => 'Тапсырыс: $qty';
+  @override String get weighed => 'Өлшенді';
+  @override String get changeWeight => 'Салмағын өзгерту';
+  @override String get weightGrams => 'Салмағы, г';
+  @override String sumPreview(String amount) => 'Сомасы: $amount';
+  @override String perKgPrice(String price) => '1 кг — $price';
+  @override String get buildRoute => 'Маршрут құру';
   @override String get merchantCabinet => 'Дүкен кабинеті';
   @override String get phone => 'Телефон';
   @override String get sending => 'Жіберілуде…';
@@ -416,6 +479,13 @@ class _Kk extends S {
   @override String get pricePerPcs => '1 дана бағасы';
   @override String get proposeItem => 'Тауар немесе санат ұсыну';
   @override String get catalogEmpty => 'Ассортимент бос';
+  @override String get searchProducts => 'Тауар іздеу';
+  @override String get all => 'Барлығы';
+  @override String get inStockFilter => 'Бар';
+  @override String get hiddenFilter => 'Жасырылған';
+  @override String get nothingFound => 'Ештеңе табылмады';
+  @override String get otherCategory => 'Басқа';
+  @override String get inStockLabel => 'Қолда бар';
   @override String get setPin => 'PIN орнатыңыз (4 сан)';
   @override String get enable => 'Қосу';
   @override String get pickupReadiness => 'Алып кетуге дайындық';
@@ -424,6 +494,11 @@ class _Kk extends S {
   @override String get deliveryAndPickup => 'Жеткізу және алып кету';
   @override String get pickupSubtitle => 'Клиент тапсырысты өзі алып кетеді';
   @override String pickupLeadValue(int n) => 'Рәсімдегеннен кейін $n мин';
+  @override String get courierHandover => 'Курьерлік қызметке беру';
+  @override String get courierHandoverHelper => 'Тапсырыстан кейін неше минутта оны жеткізу қызметінің курьеріне беруге болады';
+  @override String get ownDelivery => 'Өз жеткізуіміз: орташа уақыт';
+  @override String get ownDeliveryHelper => 'Тапсырыстан клиентке тапсыруға дейін орта есеппен неше минут';
+  @override String aboutMinutes(int n) => '≈ $n мин рәсімдеуден тапсыруға дейін';
   @override String get security => 'Қауіпсіздік';
   @override String get appLock => 'Кіруді қорғау';
   @override String get appLockSubtitle => 'Ашқанда Face ID / саусақ ізі немесе PIN';
@@ -487,6 +562,19 @@ class _Tg extends S {
         'COMPLETED': 'Анҷом ёфт',
         'CANCELLED': 'Бекор шуд',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Соҳиб', 'MANAGER': 'Менеҷер', 'PICKER': 'Ҷамъкунанда', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Дар баррасӣ', 'SUSPENDED': 'Боздошта шудааст', 'BLOCKED': 'Басташуда'};
+  @override String get total => 'Ҳамагӣ';
+  @override String get estimateNote => 'Тахминан — маблағи дақиқ пас аз баркашӣ';
+  @override String get weigh => 'Баркашидан';
+  @override String get customer => 'Мизоҷ';
+  @override String ordered(String qty) => 'Фармоиш шуд: $qty';
+  @override String get weighed => 'Баркашида шуд';
+  @override String get changeWeight => 'Иваз кардани вазн';
+  @override String get weightGrams => 'Вазн, г';
+  @override String sumPreview(String amount) => 'Маблағ: $amount';
+  @override String perKgPrice(String price) => '$price барои 1 кг';
+  @override String get buildRoute => 'Сохтани масир';
   @override String get merchantCabinet => 'Кабинети мағоза';
   @override String get phone => 'Телефон';
   @override String get sending => 'Фиристода истодаем…';
@@ -551,6 +639,13 @@ class _Tg extends S {
   @override String get pricePerPcs => 'Нарх барои 1 дона';
   @override String get proposeItem => 'Пешниҳоди мол ё категория';
   @override String get catalogEmpty => 'Ассортимент холӣ аст';
+  @override String get searchProducts => 'Ҷустуҷӯи молҳо';
+  @override String get all => 'Ҳама';
+  @override String get inStockFilter => 'Мавҷуд';
+  @override String get hiddenFilter => 'Пинҳон';
+  @override String get nothingFound => 'Ҳеҷ чиз ёфт нашуд';
+  @override String get otherCategory => 'Дигар';
+  @override String get inStockLabel => 'Дар мавҷудият';
   @override String get setPin => 'PIN гузоред (4 рақам)';
   @override String get enable => 'Фаъол кардан';
   @override String get pickupReadiness => 'Тайёрӣ барои худ бурдан';
@@ -559,6 +654,11 @@ class _Tg extends S {
   @override String get deliveryAndPickup => 'Расонидан ва худ бурдан';
   @override String get pickupSubtitle => 'Мизоҷ фармоишро худаш мебарад';
   @override String pickupLeadValue(int n) => '$n дақ пас аз фармоиш';
+  @override String get courierHandover => 'Супоридан ба хадамоти курьерӣ';
+  @override String get courierHandoverHelper => 'Пас аз чанд дақиқаи фармоиш онро ба курьери хадамоти расонидан додан мумкин';
+  @override String get ownDelivery => 'Расонидани худӣ: вақти миёна';
+  @override String get ownDeliveryHelper => 'Аз фармоиш то супоридан ба мизоҷ ба ҳисоби миёна чанд дақиқа';
+  @override String aboutMinutes(int n) => '≈ $n дақ аз фармоиш то супоридан';
   @override String get security => 'Амният';
   @override String get appLock => 'Ҳифзи вуруд';
   @override String get appLockSubtitle => 'Face ID / изи ангушт ё PIN ҳангоми кушодан';
@@ -622,6 +722,19 @@ class _Uz extends S {
         'COMPLETED': 'Yakunlandi',
         'CANCELLED': 'Bekor qilindi',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Egasi', 'MANAGER': 'Menejer', 'PICKER': 'Yigʻuvchi', 'COURIER': 'Kuryer'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Moderatsiyada', 'SUSPENDED': 'Toʻxtatilgan', 'BLOCKED': 'Bloklangan'};
+  @override String get total => 'Jami';
+  @override String get estimateNote => 'Taxminan — aniq summa tortilgandan keyin';
+  @override String get weigh => 'Tortish';
+  @override String get customer => 'Mijoz';
+  @override String ordered(String qty) => 'Buyurtma: $qty';
+  @override String get weighed => 'Tortildi';
+  @override String get changeWeight => 'Vaznni oʻzgartirish';
+  @override String get weightGrams => 'Vazn, g';
+  @override String sumPreview(String amount) => 'Summa: $amount';
+  @override String perKgPrice(String price) => '1 kg — $price';
+  @override String get buildRoute => 'Yoʻnalish qurish';
   @override String get merchantCabinet => 'Doʻkon kabineti';
   @override String get phone => 'Telefon';
   @override String get sending => 'Yuborilmoqda…';
@@ -686,6 +799,13 @@ class _Uz extends S {
   @override String get pricePerPcs => '1 dona narxi';
   @override String get proposeItem => 'Mahsulot yoki toifa taklif qilish';
   @override String get catalogEmpty => 'Assortiment boʻsh';
+  @override String get searchProducts => 'Mahsulot qidirish';
+  @override String get all => 'Hammasi';
+  @override String get inStockFilter => 'Mavjud';
+  @override String get hiddenFilter => 'Yashirin';
+  @override String get nothingFound => 'Hech narsa topilmadi';
+  @override String get otherCategory => 'Boshqa';
+  @override String get inStockLabel => 'Mavjud';
   @override String get setPin => 'PIN oʻrnating (4 raqam)';
   @override String get enable => 'Yoqish';
   @override String get pickupReadiness => 'Olib ketishga tayyorlik';
@@ -694,6 +814,11 @@ class _Uz extends S {
   @override String get deliveryAndPickup => 'Yetkazib berish va olib ketish';
   @override String get pickupSubtitle => 'Mijoz buyurtmani oʻzi olib ketadi';
   @override String pickupLeadValue(int n) => 'Rasmiylashtirilgandan keyin $n daq';
+  @override String get courierHandover => 'Kuryerlik xizmatiga topshirish';
+  @override String get courierHandoverHelper => 'Buyurtmadan necha daqiqa keyin uni yetkazib berish xizmati kuryeriga berish mumkin';
+  @override String get ownDelivery => 'Oʻz yetkazib berishimiz: oʻrtacha vaqt';
+  @override String get ownDeliveryHelper => 'Buyurtmadan mijozga topshirishgacha oʻrtacha necha daqiqa';
+  @override String aboutMinutes(int n) => '≈ $n daq rasmiylashtirishdan topshirishgacha';
   @override String get security => 'Xavfsizlik';
   @override String get appLock => 'Kirishni himoyalash';
   @override String get appLockSubtitle => 'Ochishda Face ID / barmoq izi yoki PIN';
