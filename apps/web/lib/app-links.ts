@@ -12,3 +12,8 @@ export function detectPlatform(ua: string): Platform {
   if (/android/i.test(ua)) return 'android';
   return 'other';
 }
+
+/** Страница открыта внутри приложения Kartop (у приложения есть канал KartopApp). */
+export function inKartopApp(): boolean {
+  return typeof window !== 'undefined' && typeof (window as any).KartopApp !== 'undefined';
+}
