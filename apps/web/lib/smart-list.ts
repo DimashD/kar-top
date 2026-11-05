@@ -1,14 +1,17 @@
 // «Умный список»: покупатель пишет или говорит как в заметках —
 // «картошка 3 кг, лук, помидоры килограмм» — и мы подбираем товары магазина с количеством.
 // Работает без сервера: разбор текста и нечёткое сопоставление с каталогом витрины.
-import type { CatalogProduct } from './api';
+import type { CatalogProduct, I18nName } from './api';
+
+/** Товар витрины + его подкатегория: сорта вроде «Фуджи» находятся по слову «яблоки». */
+export type SearchProduct = CatalogProduct & { category?: I18nName };
 import { isWeighted } from './format';
 
 export interface ListMatch {
   /** Фрагмент, который сказал/написал покупатель. */
   typed: string;
   /** Подходящие товары, лучший — первый. Пусто — не нашли. */
-  options: CatalogProduct[];
+  options: SearchProduct[];
   /** Количество: граммы для весовых, штуки для штучных (для первого варианта). */
   qty: number;
   /** Несколько равно подходящих товаров — стоит уточнить у покупателя. */
@@ -72,31 +75,38 @@ function levenshtein(a: string, b: string): number {
   return d[a.length][b.length];
 }
 
-/** Слова названия товара на всех языках. */
-function productWords(p: CatalogProduct): string[] {
-  return [...new Set(norm([p.name.ru, p.name.kk, p.name.en].filter(Boolean).join(' ')).split(' ').filter((w) => w.length > 1))];
+/** Слова названия на всех языках. */
+function wordsOf(n?: I18nName): string[] {
+  if (!n) return [];
+  return [...new Set(norm([n.ru, n.kk, n.en].filter(Boolean).join(' ')).split(' ').filter((w) => w.length > 1))];
 }
 
 /** Оценка совпадения фразы с товаром: доля слов фразы, нашедших пару в названии. 0 — не подходит. */
-function score(tokens: string[], p: CatalogProduct): number {
-  const words = productWords(p);
+function score(tokens: string[], p: SearchProduct): number {
+  const words = wordsOf(p.name);
+  const cat = wordsOf(p.category);
   let hit = 0;
+  let nameHit = 0;
   for (const t of tokens) {
     const variants = SYNONYMS[t] ?? [t];
-    if (variants.some((v) => words.some((w) => wordMatches(v, w)))) hit++;
+    if (variants.some((v) => words.some((w) => wordMatches(v, w)))) { hit++; nameHit++; }
+    else if (variants.some((v) => cat.some((w) => wordMatches(v, w)))) hit++;
   }
   if (!hit) return 0;
-  // Чем полнее совпала фраза и чем короче название — тем выше.
-  return hit / tokens.length + 0.05 / words.length;
+  // «помидоры» — это свежие, а не «Помидоры солёные»: заготовки ниже, если о них не просили.
+  const preserved = /солён|солен|маринован|квашен|по-корейски|сушён|вялен/;
+  const penalty = preserved.test(norm(p.name.ru)) && !tokens.some((t) => preserved.test(t)) ? 0.05 : 0;
+  // Чем полнее совпала фраза, тем выше; совпадение в названии чуть важнее, чем в подкатегории.
+  return hit / tokens.length + 0.02 * (nameHit / tokens.length) + 0.01 / Math.max(1, words.length) - penalty;
 }
 
 /** Найти товары по фразе (для поиска и списка). Лучшие — первыми. */
-export function findProducts(phrase: string, products: CatalogProduct[]): CatalogProduct[] {
+export function findProducts(phrase: string, products: SearchProduct[], minScore = 0.5): SearchProduct[] {
   const tokens = norm(phrase).split(' ').filter((t) => t && !FILLER.has(t));
   if (!tokens.length) return [];
   return products
     .map((p) => ({ p, s: score(tokens, p) }))
-    .filter((x) => x.s >= 0.5)
+    .filter((x) => x.s >= minScore)
     .sort((a, b) => b.s - a.s)
     .map((x) => x.p);
 }
@@ -123,12 +133,13 @@ function toQty(p: CatalogProduct, n: number | null, unit: Unit | null): number {
  * («помидоры килограмм картошка три кило лук») позиции разделяются количеством:
  * после числа/единицы следующее слово-товар начинает новую позицию.
  */
-export function parseList(text: string, products: CatalogProduct[]): ListMatch[] {
+export function parseList(text: string, products: SearchProduct[]): ListMatch[] {
   const chunks = text.split(/[\n;,]+/).map((c) => c.trim()).filter(Boolean);
-  const segments: { words: string[]; n: number | null; unit: Unit | null }[] = [];
+  const segments: { words: string[]; raw: string[]; n: number | null; unit: Unit | null }[] = [];
   for (const chunk of chunks) {
-    let cur = { words: [] as string[], n: null as number | null, unit: null as Unit | null };
-    let pending: { n: number | null; unit: Unit | null } = { n: null, unit: null };
+    let cur = { words: [] as string[], raw: [] as string[], n: null as number | null, unit: null as Unit | null };
+    // Количество, сказанное до товара («2 кг помидоров»), и его исходные слова.
+    let pending: { n: number | null; unit: Unit | null; raw: string[] } = { n: null, unit: null, raw: [] };
     const push = () => { if (cur.words.length) segments.push(cur); };
     for (const raw of norm(chunk).split(' ')) {
       if (!raw || FILLER.has(raw)) continue;
@@ -141,25 +152,26 @@ export function parseList(text: string, products: CatalogProduct[]): ListMatch[]
         // Количество относится к текущей позиции, если у неё его ещё нет («картошка три кило»),
         // иначе — к следующей («2 кг помидоров»).
         if (n != null) {
-          if (cur.words.length && cur.n == null && cur.unit == null) cur.n = n;
-          else pending.n = n;
+          if (cur.words.length && cur.n == null && cur.unit == null) { cur.n = n; cur.raw.push(t); }
+          else { pending.n = n; pending.raw.push(t); }
           continue;
         }
         if (u) {
-          if (pending.n != null) pending.unit = u;
-          else if (cur.words.length && cur.unit == null) cur.unit = u;
-          else pending.unit = u;
+          if (pending.n != null) { pending.unit = u; pending.raw.push(t); }
+          else if (cur.words.length && cur.unit == null) { cur.unit = u; cur.raw.push(t); }
+          else { pending.unit = u; pending.raw.push(t); }
           continue;
         }
         if (cur.words.length && (cur.n != null || cur.unit != null)) {
           push();
-          cur = { words: [], ...pending };
-          pending = { n: null, unit: null };
+          cur = { words: [], raw: [...pending.raw], n: pending.n, unit: pending.unit };
+          pending = { n: null, unit: null, raw: [] };
         } else if (!cur.words.length) {
-          cur.n = pending.n; cur.unit = pending.unit;
-          pending = { n: null, unit: null };
+          cur.n = pending.n; cur.unit = pending.unit; cur.raw.push(...pending.raw);
+          pending = { n: null, unit: null, raw: [] };
         }
         cur.words.push(t);
+        cur.raw.push(t);
       }
     }
     push();
@@ -172,18 +184,20 @@ export function parseList(text: string, products: CatalogProduct[]): ListMatch[]
     while (i < seg.words.length) {
       let best: { j: number; found: CatalogProduct[] } | null = null;
       for (let j = seg.words.length; j > i; j--) {
-        const found = findProducts(seg.words.slice(i, j).join(' '), products);
+        // Несколько слов — только если совпали все («грецкий орех»); иначе «лимон помидоры» склеились бы.
+        const found = findProducts(seg.words.slice(i, j).join(' '), products, j - i > 1 ? 0.99 : 0.5);
         if (found.length) { best = { j, found }; break; }
       }
       const j = best?.j ?? seg.words.length;
-      const typed = seg.words.slice(i, j).join(' ');
-      const options = (best?.found ?? []).slice(0, 4);
       const isLast = j === seg.words.length;
+      // Как сказал покупатель: последняя часть сегмента — со своими словами количества.
+      const typed = isLast && i === 0 ? seg.raw.join(' ') : seg.words.slice(i, j).join(' ') + (isLast ? ' ' + seg.raw.filter((r) => !seg.words.includes(r)).join(' ') : '');
+      const options = (best?.found ?? []).slice(0, 4);
       const n = isLast ? seg.n : null;
       const unit = isLast ? seg.unit : null;
       const top = options[0];
       const ambiguous = options.length > 1 && score(seg.words.slice(i, j), options[1]) >= score(seg.words.slice(i, j), top) - 0.01;
-      out.push({ typed: [typed, n != null ? String(n) : '', unit ?? ''].filter(Boolean).join(' '), options, qty: top ? toQty(top, n, unit) : 0, ambiguous });
+      out.push({ typed: typed.trim(), options, qty: top ? toQty(top, n, unit) : 0, ambiguous });
       i = j;
     }
   }
@@ -191,7 +205,7 @@ export function parseList(text: string, products: CatalogProduct[]): ListMatch[]
 }
 
 /** Пересчитать количество при выборе другого варианта товара. */
-export function qtyFor(p: CatalogProduct, m: ListMatch, prev: CatalogProduct | undefined): number {
+export function qtyFor(p: SearchProduct, m: ListMatch, prev: SearchProduct | undefined): number {
   if (!prev || isWeighted(p.unit) === isWeighted(prev.unit)) return m.qty;
   return isWeighted(p.unit) ? 1000 : 1;
 }

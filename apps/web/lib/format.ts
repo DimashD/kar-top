@@ -25,7 +25,8 @@ export function isWeighted(unit: Unit): boolean {
 
 /** 1500 г → «1.5 кг», 500 г → «500 г». */
 export function grams(g: number, t: Dict): string {
-  if (g >= 1000) return `${(g / 1000).toString().replace(/\.0$/, '')} ${t.kg}`;
+  // «1,5 кг» по-русски и по-казахски, «1.5 kg» по-английски.
+  if (g >= 1000) return `${(g / 1000).toString().replace(/\.0$/, '').replace('.', t.kg === 'kg' ? '.' : ',')} ${t.kg}`;
   return `${g} ${t.g}`;
 }
 

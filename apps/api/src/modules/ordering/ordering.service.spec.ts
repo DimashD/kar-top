@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { OrderingService } from './ordering.service';
 import { weightRange } from './weight-tolerance';
 import { allowedPayMethods } from './payment-rules';
@@ -271,5 +271,20 @@ describe('Оплата по способу получения', () => {
       storeSlug: 's', phone: '+77011234567', payMethod: 'CASH', fulfillment: 'DELIVERY',
       address: { line: 'ул. Абая, 1' }, items: [{ storeProductId: 'sp-pcs', qty: 1 }],
     } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('OrderingService.createForUser (заказ только с подтверждённым номером)', () => {
+  it('без телефона в аккаунте → 401', async () => {
+    const prisma = makePrisma({ user: { findUnique: jest.fn().mockResolvedValue(null), upsert: jest.fn() } });
+    const svc = new OrderingService(prisma as any);
+    await expect(svc.createForUser({ storeSlug: 's', payMethod: 'CASH', fulfillment: 'PICKUP', items: [{ storeProductId: 'sp-pcs', qty: 1 }] } as any, 'u1'))
+      .rejects.toBeInstanceOf(UnauthorizedException);
+  });
+  it('телефон заказа — из аккаунта, а не из формы', async () => {
+    const prisma = makePrisma({ user: { findUnique: jest.fn().mockResolvedValue({ phone: '+77010000001' }), upsert: jest.fn().mockResolvedValue({ id: 'user1' }) } });
+    const svc = new OrderingService(prisma as any);
+    await svc.createForUser({ storeSlug: 's', phone: '+77019999999', payMethod: 'CASH', fulfillment: 'PICKUP', items: [{ storeProductId: 'sp-pcs', qty: 1 }] } as any, 'u1');
+    expect(prisma.user.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { phone: '+77010000001' } }));
   });
 });
