@@ -2,7 +2,8 @@
 // Язык хранится в cookie `lang`; без неё — по Accept-Language браузера, иначе русский.
 
 export type Lang = 'ru' | 'kk' | 'en';
-export const LANGS: Lang[] = ['ru', 'kk', 'en'];
+// Казахский всегда первым в переключателе.
+export const LANGS: Lang[] = ['kk', 'ru', 'en'];
 export const LANG_COOKIE = 'lang';
 export const LANG_LABELS: Record<Lang, string> = { ru: 'Рус', kk: 'Қаз', en: 'Eng' };
 /** Локаль для дат и чисел. */
@@ -131,6 +132,11 @@ const ru = {
   missing: 'Нет в наличии',
   totalByWeight: 'Итог (по весу)',
   exactSumNote: 'Точная сумма фиксируется после взвешивания при сборке.',
+  itemsTitle: 'Состав заказа',
+  notWeighedYet: 'ещё не взвесили',
+  orderedToWeighed: (ordered: string, weighed: string) => `заказали ${ordered} → взвесили ${weighed}`,
+  removedNotPaid: 'нет в наличии — не оплачиваете',
+  sumChanged: (from: string, to: string) => `После сборки сумма изменилась: ${from} → ${to}`,
   backToStore: 'Вернуться в магазин',
 
   // Отзыв
@@ -206,6 +212,29 @@ const ru = {
   privacyPolicy: 'Политика конфиденциальности',
 
   // Тестовая среда
+  searchInShop: 'Найти в магазине',
+  tabCatalog: 'Каталог',
+  tabList: 'Списком',
+  all: 'Все',
+  repeatTitle: 'Повторить прошлый заказ',
+  repeatMeta: (n: number, sum: string, date: string) => `${n} поз. · ${sum} · ${date}`,
+  repeatAdd: 'В корзину',
+  listLabel: 'Напишите, что нужно, — как в заметках',
+  listPlaceholder: 'картошка 3 кг\nлук\nпомидоры 1 кг',
+  listHint: 'Подберём товары магазина под каждую строку — проверьте и добавьте в корзину.',
+  speak: 'Сказать голосом',
+  listening: 'Слушаю… Например: «помидоры килограмм, картошка три кило, лук»',
+  stopListening: 'Готово',
+  notFound: (q: string) => `Не нашли «${q}»`,
+  whichOne: 'Что именно?',
+  addItems: (n: number) => `Добавить ${n} поз.`,
+  howMuch: 'Сколько взвесить?',
+  weightNote: 'Продавец взвесит при сборке. Если вес будет отличаться (больше — не более чем на 10%), сумму пересчитаем, и вы увидите это в заказе.',
+  aboutPieces: (n: string) => `≈ ${n} шт`,
+  add: 'Добавить',
+  remove: 'Убрать',
+  step100: 'шаг 100 г',
+  nothingFound: 'Ничего не нашли',
   testEnv: 'ТЕСТОВАЯ СРЕДА — данные ненастоящие, заказы не исполняются. Код входа: 111111',
 };
 
@@ -311,6 +340,11 @@ const kk: Dict = {
   missing: 'Қолда жоқ',
   totalByWeight: 'Қорытынды (салмақ бойынша)',
   exactSumNote: 'Нақты сома жинау кезінде өлшегеннен кейін белгіленеді.',
+  itemsTitle: 'Тапсырыс құрамы',
+  notWeighedYet: 'әлі өлшенбеді',
+  orderedToWeighed: (ordered: string, weighed: string) => `тапсырыс ${ordered} → өлшенді ${weighed}`,
+  removedNotPaid: 'қолда жоқ — төлемейсіз',
+  sumChanged: (from: string, to: string) => `Жинаудан кейін сома өзгерді: ${from} → ${to}`,
   backToStore: 'Дүкенге оралу',
 
   reviewError: 'Сақтау мүмкін болмады',
@@ -381,6 +415,29 @@ const kk: Dict = {
   deleteContacts: 'Деректерді жою мәселелері бойынша:',
   privacyPolicy: 'Құпиялылық саясаты',
 
+  searchInShop: 'Дүкеннен іздеу',
+  tabCatalog: 'Каталог',
+  tabList: 'Тізіммен',
+  all: 'Барлығы',
+  repeatTitle: 'Өткен тапсырысты қайталау',
+  repeatMeta: (n: number, sum: string, date: string) => `${n} тауар · ${sum} · ${date}`,
+  repeatAdd: 'Себетке',
+  listLabel: 'Не керек екенін жазыңыз — жазбадағыдай',
+  listPlaceholder: 'картоп 3 кг\nпияз\nқызанақ 1 кг',
+  listHint: 'Әр жолға дүкен тауарларын таңдаймыз — тексеріп, себетке қосыңыз.',
+  speak: 'Дауыспен айту',
+  listening: 'Тыңдап тұрмын… Мысалы: «қызанақ бір келі, картоп үш келі, пияз»',
+  stopListening: 'Дайын',
+  notFound: (q: string) => `«${q}» табылмады`,
+  whichOne: 'Қайсысы?',
+  addItems: (n: number) => `${n} тауар қосу`,
+  howMuch: 'Қанша өлшейік?',
+  weightNote: 'Сатушы жинау кезінде өлшейді. Салмақ өзгеше болса (көбі — 10%-дан аспайды), соманы қайта есептейміз және сіз оны тапсырыста көресіз.',
+  aboutPieces: (n: string) => `≈ ${n} дана`,
+  add: 'Қосу',
+  remove: 'Алып тастау',
+  step100: 'қадам 100 г',
+  nothingFound: 'Ештеңе табылмады',
   testEnv: 'ТЕСТ ОРТАСЫ — деректер жалған, тапсырыстар орындалмайды. Кіру коды: 111111',
 };
 
@@ -484,6 +541,11 @@ const en: Dict = {
   missing: 'Out of stock',
   totalByWeight: 'Total (by weight)',
   exactSumNote: 'The exact total is fixed after weighing during packing.',
+  itemsTitle: 'Your order',
+  notWeighedYet: 'not weighed yet',
+  orderedToWeighed: (ordered: string, weighed: string) => `ordered ${ordered} → weighed ${weighed}`,
+  removedNotPaid: 'out of stock — you don’t pay for it',
+  sumChanged: (from: string, to: string) => `The total changed after packing: ${from} → ${to}`,
   backToStore: 'Back to the shop',
 
   reviewError: 'Could not save',
@@ -554,6 +616,29 @@ const en: Dict = {
   deleteContacts: 'For data deletion questions:',
   privacyPolicy: 'Privacy policy',
 
+  searchInShop: 'Search this shop',
+  tabCatalog: 'Catalogue',
+  tabList: 'As a list',
+  all: 'All',
+  repeatTitle: 'Repeat your last order',
+  repeatMeta: (n: number, sum: string, date: string) => `${n} items · ${sum} · ${date}`,
+  repeatAdd: 'Add to cart',
+  listLabel: 'Write what you need, like a note',
+  listPlaceholder: 'potatoes 3 kg\nonions\ntomatoes 1 kg',
+  listHint: 'We match each line to the shop’s products — check and add to your cart.',
+  speak: 'Say it',
+  listening: 'Listening… For example: “tomatoes one kilo, potatoes three kilos, onions”',
+  stopListening: 'Done',
+  notFound: (q: string) => `Couldn’t find “${q}”`,
+  whichOne: 'Which one?',
+  addItems: (n: number) => `Add ${n} items`,
+  howMuch: 'How much should we weigh?',
+  weightNote: 'The seller weighs it when packing. If the weight differs (no more than 10% over), we recalculate the total and you’ll see it in the order.',
+  aboutPieces: (n: string) => `≈ ${n} pcs`,
+  add: 'Add',
+  remove: 'Remove',
+  step100: '100 g steps',
+  nothingFound: 'Nothing found',
   testEnv: 'TEST ENVIRONMENT — data is not real, orders are not fulfilled. Login code: 111111',
 };
 

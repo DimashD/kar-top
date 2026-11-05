@@ -10,6 +10,7 @@ import 'push.dart';
 import 'screens/login_screen.dart';
 import 'screens/stores_screen.dart';
 import 'screens/lock_screen.dart';
+import 'screens/language_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +52,8 @@ class KartopMerchantApp extends StatelessWidget {
           if (session.loading) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
+          // Первый запуск — сначала язык, потом вход.
+          if (!context.watch<Lang>().chosen) return const LanguageScreen();
           return session.isAuthed ? const LockGate(child: StoresScreen()) : const LoginScreen();
         },
       ),

@@ -159,6 +159,7 @@ export class OrderingService {
     return items.map((i) => ({
       id: i.id,
       name: (m.get(i.storeProductId)?.name as any)?.ru ?? 'Товар',
+      names: (m.get(i.storeProductId)?.name as Record<string, string> | undefined) ?? { ru: 'Товар' },
       unit: m.get(i.storeProductId)?.unit ?? 'PCS',
       qtyRequestedG: i.qtyRequestedG,
       qtyRequested: i.qtyRequested,
@@ -280,12 +281,24 @@ export class OrderingService {
         fulfillment: true, pickupAt: true,
         store: { select: { name: true, slug: true, address: true, kaspiPhone: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
-        items: { select: { status: true } },
+        items: { select: { id: true, storeProductId: true, qtyRequestedG: true, qtyRequested: true, qtyActualG: true, priceSnapTiyn: true, status: true } },
         review: { select: { rating: true, comment: true } },
       },
     });
     if (!o) throw new NotFoundException('Заказ не найден');
     const CLOSED: OrderStatus[] = ['DELIVERED', 'COMPLETED', 'CANCELLED'];
+    // Состав для покупателя: что заказал, что взвесили, что убрали — чтобы было видно, откуда изменилась сумма.
+    const items = (await this.itemsWithNames(o.items)).map((i) => {
+      const weighted = i.qtyRequestedG != null;
+      const orderedTiyn = weighted ? Math.round((i.priceSnapTiyn * (i.qtyRequestedG ?? 0)) / 1000) : i.priceSnapTiyn * (i.qtyRequested ?? 1);
+      const actualTiyn = i.status === 'missing' ? 0
+        : weighted && i.qtyActualG != null ? Math.round((i.priceSnapTiyn * i.qtyActualG) / 1000) : orderedTiyn;
+      return {
+        id: i.id, names: i.names, unit: i.unit, status: i.status,
+        qtyRequestedG: i.qtyRequestedG, qtyRequested: i.qtyRequested, qtyActualG: i.qtyActualG,
+        priceTiyn: i.priceSnapTiyn, orderedTiyn, actualTiyn,
+      };
+    });
     return {
       id: o.id,
       number: o.number,
@@ -303,6 +316,7 @@ export class OrderingService {
       finalTiyn: o.finalTiyn,
       itemCount: o.items.length,
       missingCount: o.items.filter((i) => i.status === 'missing').length,
+      items,
       timeline: o.events,
       // Код скрываем после закрытия заказа — он уже сыграл свою роль.
       deliveryCode: CLOSED.includes(o.status) ? null : o.deliveryCode,
@@ -360,6 +374,13 @@ export class OrderingService {
     await this.prisma.outboxEvent.create({
       data: { type: 'order.substitution_needed', aggregateType: 'order', aggregateId: orderId, payload: { number: ord?.number } },
     });
+    return this.recalcFinal(orderId);
+  }
+
+  /** Вернуть позицию в заказ (отметили «нет в наличии» по ошибке). */
+  async restoreItem(orderId: string, itemId: string, userId: string) {
+    await this.authorizeStore(await this.orderStoreId(orderId), userId);
+    await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId, status: 'missing' }, data: { status: 'ok' } });
     return this.recalcFinal(orderId);
   }
 

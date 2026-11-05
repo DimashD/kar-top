@@ -9,12 +9,19 @@ export interface CatalogProduct {
   name: { ru: string; kk?: string; en?: string };
   unit: 'KG' | 'G' | 'PCS' | 'BUNCH' | 'PACK';
   stepG: number | null;
+  avgPieceG?: number | null;
   perishable: boolean;
   photo: string | null;
   priceTiyn: number;
   oldPriceTiyn: number | null;
 }
-export interface CatalogCategory { category: { ru: string; kk?: string; en?: string }; items: CatalogProduct[] }
+export type I18nName = { ru: string; kk?: string; en?: string };
+export interface CatalogCategory {
+  category: I18nName;
+  /** Крупная группа каталога («Овощи и зелень»); null — без группы. */
+  group?: { id: string; name: I18nName } | null;
+  items: CatalogProduct[];
+}
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;
@@ -53,6 +60,12 @@ export interface OrderTrack {
   finalTiyn: number | null;
   itemCount: number;
   missingCount: number;
+  /** Состав: заказано / взвешено / убрано — чтобы покупатель видел, откуда изменилась сумма. */
+  items?: {
+    id: string; names: { ru: string; kk?: string; en?: string }; unit: 'KG' | 'G' | 'PCS' | 'BUNCH' | 'PACK'; status: string;
+    qtyRequestedG: number | null; qtyRequested: number | null; qtyActualG: number | null;
+    priceTiyn: number; orderedTiyn: number; actualTiyn: number;
+  }[];
   timeline: { to: OrderStatus; at: string }[];
   deliveryCode: string | null;
   canReview: boolean;
