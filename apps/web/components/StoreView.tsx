@@ -229,8 +229,9 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
           lines={lines}
           subtotal={subtotal}
           onClose={() => setOpen(false)}
-          onInc={inc}
-          onDec={dec}
+          looks={looks}
+          onSet={setQty}
+          onEdit={(p) => setWeighing(p)}
           onDone={(r) => { saveLast(slug, lines, r.estimatedTiyn); setLast(readLast(slug)); setDone(r); setCart({}); setOpen(false); }}
         />
       )}
@@ -456,12 +457,71 @@ function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (ite
   );
 }
 
+/**
+ * Строка корзины: картинка, название и цена за единицу; справа — счётчик «− 1,5 кг +» с количеством
+ * посередине и сумма строки под ним. Весовые — шаг 100 г (как в шторке веса), нажатие на вес открывает шторку;
+ * на минимуме «−» превращается в «убрать». Сумма коротко подсвечивается, когда меняется.
+ */
+function CartLine({ l, look, onSet, onEdit }: { l: Line; look?: Look; onSet: (p: CatalogProduct, qty: number) => void; onEdit: (p: CatalogProduct) => void }) {
+  const t = useT();
+  const lang = useLang();
+  const p = l.product;
+  const weighted = isWeighted(p.unit);
+  const step = weighted ? 100 : 1;
+  const atMin = l.qty <= step;
+  const sum = lineTiyn(l);
+  const [flash, setFlash] = useState(false);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setFlash(true);
+    const id = setTimeout(() => setFlash(false), 600);
+    return () => clearTimeout(id);
+  }, [sum]);
+  const btn: React.CSSProperties = { width: 40, height: 40, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 20, cursor: 'pointer', color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ width: 48, height: 48, borderRadius: 12, background: look?.tint ?? '#F4F2F0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {p.photo ? <img src={p.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : look?.pic ? <span aria-hidden="true" style={{ fontSize: 26 }}>{look.pic}</span>
+          : <span aria-hidden="true" style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.25 }}>{localized(p.name, lang)}</div>
+        <div className="muted" style={{ fontSize: 12 }}>{tenge(p.priceTiyn)} {perUnit(p.unit, t)}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: '#F4F2F0', borderRadius: 12, padding: 3 }}>
+          <button aria-label={t.remove} onClick={() => onSet(p, atMin ? 0 : l.qty - step)} style={btn}>
+            {atMin
+              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sale)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+              : '−'}
+          </button>
+          {weighted ? (
+            <button onClick={() => onEdit(p)} aria-label={t.howMuch}
+              style={{ minWidth: 70, height: 40, border: 'none', background: 'transparent', font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 4, color: 'var(--ink)' }}>
+              {qtyLabel(p.unit, l.qty, t)}
+            </button>
+          ) : (
+            <span style={{ minWidth: 56, textAlign: 'center', fontWeight: 800, fontSize: 15 }}>{qtyLabel(p.unit, l.qty, t)}</span>
+          )}
+          <button aria-label={t.add} onClick={() => onSet(p, l.qty + step)} style={btn}>+</button>
+        </div>
+        <div style={{ fontWeight: 800, fontSize: 15, padding: '0 6px', borderRadius: 6, transition: 'background 0.3s', background: flash ? 'var(--carrot-50)' : 'transparent', color: flash ? 'var(--carrot-600)' : 'var(--ink)' }}>
+          {tenge(sum)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CheckoutDrawer(props: {
   slug: string; store: Catalog['store']; lines: Line[]; subtotal: number;
-  onClose: () => void; onInc: (p: CatalogProduct) => void; onDec: (p: CatalogProduct) => void;
+  looks: Map<string, Look>;
+  onClose: () => void; onSet: (p: CatalogProduct, qty: number) => void; onEdit: (p: CatalogProduct) => void;
   onDone: (r: { id: string; number: number; estimatedTiyn: number; deliveryCode?: string }) => void;
 }) {
-  const { slug, store, lines, subtotal, onClose, onInc, onDec, onDone } = props;
+  const { slug, store, lines, subtotal, looks, onClose, onSet, onEdit, onDone } = props;
   const t = useT();
   const lang = useLang();
   // Своя доставка может быть выключена магазином — тогда только самовывоз.
@@ -582,18 +642,7 @@ function CheckoutDrawer(props: {
         </div>
 
         <div style={{ padding: '0 20px' }}>
-          {lines.map((l) => (
-            <div key={l.product.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{localized(l.product.name, lang)}</div>
-                <div className="muted" style={{ fontSize: 13 }}>
-                  {qtyLabel(l.product.unit, l.qty, t)} · {tenge(lineTiyn(l))}
-                </div>
-              </div>
-              <button className="btn btn-ghost" onClick={() => onDec(l.product)} style={{ padding: '6px 12px' }}>−</button>
-              <button className="btn btn-ghost" onClick={() => onInc(l.product)} style={{ padding: '6px 12px' }}>+</button>
-            </div>
-          ))}
+          {lines.map((l) => <CartLine key={l.product.id} l={l} look={looks.get(l.product.id)} onSet={onSet} onEdit={onEdit} />)}
         </div>
 
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
