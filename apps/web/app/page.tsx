@@ -16,7 +16,6 @@ export default function Home() {
             <LangSwitcher />
             <Link className="btn btn-ghost" href="/partner">{t.becomePartner}</Link>
             <Link className="btn btn-ghost" href="/app">{t.appLink}</Link>
-            <Link className="btn btn-primary" href="/ruslan-fruits">{t.openShowcase}</Link>
           </div>
         </div>
       </header>
@@ -29,9 +28,11 @@ export default function Home() {
             {t.heroTitle}<span style={{ color: 'var(--carrot)' }}>{t.heroAccent}</span>
           </h1>
           <p className="muted" style={{ fontSize: 19, margin: '0 0 24px' }}>{t.heroText}</p>
-          <Link className="btn btn-primary" href="/ruslan-fruits" style={{ fontSize: 16, padding: '14px 24px' }}>
-            {t.browseShops}
-          </Link>
+          {/* MVP: покупатель попадает только в свой магазин — по ссылке от продавца; общего списка магазинов нет. */}
+          <div className="card" style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'center', background: 'var(--carrot-50)' }}>
+            <span style={{ fontSize: 26 }}>🔗</span>
+            <span style={{ fontWeight: 600 }}>{t.shopLinkHint}</span>
+          </div>
         </div>
       </section>
 

@@ -8,6 +8,7 @@ import '../phone.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../weight.dart';
 import '../widgets/contact_actions.dart';
 import '../widgets/delivery_map.dart';
 import 'courier_screen.dart';
@@ -56,19 +57,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  /// Взвешивание: заказанный вес, поле для фактического, быстрые кнопки и пересчёт суммы на лету.
+  /// Взвешивание: заказанный вес и допуск, поле для фактического, быстрые кнопки, сумма на лету.
+  /// Вне допуска «Сохранить» недоступно — только «Позвонить клиенту», «Клиент согласен» или пауза.
   Future<void> _weighDialog(OrderItem item) async {
     final session = context.read<Session>();
     final s = context.read<Lang>().s;
+    final order = _order;
     final requested = item.qtyRequestedG ?? 0;
+    final range = weightRange(requested);
     final ctrl = TextEditingController(text: (item.qtyActualG ?? requested).toString());
-    final result = await showModalBottomSheet<int>(
+    // null — закрыли; (вес, согласие клиента); вес −1 — поставить заказ на паузу.
+    final result = await showModalBottomSheet<(int, bool)>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) {
           final g = int.tryParse(ctrl.text) ?? 0;
+          final inRange = g >= range.minG && g <= range.maxG;
           void setG(int v) {
             ctrl.text = '${v < 0 ? 0 : v}';
             setSheet(() {});
@@ -84,6 +90,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(height: 4),
                 Text('${s.ordered(grams(s, requested))} · ${s.perKgPrice(tenge(item.priceSnapTiyn))}',
                     style: const TextStyle(color: AppColors.ink60)),
+                Text(s.allowedRange(grams(s, range.minG), grams(s, range.maxG)),
+                    style: const TextStyle(color: AppColors.ink60, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: ctrl,
@@ -91,7 +99,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: inRange ? AppColors.ink : AppColors.sale),
                   decoration: InputDecoration(labelText: s.weightGrams, suffixText: s.unitG),
                   onChanged: (_) => setSheet(() {}),
                 ),
@@ -113,18 +121,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 Text(s.sumPreview(tenge((item.priceSnapTiyn * g / 1000).round())),
                     textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.carrot600)),
                 const SizedBox(height: 14),
-                ElevatedButton(
-                  onPressed: g > 0 ? () => Navigator.pop(ctx, g) : null,
-                  child: Text(s.save),
-                ),
+                if (inRange || g <= 0)
+                  ElevatedButton(
+                    onPressed: g > 0 ? () => Navigator.pop(ctx, (g, false)) : null,
+                    child: Text(s.save),
+                  )
+                else ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: AppColors.sale.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+                    child: Text(s.outOfRange, style: const TextStyle(color: AppColors.sale, fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 10),
+                  if (order?.customerPhone != null) ...[
+                    ContactActions(phone: order!.customerPhone!),
+                    const SizedBox(height: 10),
+                  ],
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, (g, true)),
+                    child: Text(s.customerAgreed),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(ctx, (-1, false)),
+                    icon: const Icon(Icons.pause_circle_outline),
+                    label: Text(s.waitCustomer),
+                  ),
+                ],
               ],
             ),
           );
         },
       ),
     );
-    if (result != null && result > 0) {
-      await _do(() => session.api.weigh(widget.orderId, item.id, result));
+    if (result == null) return;
+    final (g, approved) = result;
+    if (g == -1) {
+      await _do(() => session.api.awaitCustomer(widget.orderId));
+    } else if (g > 0) {
+      await _do(() => session.api.weigh(widget.orderId, item.id, g, customerApproved: approved));
     }
   }
 
@@ -378,7 +413,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _itemsCard(S s, OrderDetail o) {
-    final canPick = o.status == 'PICKING';
+    final canPick = o.status == 'PICKING' || o.status == 'AWAITING_CUSTOMER';
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -522,6 +557,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'picking')), child: Text(s.startPicking)));
       case 'PICKING':
         return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'ready')), child: Text(s.pickedReady)));
+      case 'AWAITING_CUSTOMER':
+        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'picking')), child: Text(s.resumePicking)));
       case 'READY':
         return bar(ElevatedButton(
           onPressed: _busy ? null : () => _do(() => session.api.delivering(o.id)),

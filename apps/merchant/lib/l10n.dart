@@ -77,6 +77,11 @@ abstract class S {
   String sumPreview(String amount);
   String perKgPrice(String price);
   String get buildRoute;
+  String allowedRange(String min, String max);
+  String get outOfRange;
+  String get customerAgreed;
+  String get waitCustomer;
+  String get resumePicking;
 
   // Вход
   String get merchantCabinet;
@@ -108,6 +113,11 @@ abstract class S {
   String get noOrders;
   String get activeOrders;
   String get completedOrders;
+  String get filterNew;
+  String get filterInWork;
+  String get filterReady;
+  String get filterCancelled;
+  String get noOrdersHere;
   String orderNo(int n);
   String positions(int n);
   String get order;
@@ -180,6 +190,10 @@ abstract class S {
   String get appLockSubtitle;
   String get logout;
   String get language;
+  String get shareStore;
+  String get storeLink;
+  String get linkCopied;
+  String shareText(String store, String url);
 
   // Заявка партнёра
   String get applicationAccepted;
@@ -255,6 +269,11 @@ class _Ru extends S {
   @override String sumPreview(String amount) => 'Сумма: $amount';
   @override String perKgPrice(String price) => '$price за кг';
   @override String get buildRoute => 'Построить маршрут';
+  @override String allowedRange(String min, String max) => 'Допустимо: $min – $max';
+  @override String get outOfRange => 'Вес вне допуска. Позвоните клиенту: согласуйте вес или отметьте «нет в наличии».';
+  @override String get customerAgreed => 'Клиент согласен — сохранить';
+  @override String get waitCustomer => 'Пауза: ждём ответа клиента';
+  @override String get resumePicking => 'Продолжить сборку';
   @override String get merchantCabinet => 'Кабинет магазина';
   @override String get phone => 'Телефон';
   @override String get sending => 'Отправляем…';
@@ -278,6 +297,11 @@ class _Ru extends S {
   @override String get noOrders => 'Заказов пока нет';
   @override String get activeOrders => 'Активные';
   @override String get completedOrders => 'Завершённые';
+  @override String get filterNew => 'Новые';
+  @override String get filterInWork => 'В работе';
+  @override String get filterReady => 'Готовы и в пути';
+  @override String get filterCancelled => 'Отменённые';
+  @override String get noOrdersHere => 'Здесь пока пусто';
   @override String orderNo(int n) => 'Заказ №$n';
   @override String positions(int n) => '$n поз.';
   @override String get order => 'Заказ';
@@ -344,6 +368,10 @@ class _Ru extends S {
   @override String get appLockSubtitle => 'Face ID / отпечаток или PIN при открытии';
   @override String get logout => 'Выйти из аккаунта';
   @override String get language => 'Язык';
+  @override String get shareStore => 'Поделиться витриной';
+  @override String get storeLink => 'Ссылка на витрину';
+  @override String get linkCopied => 'Ссылка скопирована';
+  @override String shareText(String store, String url) => 'Заказывайте в «$store» онлайн — с доставкой или самовывозом: $url';
   @override String get applicationAccepted => 'Заявка принята!';
   @override String get partnerSuccessText => 'Мы свяжемся с вами по телефону, чтобы подключить магазин к Kartop. Обычно в течение рабочего дня.';
   @override String get backToLogin => 'Назад ко входу';
@@ -415,6 +443,11 @@ class _Kk extends S {
   @override String sumPreview(String amount) => 'Сомасы: $amount';
   @override String perKgPrice(String price) => '1 кг — $price';
   @override String get buildRoute => 'Маршрут құру';
+  @override String allowedRange(String min, String max) => 'Рұқсат етілген: $min – $max';
+  @override String get outOfRange => 'Салмақ рұқсат етілгеннен тыс. Клиентке қоңырау шалып, салмақты келісіңіз немесе «қолда жоқ» деп белгілеңіз.';
+  @override String get customerAgreed => 'Клиент келісті — сақтау';
+  @override String get waitCustomer => 'Үзіліс: клиенттің жауабын күтеміз';
+  @override String get resumePicking => 'Жинауды жалғастыру';
   @override String get merchantCabinet => 'Дүкен кабинеті';
   @override String get phone => 'Телефон';
   @override String get sending => 'Жіберілуде…';
@@ -438,6 +471,11 @@ class _Kk extends S {
   @override String get noOrders => 'Әзірге тапсырыс жоқ';
   @override String get activeOrders => 'Белсенді';
   @override String get completedOrders => 'Аяқталған';
+  @override String get filterNew => 'Жаңа';
+  @override String get filterInWork => 'Жұмыста';
+  @override String get filterReady => 'Дайын және жолда';
+  @override String get filterCancelled => 'Бас тартылған';
+  @override String get noOrdersHere => 'Мұнда әзірге бос';
   @override String orderNo(int n) => 'Тапсырыс №$n';
   @override String positions(int n) => '$n тауар';
   @override String get order => 'Тапсырыс';
@@ -504,6 +542,10 @@ class _Kk extends S {
   @override String get appLockSubtitle => 'Ашқанда Face ID / саусақ ізі немесе PIN';
   @override String get logout => 'Аккаунттан шығу';
   @override String get language => 'Тіл';
+  @override String get shareStore => 'Витринаны бөлісу';
+  @override String get storeLink => 'Витрина сілтемесі';
+  @override String get linkCopied => 'Сілтеме көшірілді';
+  @override String shareText(String store, String url) => '«$store» дүкенінен онлайн тапсырыс беріңіз — жеткізумен немесе өзі алып кетумен: $url';
   @override String get applicationAccepted => 'Өтінім қабылданды!';
   @override String get partnerSuccessText => 'Дүкеніңізді Kartop-қа қосу үшін сізге телефон арқылы хабарласамыз. Әдетте бір жұмыс күні ішінде.';
   @override String get backToLogin => 'Кіруге оралу';
@@ -575,6 +617,11 @@ class _Tg extends S {
   @override String sumPreview(String amount) => 'Маблағ: $amount';
   @override String perKgPrice(String price) => '$price барои 1 кг';
   @override String get buildRoute => 'Сохтани масир';
+  @override String allowedRange(String min, String max) => 'Иҷозат: $min – $max';
+  @override String get outOfRange => 'Вазн аз ҳадди иҷозат берун аст. Ба мизоҷ занг занед: вазнро мувофиқа кунед ё «дар мавҷудият нест» қайд кунед.';
+  @override String get customerAgreed => 'Мизоҷ розӣ аст — нигоҳ доштан';
+  @override String get waitCustomer => 'Таваққуф: ҷавоби мизоҷро интизорем';
+  @override String get resumePicking => 'Идомаи ҷамъоварӣ';
   @override String get merchantCabinet => 'Кабинети мағоза';
   @override String get phone => 'Телефон';
   @override String get sending => 'Фиристода истодаем…';
@@ -598,6 +645,11 @@ class _Tg extends S {
   @override String get noOrders => 'Ҳоло фармоиш нест';
   @override String get activeOrders => 'Фаъол';
   @override String get completedOrders => 'Анҷомёфта';
+  @override String get filterNew => 'Нав';
+  @override String get filterInWork => 'Дар кор';
+  @override String get filterReady => 'Тайёр ва дар роҳ';
+  @override String get filterCancelled => 'Бекоршуда';
+  @override String get noOrdersHere => 'Ҳоло ин ҷо холӣ аст';
   @override String orderNo(int n) => 'Фармоиши №$n';
   @override String positions(int n) => '$n мол';
   @override String get order => 'Фармоиш';
@@ -664,6 +716,10 @@ class _Tg extends S {
   @override String get appLockSubtitle => 'Face ID / изи ангушт ё PIN ҳангоми кушодан';
   @override String get logout => 'Баромадан аз аккаунт';
   @override String get language => 'Забон';
+  @override String get shareStore => 'Мубодилаи витрина';
+  @override String get storeLink => 'Истинод ба витрина';
+  @override String get linkCopied => 'Истинод нусхабардорӣ шуд';
+  @override String shareText(String store, String url) => 'Аз «$store» онлайн фармоиш диҳед — бо расонидан ё худ бурдан: $url';
   @override String get applicationAccepted => 'Дархост қабул шуд!';
   @override String get partnerSuccessText => 'Мо бо шумо тавассути телефон тамос мегирем, то мағозаатонро ба Kartop пайваст кунем. Одатан дар давоми як рӯзи корӣ.';
   @override String get backToLogin => 'Бозгашт ба вуруд';
@@ -735,6 +791,11 @@ class _Uz extends S {
   @override String sumPreview(String amount) => 'Summa: $amount';
   @override String perKgPrice(String price) => '1 kg — $price';
   @override String get buildRoute => 'Yoʻnalish qurish';
+  @override String allowedRange(String min, String max) => 'Ruxsat etilgan: $min – $max';
+  @override String get outOfRange => 'Vazn ruxsat etilgan chegaradan tashqarida. Mijozga qoʻngʻiroq qiling: vaznni kelishing yoki «mavjud emas» deb belgilang.';
+  @override String get customerAgreed => 'Mijoz rozi — saqlash';
+  @override String get waitCustomer => 'Pauza: mijoz javobini kutyapmiz';
+  @override String get resumePicking => 'Yigʻishni davom ettirish';
   @override String get merchantCabinet => 'Doʻkon kabineti';
   @override String get phone => 'Telefon';
   @override String get sending => 'Yuborilmoqda…';
@@ -758,6 +819,11 @@ class _Uz extends S {
   @override String get noOrders => 'Hozircha buyurtmalar yoʻq';
   @override String get activeOrders => 'Faol';
   @override String get completedOrders => 'Yakunlangan';
+  @override String get filterNew => 'Yangi';
+  @override String get filterInWork => 'Jarayonda';
+  @override String get filterReady => 'Tayyor va yoʻlda';
+  @override String get filterCancelled => 'Bekor qilingan';
+  @override String get noOrdersHere => 'Hozircha boʻsh';
   @override String orderNo(int n) => 'Buyurtma №$n';
   @override String positions(int n) => '$n ta mahsulot';
   @override String get order => 'Buyurtma';
@@ -824,6 +890,10 @@ class _Uz extends S {
   @override String get appLockSubtitle => 'Ochishda Face ID / barmoq izi yoki PIN';
   @override String get logout => 'Akkauntdan chiqish';
   @override String get language => 'Til';
+  @override String get shareStore => 'Vitrinani ulashish';
+  @override String get storeLink => 'Vitrina havolasi';
+  @override String get linkCopied => 'Havola nusxalandi';
+  @override String shareText(String store, String url) => '«$store» doʻkonidan onlayn buyurtma bering — yetkazib berish yoki olib ketish bilan: $url';
   @override String get applicationAccepted => 'Ariza qabul qilindi!';
   @override String get partnerSuccessText => 'Doʻkoningizni Kartop’ga ulash uchun siz bilan telefon orqali bogʻlanamiz. Odatda bir ish kuni ichida.';
   @override String get backToLogin => 'Kirishga qaytish';

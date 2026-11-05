@@ -3,6 +3,7 @@ import { Unit, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
 import { piiVisibleToMerchant, canTransition } from './order-state';
+import { weightRange } from './weight-tolerance';
 
 @Injectable()
 export class OrderingService {
@@ -300,15 +301,42 @@ export class OrderingService {
     };
   }
   cancel(id: string, userId: string) { return this.transition(id, 'CANCELLED', 'merchant', userId); }
+  /** Сборка на паузе: магазин ждёт ответа покупателя (например, вес вне допуска). Возврат — startPicking. */
+  awaitCustomer(id: string, userId: string) { return this.transition(id, 'AWAITING_CUSTOMER', 'merchant', userId); }
 
-  /** Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог. */
-  async weighItem(orderId: string, itemId: string, qtyActualG: number, userId: string) {
+  /**
+   * Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог.
+   * Вес вне допуска (weightRange) принимается только с customerApproved — магазин согласовал с покупателем;
+   * такое отклонение пишется в outbox (order.weight_override) для разбора.
+   */
+  async weighItem(orderId: string, itemId: string, qtyActualG: number, userId: string, customerApproved = false) {
     await this.authorizeStore(await this.orderStoreId(orderId), userId);
+    if (!Number.isInteger(qtyActualG) || qtyActualG <= 0) throw new BadRequestException('Укажите вес в граммах');
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, orderId },
-      select: { id: true, priceSnapTiyn: true },
+      select: { id: true, priceSnapTiyn: true, qtyRequestedG: true },
     });
     if (!item) throw new NotFoundException('Позиция не найдена');
+    if (item.qtyRequestedG != null) {
+      const { minG, maxG } = weightRange(item.qtyRequestedG);
+      const outside = qtyActualG < minG || qtyActualG > maxG;
+      if (outside && !customerApproved) {
+        throw new BadRequestException({
+          message: `Вес вне допуска: от ${minG} до ${maxG} г. Согласуйте с покупателем или отметьте «нет в наличии».`,
+          code: 'WEIGHT_OUT_OF_RANGE',
+          minG,
+          maxG,
+        });
+      }
+      if (outside) {
+        await this.prisma.outboxEvent.create({
+          data: {
+            type: 'order.weight_override', aggregateType: 'order', aggregateId: orderId,
+            payload: { itemId, requestedG: item.qtyRequestedG, actualG: qtyActualG, userId },
+          },
+        });
+      }
+    }
     await this.prisma.orderItem.update({ where: { id: itemId }, data: { qtyActualG, status: 'ok' } });
     return this.recalcFinal(orderId);
   }

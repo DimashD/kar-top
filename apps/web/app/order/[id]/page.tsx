@@ -53,7 +53,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
     <main style={{ paddingBottom: 32 }}>
       <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <Link href="/" style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
+          <Link href={`/${o.store.slug}`} style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 17 }}>{t.orderNo(o.number)}</div>

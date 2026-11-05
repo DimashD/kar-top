@@ -13,11 +13,36 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
+/// Фильтры списка заказов (чипы со счётчиками над списком).
+enum _Filter { active, fresh, inWork, ready, done, cancelled }
+
 class _OrdersScreenState extends State<OrdersScreen> {
   late Future<List<OrderSummary>> _future;
+  _Filter _filter = _Filter.active;
 
-  // Активные статусы — то, что требует внимания магазина.
-  static const _active = ['PLACED', 'ACCEPTED', 'PICKING', 'AWAITING_CUSTOMER', 'READY', 'COURIER_ASSIGNED', 'DELIVERING'];
+  // Группы статусов: новые — ждут принятия; в работе — сборка; готовы — к выдаче или в пути.
+  static const _fresh = ['PLACED'];
+  static const _inWork = ['ACCEPTED', 'PICKING', 'AWAITING_CUSTOMER'];
+  static const _ready = ['READY', 'COURIER_ASSIGNED', 'DELIVERING'];
+  static const _done = ['DELIVERED', 'COMPLETED'];
+
+  bool _matches(_Filter f, String status) => switch (f) {
+        _Filter.active => _fresh.contains(status) || _inWork.contains(status) || _ready.contains(status),
+        _Filter.fresh => _fresh.contains(status),
+        _Filter.inWork => _inWork.contains(status),
+        _Filter.ready => _ready.contains(status),
+        _Filter.done => _done.contains(status),
+        _Filter.cancelled => status == 'CANCELLED',
+      };
+
+  String _filterLabel(S s, _Filter f) => switch (f) {
+        _Filter.active => s.activeOrders,
+        _Filter.fresh => s.filterNew,
+        _Filter.inWork => s.filterInWork,
+        _Filter.ready => s.filterReady,
+        _Filter.done => s.completedOrders,
+        _Filter.cancelled => s.filterCancelled,
+      };
 
   @override
   void initState() {
@@ -57,21 +82,62 @@ class _OrdersScreenState extends State<OrdersScreen> {
             return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('${snap.error}', style: const TextStyle(color: AppColors.sale)))]);
           }
           final all = snap.data ?? [];
-          final active = all.where((o) => _active.contains(o.status)).toList();
-          final done = all.where((o) => !_active.contains(o.status)).toList();
           if (all.isEmpty) {
             return ListView(children: [Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.noOrders, style: const TextStyle(color: AppColors.ink60))))]);
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
+          final shown = all.where((o) => _matches(_filter, o.status)).toList();
+          return Column(
             children: [
-              if (active.isNotEmpty) _SectionTitle(s.activeOrders),
-              ...active.map((o) => _tile(s, o)),
-              if (done.isNotEmpty) _SectionTitle(s.completedOrders),
-              ...done.map((o) => _tile(s, o)),
+              Container(
+                color: AppColors.card,
+                height: 56,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  children: [
+                    for (final f in _Filter.values) _filterChip(s, f, all.where((o) => _matches(f, o.status)).length),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: shown.isEmpty
+                    ? ListView(children: [Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.noOrdersHere, style: const TextStyle(color: AppColors.ink60))))])
+                    : ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: shown.map((o) => _tile(s, o)).toList(),
+                      ),
+              ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Чип фильтра; у «Новых» счётчик подсвечен, если есть заказы, которые ждут принятия.
+  Widget _filterChip(S s, _Filter f, int count) {
+    final selected = _filter == f;
+    final urgent = f == _Filter.fresh && count > 0;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        selected: selected,
+        showCheckmark: false,
+        selectedColor: AppColors.carrot50,
+        onSelected: (_) => setState(() => _filter = f),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_filterLabel(s, f), style: TextStyle(fontWeight: FontWeight.w700, color: selected ? AppColors.carrot600 : AppColors.ink60)),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+              decoration: BoxDecoration(color: urgent ? AppColors.carrot : AppColors.line, borderRadius: BorderRadius.circular(999)),
+              child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: urgent ? Colors.white : AppColors.ink60)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,14 +172,4 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String text;
-  const _SectionTitle(this.text);
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 6, bottom: 10),
-        child: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.ink40, letterSpacing: 0.4)),
-      );
 }

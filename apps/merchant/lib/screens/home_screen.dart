@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
 import '../session.dart';
+import '../widgets/share_store.dart';
 import 'orders_screen.dart';
 import 'catalog_screen.dart';
 import 'settings_screen.dart';
@@ -24,6 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(store?.name ?? s.store),
         actions: [
+          if (store != null)
+            IconButton(
+              onPressed: () => shareStore(context, store),
+              icon: const Icon(Icons.ios_share),
+              tooltip: s.shareStore,
+            ),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.swap_horiz),

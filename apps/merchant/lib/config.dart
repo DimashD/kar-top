@@ -14,3 +14,9 @@ const String kOtpChannel = 'sms';
 /// В тестовой сборке поверх приложения показывается красная лента «ТЕСТ».
 const String kAppEnv = String.fromEnvironment('APP_ENV', defaultValue: 'prod');
 bool get kIsStaging => kAppEnv == 'staging';
+
+/// Адрес сайта (витрины): тот же хост, что у API, без /api — https://kar-top.kz или https://test.kar-top.kz.
+String get kWebBase => kApiBase.replaceFirst(RegExp(r'/api/?$'), '');
+
+/// Ссылка на витрину магазина для покупателей.
+String storefrontUrl(String slug) => '$kWebBase/$slug';

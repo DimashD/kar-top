@@ -54,7 +54,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   return (
     <main style={{ paddingBottom: count ? 88 : 24 }}>
-      <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} />
+      <Header slug={slug} name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} />
 
       <div className="container" style={{ paddingTop: 20 }}>
         {catalog.categories.map((cat, i) => (
@@ -95,12 +95,12 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   );
 }
 
-function Header({ name, rating, reviewCount, address }: { name: string; rating: number; reviewCount?: number; address: string | null }) {
+function Header({ slug, name, rating, reviewCount, address }: { slug: string; name: string; rating: number; reviewCount?: number; address: string | null }) {
   const t = useT();
   return (
     <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
       <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-        <Link href="/" style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
+        <Link href={`/${slug}`} style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
         <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>

@@ -81,8 +81,10 @@ class Api {
       OrderDetail.fromJson(await _get('/merchant/orders/$id') as Map<String, dynamic>);
 
   Future<void> transition(String id, String action) => _post('/merchant/orders/$id/$action');
-  Future<void> weigh(String id, String itemId, int qtyActualG) =>
-      _post('/merchant/orders/$id/items/$itemId/weigh', {'qtyActualG': qtyActualG});
+  /// customerApproved — вес вне допуска согласован с покупателем.
+  Future<void> weigh(String id, String itemId, int qtyActualG, {bool customerApproved = false}) =>
+      _post('/merchant/orders/$id/items/$itemId/weigh', {'qtyActualG': qtyActualG, if (customerApproved) 'customerApproved': true});
+  Future<void> awaitCustomer(String id) => _post('/merchant/orders/$id/await-customer');
   Future<void> markMissing(String id, String itemId) => _post('/merchant/orders/$id/items/$itemId/missing');
   Future<void> delivering(String id) => _post('/courier/orders/$id/delivering');
   Future<void> delivered(String id, String code) => _post('/courier/orders/$id/delivered', {'code': code});

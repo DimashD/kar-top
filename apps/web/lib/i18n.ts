@@ -38,12 +38,11 @@ const ru = {
   // Лендинг
   becomePartner: 'Стать партнёром',
   appLink: 'Приложение',
-  openShowcase: 'Открыть витрину',
   cities: 'Алматы · Астана',
   heroTitle: 'Зелёный базар рядом — ',
   heroAccent: 'со свежестью рынка',
   heroText: 'Овощи, фрукты, мясо, молочка, корейские салаты и всё с базара — из проверенных магазинов вашего района, с доставкой или самовывозом.',
-  browseShops: 'Смотреть магазины →',
+  shopLinkHint: 'Заказы — по ссылке от вашего магазина. Попросите продавца прислать её в WhatsApp или Telegram.',
   cats: ['Овощи', 'Фрукты', 'Мясо', 'Молочка', 'Корейские салаты', 'Орехи и сухофрукты'],
   howItWorks: 'Как это работает',
   steps: [
@@ -218,12 +217,11 @@ const kk: Dict = {
 
   becomePartner: 'Серіктес болу',
   appLink: 'Қосымша',
-  openShowcase: 'Витринаны ашу',
   cities: 'Алматы · Астана',
   heroTitle: 'Жаныңыздағы жасыл базар — ',
   heroAccent: 'базардың балғындығымен',
   heroText: 'Көкөніс, жеміс, ет, сүт өнімдері, корей салаттары және базардағының бәрі — ауданыңыздағы тексерілген дүкендерден, жеткізумен немесе өзі алып кетумен.',
-  browseShops: 'Дүкендерді көру →',
+  shopLinkHint: 'Тапсырыс — дүкеніңіз жіберген сілтеме арқылы. Сатушыдан оны WhatsApp немесе Telegram арқылы жіберуін сұраңыз.',
   cats: ['Көкөністер', 'Жемістер', 'Ет', 'Сүт өнімдері', 'Корей салаттары', 'Жаңғақ пен кептірілген жемістер'],
   howItWorks: 'Бұл қалай жұмыс істейді',
   steps: [
@@ -388,12 +386,11 @@ const en: Dict = {
 
   becomePartner: 'Become a partner',
   appLink: 'App',
-  openShowcase: 'Open a shop',
   cities: 'Almaty · Astana',
   heroTitle: 'Your neighbourhood green bazaar — ',
   heroAccent: 'market-fresh',
   heroText: 'Vegetables, fruit, meat, dairy, Korean salads and everything from the bazaar — from trusted shops in your area, delivered or ready for pickup.',
-  browseShops: 'Browse shops →',
+  shopLinkHint: 'Orders are placed via the link from your shop. Ask the seller to send it to you on WhatsApp or Telegram.',
   cats: ['Vegetables', 'Fruit', 'Meat', 'Dairy', 'Korean salads', 'Nuts & dried fruit'],
   howItWorks: 'How it works',
   steps: [
