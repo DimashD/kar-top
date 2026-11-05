@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { fetchTrack, OrderStatus } from '../../../lib/api';
-import { tenge } from '../../../lib/format';
-import { Dict, LOCALES } from '../../../lib/i18n';
+import { grams, tenge } from '../../../lib/format';
+import { Dict, LOCALES, localized } from '../../../lib/i18n';
 import { getDict, getLang } from '../../../lib/i18n-server';
 import { LangSwitcher } from '../../../components/LangProvider';
 import ReviewForm from '../../../components/ReviewForm';
@@ -122,6 +122,44 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
             </>
           ) : null}
         </div>
+
+        {/* Состав: что заказали, что взвесили, что убрали */}
+        {o.items && o.items.length ? (
+          <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+            <h2 style={{ fontSize: 18, margin: '0 0 6px' }}>{t.itemsTitle}</h2>
+            {o.finalTiyn != null && o.finalTiyn !== o.estimatedTiyn ? (
+              <p style={{ fontSize: 14, fontWeight: 700, margin: '0 0 8px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--carrot-50)' }}>
+                {t.sumChanged(tenge(o.estimatedTiyn), tenge(o.finalTiyn))}
+              </p>
+            ) : null}
+            {o.items.map((it) => {
+              const missing = it.status === 'missing';
+              const weighted = it.qtyRequestedG != null;
+              const changed = !missing && weighted && it.qtyActualG != null && it.qtyActualG !== it.qtyRequestedG;
+              const diff = it.actualTiyn - it.orderedTiyn;
+              const qtyLine = missing ? t.removedNotPaid
+                : !weighted ? `${it.qtyRequested ?? 1}\u00a0${t.pcs}`
+                : it.qtyActualG == null ? `${grams(it.qtyRequestedG ?? 0, t)} · ${t.notWeighedYet}`
+                : changed ? t.orderedToWeighed(grams(it.qtyRequestedG ?? 0, t), grams(it.qtyActualG, t))
+                : grams(it.qtyActualG, t);
+              return (
+                <div key={it.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderTop: '1px solid var(--line)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, textDecoration: missing ? 'line-through' : 'none', color: missing ? 'var(--ink-40)' : 'var(--ink)' }}>{localized(it.names, lang)}</div>
+                    <div style={{ fontSize: 13, color: missing ? 'var(--sale)' : 'var(--ink-60)' }}>{qtyLine}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontWeight: 800, color: missing ? 'var(--ink-40)' : 'var(--ink)' }}>{missing ? '—' : tenge(it.actualTiyn)}</div>
+                    {changed && diff !== 0 ? (
+                      <div style={{ fontSize: 12, fontWeight: 700, color: diff > 0 ? 'var(--carrot-600)' : 'var(--leaf)' }}>{diff > 0 ? '+' : '−'}{tenge(Math.abs(diff))}</div>
+                    ) : null}
+                    {missing ? <div style={{ fontSize: 12, color: 'var(--ink-40)', textDecoration: 'line-through' }}>{tenge(it.orderedTiyn)}</div> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
 
         {/* Сумма */}
         <div className="card" style={{ padding: 20 }}>

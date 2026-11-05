@@ -86,6 +86,7 @@ class Api {
       _post('/merchant/orders/$id/items/$itemId/weigh', {'qtyActualG': qtyActualG, if (customerApproved) 'customerApproved': true});
   Future<void> awaitCustomer(String id) => _post('/merchant/orders/$id/await-customer');
   Future<void> markMissing(String id, String itemId) => _post('/merchant/orders/$id/items/$itemId/missing');
+  Future<void> restoreItem(String id, String itemId) => _post('/merchant/orders/$id/items/$itemId/restore');
   Future<void> delivering(String id) => _post('/courier/orders/$id/delivering');
   Future<void> delivered(String id, String code) => _post('/courier/orders/$id/delivered', {'code': code});
 

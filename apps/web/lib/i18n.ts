@@ -2,7 +2,8 @@
 // Язык хранится в cookie `lang`; без неё — по Accept-Language браузера, иначе русский.
 
 export type Lang = 'ru' | 'kk' | 'en';
-export const LANGS: Lang[] = ['ru', 'kk', 'en'];
+// Казахский всегда первым в переключателе.
+export const LANGS: Lang[] = ['kk', 'ru', 'en'];
 export const LANG_COOKIE = 'lang';
 export const LANG_LABELS: Record<Lang, string> = { ru: 'Рус', kk: 'Қаз', en: 'Eng' };
 /** Локаль для дат и чисел. */
@@ -131,6 +132,11 @@ const ru = {
   missing: 'Нет в наличии',
   totalByWeight: 'Итог (по весу)',
   exactSumNote: 'Точная сумма фиксируется после взвешивания при сборке.',
+  itemsTitle: 'Состав заказа',
+  notWeighedYet: 'ещё не взвесили',
+  orderedToWeighed: (ordered: string, weighed: string) => `заказали ${ordered} → взвесили ${weighed}`,
+  removedNotPaid: 'нет в наличии — не оплачиваете',
+  sumChanged: (from: string, to: string) => `После сборки сумма изменилась: ${from} → ${to}`,
   backToStore: 'Вернуться в магазин',
 
   // Отзыв
@@ -311,6 +317,11 @@ const kk: Dict = {
   missing: 'Қолда жоқ',
   totalByWeight: 'Қорытынды (салмақ бойынша)',
   exactSumNote: 'Нақты сома жинау кезінде өлшегеннен кейін белгіленеді.',
+  itemsTitle: 'Тапсырыс құрамы',
+  notWeighedYet: 'әлі өлшенбеді',
+  orderedToWeighed: (ordered: string, weighed: string) => `тапсырыс ${ordered} → өлшенді ${weighed}`,
+  removedNotPaid: 'қолда жоқ — төлемейсіз',
+  sumChanged: (from: string, to: string) => `Жинаудан кейін сома өзгерді: ${from} → ${to}`,
   backToStore: 'Дүкенге оралу',
 
   reviewError: 'Сақтау мүмкін болмады',
@@ -484,6 +495,11 @@ const en: Dict = {
   missing: 'Out of stock',
   totalByWeight: 'Total (by weight)',
   exactSumNote: 'The exact total is fixed after weighing during packing.',
+  itemsTitle: 'Your order',
+  notWeighedYet: 'not weighed yet',
+  orderedToWeighed: (ordered: string, weighed: string) => `ordered ${ordered} → weighed ${weighed}`,
+  removedNotPaid: 'out of stock — you don’t pay for it',
+  sumChanged: (from: string, to: string) => `The total changed after packing: ${from} → ${to}`,
   backToStore: 'Back to the shop',
 
   reviewError: 'Could not save',

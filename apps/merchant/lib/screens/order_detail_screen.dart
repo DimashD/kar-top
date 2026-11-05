@@ -163,11 +163,75 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  /// Маршрут: выбор приложения карт (2ГИС, Яндекс, Google) и «Копировать адрес».
   Future<void> _route(OrderDetail o) async {
-    final messenger = ScaffoldMessenger.of(context);
     final s = context.read<Lang>().s;
-    final ok = await openRoute(lat: o.lat, lng: o.lng, address: o.addressLine);
-    if (!ok) messenger.showSnackBar(SnackBar(content: Text(s.cannotOpen)));
+    final messenger = ScaffoldMessenger.of(context);
+    Future<void> go(BuildContext ctx, MapApp app) async {
+      Navigator.pop(ctx);
+      final ok = await openRoute(app, lat: o.lat, lng: o.lng, address: o.addressLine);
+      if (!ok) messenger.showSnackBar(SnackBar(content: Text(s.cannotOpen)));
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(s.routeIn, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
+              if (o.addressLine != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(o.addressLine!, style: const TextStyle(color: AppColors.ink60)),
+                ),
+              ListTile(leading: const Icon(Icons.map_outlined, color: AppColors.leaf), title: const Text('2ГИС'), onTap: () => go(ctx, MapApp.dgis)),
+              ListTile(leading: const Icon(Icons.map_outlined, color: AppColors.sale), title: Text(s.yandexMaps), onTap: () => go(ctx, MapApp.yandex)),
+              ListTile(leading: const Icon(Icons.map_outlined, color: Color(0xFF2F6FDE)), title: const Text('Google Maps'), onTap: () => go(ctx, MapApp.google)),
+              if (o.addressLine != null)
+                ListTile(
+                  leading: const Icon(Icons.copy_rounded, color: AppColors.ink60),
+                  title: Text(s.copyAddress),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await Clipboard.setData(ClipboardData(text: o.addressLine!));
+                    messenger.showSnackBar(SnackBar(content: Text(s.addressCopied)));
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// «Нет в наличии» — только после подтверждения: действие заметно меняет заказ клиента.
+  Future<void> _confirmMissing(OrderItem it) async {
+    final s = context.read<Lang>().s;
+    final session = context.read<Session>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.confirmMissingTitle),
+        content: Text(s.confirmMissingText(it.name)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.sale),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(s.removeItem),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _do(() => session.api.markMissing(widget.orderId, it.id));
   }
 
   @override
@@ -469,28 +533,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
               const SizedBox(width: 12),
               Text(missing ? '—' : tenge(_lineTiyn(it)), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: missing ? AppColors.ink40 : AppColors.ink)),
+              if (canPick)
+                PopupMenuButton<String>(
+                  tooltip: s.moreActions,
+                  enabled: !_busy,
+                  icon: const Icon(Icons.more_vert, color: AppColors.ink40),
+                  onSelected: (v) => v == 'missing'
+                      ? _confirmMissing(it)
+                      : _do(() => context.read<Session>().api.restoreItem(widget.orderId, it.id)),
+                  itemBuilder: (_) => [
+                    missing
+                        ? PopupMenuItem(value: 'restore', child: Text(s.restoreItem))
+                        : PopupMenuItem(value: 'missing', child: Text(s.outOfStock)),
+                  ],
+                ),
             ],
           ),
-          if (canPick && !missing) ...[
+          if (canPick && it.weighted && !missing) ...[
             const SizedBox(height: 8),
-            Row(
-              children: [
-                if (it.weighted) ...[
-                  OutlinedButton.icon(
+            it.qtyActualG == null
+                ? FilledButton.icon(
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.carrot),
                     onPressed: _busy ? null : () => _weighDialog(it),
                     icon: const Icon(Icons.scale_outlined, size: 18),
-                    label: Text(it.qtyActualG == null ? s.weigh : s.changeWeight),
+                    label: Text(s.weigh),
+                  )
+                : TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: AppColors.ink60, padding: EdgeInsets.zero),
+                    onPressed: _busy ? null : () => _weighDialog(it),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: Text(s.changeWeight),
                   ),
-                  const SizedBox(width: 8),
-                ],
-                TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: AppColors.sale),
-                  onPressed: _busy ? null : () => _do(() => context.read<Session>().api.markMissing(widget.orderId, it.id)),
-                  icon: const Icon(Icons.remove_circle_outline, size: 18),
-                  label: Text(s.outOfStock),
-                ),
-              ],
-            ),
           ],
         ],
       ),

@@ -75,6 +75,11 @@ export class OrderingController {
     return this.ordering.markMissing(id, itemId, user.userId);
   }
 
+  @Post('merchant/orders/:id/items/:itemId/restore')
+  restore(@Param('id') id: string, @Param('itemId') itemId: string, @CurrentUser() user: RequestUser) {
+    return this.ordering.restoreItem(id, itemId, user.userId);
+  }
+
   // --- Курьер ---
   @Post('courier/orders/:id/delivering')
   delivering(@Param('id') id: string, @CurrentUser() user: RequestUser) {

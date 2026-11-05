@@ -53,6 +53,12 @@ export interface OrderTrack {
   finalTiyn: number | null;
   itemCount: number;
   missingCount: number;
+  /** Состав: заказано / взвешено / убрано — чтобы покупатель видел, откуда изменилась сумма. */
+  items?: {
+    id: string; names: { ru: string; kk?: string; en?: string }; unit: 'KG' | 'G' | 'PCS' | 'BUNCH' | 'PACK'; status: string;
+    qtyRequestedG: number | null; qtyRequested: number | null; qtyActualG: number | null;
+    priceTiyn: number; orderedTiyn: number; actualTiyn: number;
+  }[];
   timeline: { to: OrderStatus; at: string }[];
   deliveryCode: string | null;
   canReview: boolean;

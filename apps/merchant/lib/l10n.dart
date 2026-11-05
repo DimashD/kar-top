@@ -5,22 +5,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Язык интерфейса приложения магазина: ru, kk, tg, uz.
 /// Выбор сохраняется на устройстве; по умолчанию — язык телефона, если он поддержан, иначе русский.
 class Lang extends ChangeNotifier {
-  static const supported = ['ru', 'kk', 'tg', 'uz'];
+  // Казахский всегда первым в списках выбора.
+  static const supported = ['kk', 'ru', 'tg', 'uz'];
   static const _kLang = 'lang';
 
   String code = 'ru';
+  /// Язык уже выбран пользователем (иначе при первом запуске показываем экран выбора).
+  bool chosen = false;
   S get s => S.forCode(code);
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_kLang);
+    chosen = supported.contains(saved);
     final device = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
     code = supported.contains(saved) ? saved! : (supported.contains(device) ? device : 'ru');
   }
 
   Future<void> set(String c) async {
-    if (!supported.contains(c) || c == code) return;
+    if (!supported.contains(c) || (c == code && chosen)) return;
     code = c;
+    chosen = true;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kLang, c);
@@ -77,6 +82,15 @@ abstract class S {
   String sumPreview(String amount);
   String perKgPrice(String price);
   String get buildRoute;
+  String get moreActions;
+  String get confirmMissingTitle;
+  String confirmMissingText(String name);
+  String get removeItem;
+  String get restoreItem;
+  String get routeIn;
+  String get copyAddress;
+  String get addressCopied;
+  String get yandexMaps;
   String allowedRange(String min, String max);
   String get outOfRange;
   String get customerAgreed;
@@ -280,6 +294,15 @@ class _Ru extends S {
   @override String sumPreview(String amount) => 'Сумма: $amount';
   @override String perKgPrice(String price) => '$price за кг';
   @override String get buildRoute => 'Построить маршрут';
+  @override String get moreActions => 'Ещё';
+  @override String get confirmMissingTitle => 'Нет в наличии?';
+  @override String confirmMissingText(String name) => '«$name» уберём из заказа — клиент его не оплатит и увидит это на странице заказа.';
+  @override String get removeItem => 'Убрать из заказа';
+  @override String get restoreItem => 'Вернуть в заказ';
+  @override String get routeIn => 'Построить маршрут в';
+  @override String get copyAddress => 'Копировать адрес';
+  @override String get addressCopied => 'Адрес скопирован';
+  @override String get yandexMaps => 'Яндекс Карты';
   @override String allowedRange(String min, String max) => 'Допустимо: $min – $max';
   @override String get outOfRange => 'Вес вне допуска. Позвоните клиенту: согласуйте вес или отметьте «нет в наличии».';
   @override String get customerAgreed => 'Клиент согласен — сохранить';
@@ -465,6 +488,15 @@ class _Kk extends S {
   @override String sumPreview(String amount) => 'Сомасы: $amount';
   @override String perKgPrice(String price) => '1 кг — $price';
   @override String get buildRoute => 'Маршрут құру';
+  @override String get moreActions => 'Тағы';
+  @override String get confirmMissingTitle => 'Қолда жоқ па?';
+  @override String confirmMissingText(String name) => '«$name» тапсырыстан алынып тасталады — клиент оны төлемейді және тапсырыс бетінде көреді.';
+  @override String get removeItem => 'Тапсырыстан алу';
+  @override String get restoreItem => 'Тапсырысқа қайтару';
+  @override String get routeIn => 'Маршрут құру';
+  @override String get copyAddress => 'Мекенжайды көшіру';
+  @override String get addressCopied => 'Мекенжай көшірілді';
+  @override String get yandexMaps => 'Яндекс Карталар';
   @override String allowedRange(String min, String max) => 'Рұқсат етілген: $min – $max';
   @override String get outOfRange => 'Салмақ рұқсат етілгеннен тыс. Клиентке қоңырау шалып, салмақты келісіңіз немесе «қолда жоқ» деп белгілеңіз.';
   @override String get customerAgreed => 'Клиент келісті — сақтау';
@@ -650,6 +682,15 @@ class _Tg extends S {
   @override String sumPreview(String amount) => 'Маблағ: $amount';
   @override String perKgPrice(String price) => '$price барои 1 кг';
   @override String get buildRoute => 'Сохтани масир';
+  @override String get moreActions => 'Боз';
+  @override String get confirmMissingTitle => 'Дар мавҷудият нест?';
+  @override String confirmMissingText(String name) => '«$name» аз фармоиш хориҷ мешавад — мизоҷ онро пардохт намекунад ва дар саҳифаи фармоиш мебинад.';
+  @override String get removeItem => 'Аз фармоиш хориҷ кардан';
+  @override String get restoreItem => 'Ба фармоиш баргардондан';
+  @override String get routeIn => 'Сохтани масир дар';
+  @override String get copyAddress => 'Нусха бардоштани суроға';
+  @override String get addressCopied => 'Суроға нусхабардорӣ шуд';
+  @override String get yandexMaps => 'Яндекс Харитаҳо';
   @override String allowedRange(String min, String max) => 'Иҷозат: $min – $max';
   @override String get outOfRange => 'Вазн аз ҳадди иҷозат берун аст. Ба мизоҷ занг занед: вазнро мувофиқа кунед ё «дар мавҷудият нест» қайд кунед.';
   @override String get customerAgreed => 'Мизоҷ розӣ аст — нигоҳ доштан';
@@ -835,6 +876,15 @@ class _Uz extends S {
   @override String sumPreview(String amount) => 'Summa: $amount';
   @override String perKgPrice(String price) => '1 kg — $price';
   @override String get buildRoute => 'Yoʻnalish qurish';
+  @override String get moreActions => 'Yana';
+  @override String get confirmMissingTitle => 'Mavjud emasmi?';
+  @override String confirmMissingText(String name) => '«$name» buyurtmadan olib tashlanadi — mijoz uni toʻlamaydi va buyurtma sahifasida koʻradi.';
+  @override String get removeItem => 'Buyurtmadan olib tashlash';
+  @override String get restoreItem => 'Buyurtmaga qaytarish';
+  @override String get routeIn => 'Yoʻnalish qurish';
+  @override String get copyAddress => 'Manzilni nusxalash';
+  @override String get addressCopied => 'Manzil nusxalandi';
+  @override String get yandexMaps => 'Yandex Xaritalar';
   @override String allowedRange(String min, String max) => 'Ruxsat etilgan: $min – $max';
   @override String get outOfRange => 'Vazn ruxsat etilgan chegaradan tashqarida. Mijozga qoʻngʻiroq qiling: vaznni kelishing yoki «mavjud emas» deb belgilang.';
   @override String get customerAgreed => 'Mijoz rozi — saqlash';
