@@ -10,7 +10,9 @@ class DeliveryMap extends StatelessWidget {
   final double lat;
   final double lng;
   final bool approx;
-  const DeliveryMap({super.key, required this.lat, required this.lng, required this.approx});
+  /// Нажатие на карту (например, открыть маршрут). null — карта только для просмотра.
+  final VoidCallback? onTap;
+  const DeliveryMap({super.key, required this.lat, required this.lng, required this.approx, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +27,13 @@ class DeliveryMap extends StatelessWidget {
               options: MapOptions(
                 initialCenter: center,
                 initialZoom: approx ? 13 : 16,
+                onTap: onTap == null ? null : (_, _) => onTap!(),
                 interactionOptions: const InteractionOptions(flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag),
               ),
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'kz.kartop.merchant',
+                  userAgentPackageName: 'kz.kartop.kartop_merchant',
                   maxZoom: 19,
                 ),
                 if (approx)

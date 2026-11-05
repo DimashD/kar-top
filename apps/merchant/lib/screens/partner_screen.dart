@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
+import '../phone.dart';
 import '../session.dart';
 import '../theme.dart';
 
@@ -22,9 +23,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
   String? _error;
 
   bool get _valid {
-    final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
-    final phoneOk = RegExp(r'^(7|8)7\d{9}$').hasMatch(digits);
-    return _name.text.trim().length >= 2 && phoneOk;
+    return _name.text.trim().length >= 2 && isValidKzPhone(_phone.text);
   }
 
   Future<void> _submit() async {
@@ -33,7 +32,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
     try {
       await context.read<Session>().api.applyPartner(
             name: _name.text.trim(),
-            phone: _phone.text.trim(),
+            phone: kzPhoneE164(_phone.text),
             company: _company.text.trim(),
             twogisUrl: _twogis.text.trim(),
           );
@@ -103,7 +102,8 @@ class _PartnerScreenState extends State<PartnerScreen> {
             const SizedBox(height: 16),
             _label(s, s.phone, required: true),
             TextField(controller: _phone, keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(hintText: '+77011234567'),
+              inputFormatters: [KzPhoneFormatter()],
+              decoration: const InputDecoration(hintText: '+7 701 123 45 67'),
               onChanged: (_) => setState(() {})),
             const SizedBox(height: 16),
             _label(s, s.companyName, required: false),

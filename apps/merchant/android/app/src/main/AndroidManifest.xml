@@ -53,5 +53,10 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="https"/>
         </intent>
+        <!-- «Построить маршрут» в приложении 2ГИС. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="dgis"/>
+        </intent>
     </queries>
 </manifest>

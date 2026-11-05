@@ -64,6 +64,19 @@ abstract class S {
   String get payCardCourier;
   String get payKaspi;
   Map<String, String> get statuses;
+  Map<String, String> get roles;
+  Map<String, String> get storeStatuses;
+  String get total;
+  String get estimateNote;
+  String get weigh;
+  String get customer;
+  String ordered(String qty);
+  String get weighed;
+  String get changeWeight;
+  String get weightGrams;
+  String sumPreview(String amount);
+  String perKgPrice(String price);
+  String get buildRoute;
 
   // Вход
   String get merchantCabinet;
@@ -217,6 +230,19 @@ class _Ru extends S {
         'COMPLETED': 'Завершён',
         'CANCELLED': 'Отменён',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Владелец', 'MANAGER': 'Менеджер', 'PICKER': 'Сборщик', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'На модерации', 'SUSPENDED': 'Приостановлен', 'BLOCKED': 'Заблокирован'};
+  @override String get total => 'Итого';
+  @override String get estimateNote => 'Оценочно — точная сумма после взвешивания';
+  @override String get weigh => 'Взвесить';
+  @override String get customer => 'Клиент';
+  @override String ordered(String qty) => 'Заказано: $qty';
+  @override String get weighed => 'Взвешено';
+  @override String get changeWeight => 'Изменить вес';
+  @override String get weightGrams => 'Вес, г';
+  @override String sumPreview(String amount) => 'Сумма: $amount';
+  @override String perKgPrice(String price) => '$price за кг';
+  @override String get buildRoute => 'Построить маршрут';
   @override String get merchantCabinet => 'Кабинет магазина';
   @override String get phone => 'Телефон';
   @override String get sending => 'Отправляем…';
@@ -352,6 +378,19 @@ class _Kk extends S {
         'COMPLETED': 'Аяқталды',
         'CANCELLED': 'Бас тартылды',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Иесі', 'MANAGER': 'Менеджер', 'PICKER': 'Жинаушы', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Модерацияда', 'SUSPENDED': 'Тоқтатылған', 'BLOCKED': 'Бұғатталған'};
+  @override String get total => 'Барлығы';
+  @override String get estimateNote => 'Шамамен — нақты сома өлшегеннен кейін';
+  @override String get weigh => 'Өлшеу';
+  @override String get customer => 'Клиент';
+  @override String ordered(String qty) => 'Тапсырыс: $qty';
+  @override String get weighed => 'Өлшенді';
+  @override String get changeWeight => 'Салмағын өзгерту';
+  @override String get weightGrams => 'Салмағы, г';
+  @override String sumPreview(String amount) => 'Сомасы: $amount';
+  @override String perKgPrice(String price) => '1 кг — $price';
+  @override String get buildRoute => 'Маршрут құру';
   @override String get merchantCabinet => 'Дүкен кабинеті';
   @override String get phone => 'Телефон';
   @override String get sending => 'Жіберілуде…';
@@ -487,6 +526,19 @@ class _Tg extends S {
         'COMPLETED': 'Анҷом ёфт',
         'CANCELLED': 'Бекор шуд',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Соҳиб', 'MANAGER': 'Менеҷер', 'PICKER': 'Ҷамъкунанда', 'COURIER': 'Курьер'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Дар баррасӣ', 'SUSPENDED': 'Боздошта шудааст', 'BLOCKED': 'Басташуда'};
+  @override String get total => 'Ҳамагӣ';
+  @override String get estimateNote => 'Тахминан — маблағи дақиқ пас аз баркашӣ';
+  @override String get weigh => 'Баркашидан';
+  @override String get customer => 'Мизоҷ';
+  @override String ordered(String qty) => 'Фармоиш шуд: $qty';
+  @override String get weighed => 'Баркашида шуд';
+  @override String get changeWeight => 'Иваз кардани вазн';
+  @override String get weightGrams => 'Вазн, г';
+  @override String sumPreview(String amount) => 'Маблағ: $amount';
+  @override String perKgPrice(String price) => '$price барои 1 кг';
+  @override String get buildRoute => 'Сохтани масир';
   @override String get merchantCabinet => 'Кабинети мағоза';
   @override String get phone => 'Телефон';
   @override String get sending => 'Фиристода истодаем…';
@@ -622,6 +674,19 @@ class _Uz extends S {
         'COMPLETED': 'Yakunlandi',
         'CANCELLED': 'Bekor qilindi',
       };
+  @override Map<String, String> get roles => const {'OWNER': 'Egasi', 'MANAGER': 'Menejer', 'PICKER': 'Yigʻuvchi', 'COURIER': 'Kuryer'};
+  @override Map<String, String> get storeStatuses => const {'PENDING': 'Moderatsiyada', 'SUSPENDED': 'Toʻxtatilgan', 'BLOCKED': 'Bloklangan'};
+  @override String get total => 'Jami';
+  @override String get estimateNote => 'Taxminan — aniq summa tortilgandan keyin';
+  @override String get weigh => 'Tortish';
+  @override String get customer => 'Mijoz';
+  @override String ordered(String qty) => 'Buyurtma: $qty';
+  @override String get weighed => 'Tortildi';
+  @override String get changeWeight => 'Vaznni oʻzgartirish';
+  @override String get weightGrams => 'Vazn, g';
+  @override String sumPreview(String amount) => 'Summa: $amount';
+  @override String perKgPrice(String price) => '1 kg — $price';
+  @override String get buildRoute => 'Yoʻnalish qurish';
   @override String get merchantCabinet => 'Doʻkon kabineti';
   @override String get phone => 'Telefon';
   @override String get sending => 'Yuborilmoqda…';

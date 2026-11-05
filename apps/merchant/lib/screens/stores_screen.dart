@@ -63,7 +63,18 @@ class _StoresScreenState extends State<StoresScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: const CircleAvatar(backgroundColor: AppColors.carrot50, child: Text('🏪')),
                   title: Text(st.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${st.status} · ${st.myRole}', style: const TextStyle(color: AppColors.ink40)),
+                  // Роль — на языке интерфейса; статус показываем, только если магазин не активен.
+                  subtitle: Row(children: [
+                    Text(s.roles[st.myRole] ?? st.myRole, style: const TextStyle(color: AppColors.ink60)),
+                    if (st.status != 'ACTIVE') ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: AppColors.sale.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(999)),
+                        child: Text(s.storeStatuses[st.status] ?? st.status, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.sale)),
+                      ),
+                    ],
+                  ]),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _open(st),
                 ),

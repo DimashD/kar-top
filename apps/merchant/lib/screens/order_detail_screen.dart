@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
+import 'package:flutter/services.dart';
 import '../l10n.dart';
+import '../map_links.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -53,28 +55,83 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  /// Взвешивание: заказанный вес, поле для фактического, быстрые кнопки и пересчёт суммы на лету.
   Future<void> _weighDialog(OrderItem item) async {
     final session = context.read<Session>();
     final s = context.read<Lang>().s;
-    final ctrl = TextEditingController(text: (item.qtyActualG ?? item.qtyRequestedG ?? 0).toString());
-    final result = await showDialog<int>(
+    final requested = item.qtyRequestedG ?? 0;
+    final ctrl = TextEditingController(text: (item.qtyActualG ?? requested).toString());
+    final result = await showModalBottomSheet<int>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.weighTitle(item.name)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(suffixText: s.unitG, hintText: s.actualWeight),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: Text(s.save)),
-        ],
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final g = int.tryParse(ctrl.text) ?? 0;
+          void setG(int v) {
+            ctrl.text = '${v < 0 ? 0 : v}';
+            setSheet(() {});
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(item.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('${s.ordered(grams(s, requested))} · ${s.perKgPrice(tenge(item.priceSnapTiyn))}',
+                    style: const TextStyle(color: AppColors.ink60)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                  decoration: InputDecoration(labelText: s.weightGrams, suffixText: s.unitG),
+                  onChanged: (_) => setSheet(() {}),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    for (final d in const [-50, -10, 10, 50]) ...[
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => setG(g + d),
+                          child: Text(d > 0 ? '+$d' : '$d'),
+                        ),
+                      ),
+                      if (d != 50) const SizedBox(width: 6),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(s.sumPreview(tenge((item.priceSnapTiyn * g / 1000).round())),
+                    textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  onPressed: g > 0 ? () => Navigator.pop(ctx, g) : null,
+                  child: Text(s.save),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
     if (result != null && result > 0) {
       await _do(() => session.api.weigh(widget.orderId, item.id, result));
     }
+  }
+
+  Future<void> _route(OrderDetail o) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = context.read<Lang>().s;
+    final ok = await openRoute(lat: o.lat, lng: o.lng, address: o.addressLine);
+    if (!ok) messenger.showSnackBar(SnackBar(content: Text(s.cannotOpen)));
   }
 
   @override
@@ -83,34 +140,137 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final o = _order;
     return Scaffold(
       appBar: AppBar(title: Text(o != null ? s.orderNo(o.number) : s.order)),
-      body: _loading
+      body: _loading && o == null
           ? const Center(child: CircularProgressIndicator())
           : o == null
               ? Center(child: Text(_error ?? s.error, style: const TextStyle(color: AppColors.sale)))
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _statusChip(s, o.status),
-                    const SizedBox(height: 12),
-                    _customerCard(s, o),
-                    const SizedBox(height: 12),
-                    _itemsCard(s, o),
-                    const SizedBox(height: 12),
-                    _payCard(s, o),
-                  ],
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    children: [
+                      _headerCard(s, o),
+                      const SizedBox(height: 12),
+                      _customerCard(s, o),
+                      const SizedBox(height: 12),
+                      _itemsCard(s, o),
+                      const SizedBox(height: 12),
+                      _payCard(s, o),
+                    ],
+                  ),
                 ),
       bottomNavigationBar: o == null ? null : _actions(s, o),
     );
   }
 
-  Widget _statusChip(S s, String status) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: AppColors.carrot50, borderRadius: BorderRadius.circular(999)),
-          child: Text(statusLabel(s, status), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+  /// Подпись над блоком карточки: «КЛИЕНТ», «СОСТАВ ЗАКАЗА».
+  Widget _sectionLabel(String text, {Widget? trailing}) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Text(text.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink40, letterSpacing: 0.6)),
+            if (trailing != null) ...[const SizedBox(width: 8), trailing],
+          ],
         ),
       );
+
+  Widget _chip(String text, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+        child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+      );
+
+  /// Способ получения, статус и шкала этапов заказа.
+  Widget _headerCard(S s, OrderDetail o) {
+    final pickup = o.fulfillment == 'PICKUP';
+    final cancelled = o.status == 'CANCELLED';
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: AppColors.carrot50, borderRadius: BorderRadius.circular(12)),
+                  alignment: Alignment.center,
+                  child: Icon(pickup ? Icons.storefront : Icons.local_shipping_outlined, color: AppColors.carrot600),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(pickup ? s.pickup : s.delivery, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                      if (pickup && o.pickupAt != null)
+                        Text(dateTime(s, o.pickupAt!), style: const TextStyle(color: AppColors.ink60)),
+                      if (!pickup && o.district != null)
+                        Text(o.district!, style: const TextStyle(color: AppColors.ink60)),
+                    ],
+                  ),
+                ),
+                _chip(statusLabel(s, o.status), cancelled ? AppColors.sale : AppColors.carrot600),
+              ],
+            ),
+            if (!cancelled) ...[
+              const SizedBox(height: 16),
+              _progress(s, o),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Шкала: Новый → Принят → Сборка → Готов → В пути / К выдаче → Выдан.
+  Widget _progress(S s, OrderDetail o) {
+    const order = ['PLACED', 'ACCEPTED', 'PICKING', 'AWAITING_CUSTOMER', 'READY', 'COURIER_ASSIGNED', 'DELIVERING', 'DELIVERED', 'COMPLETED'];
+    final pickup = o.fulfillment == 'PICKUP';
+    final steps = <(String, String)>[
+      ('PLACED', statusLabel(s, 'PLACED')),
+      ('ACCEPTED', statusLabel(s, 'ACCEPTED')),
+      ('PICKING', statusLabel(s, 'PICKING')),
+      ('READY', statusLabel(s, 'READY')),
+      ('DELIVERING', pickup ? s.readyForPickup : statusLabel(s, 'DELIVERING')),
+      ('DELIVERED', statusLabel(s, 'DELIVERED')),
+    ];
+    final cur = order.indexOf(o.status);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < steps.length; i++)
+          Expanded(
+            child: Builder(builder: (_) {
+              final idx = order.indexOf(steps[i].$1);
+              final next = i + 1 < steps.length ? order.indexOf(steps[i + 1].$1) : order.length;
+              final done = cur >= next;
+              final active = cur >= idx && cur < next;
+              final color = done ? AppColors.leaf : active ? AppColors.carrot : AppColors.line;
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: Container(height: 3, color: i == 0 ? Colors.transparent : (cur >= idx ? AppColors.leaf : AppColors.line))),
+                      Container(
+                        width: 20, height: 20,
+                        decoration: BoxDecoration(color: done || active ? color : AppColors.card, shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
+                        child: done ? const Icon(Icons.check, size: 13, color: Colors.white) : null,
+                      ),
+                      Expanded(child: Container(height: 3, color: i == steps.length - 1 ? Colors.transparent : (done ? AppColors.leaf : AppColors.line))),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(steps[i].$2, textAlign: TextAlign.center, maxLines: 2,
+                      style: TextStyle(fontSize: 11, height: 1.15, fontWeight: active ? FontWeight.w800 : FontWeight.w500, color: active ? AppColors.ink : AppColors.ink40)),
+                ],
+              );
+            }),
+          ),
+      ],
+    );
+  }
 
   Widget _customerCard(S s, OrderDetail o) {
     return Card(
@@ -119,101 +279,240 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(o.fulfillment == 'PICKUP' ? s.pickup : s.delivery, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
+            _sectionLabel(s.customer),
             if (!o.piiVisible) ...[
-              if (o.district != null) Text(s.district(o.district!), style: const TextStyle(fontWeight: FontWeight.w700)),
-              Text(s.piiHidden, style: const TextStyle(color: AppColors.ink40)),
-              if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline, color: AppColors.ink40, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(s.piiHidden, style: const TextStyle(color: AppColors.ink60))),
+                  ],
+                ),
+              ),
+              if (o.district != null) ...[
                 const SizedBox(height: 10),
+                _infoRow(Icons.place_outlined, s.district(o.district!)),
+              ],
+              if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
+                const SizedBox(height: 12),
                 DeliveryMap(lat: o.lat!, lng: o.lng!, approx: true),
               ],
             ] else ...[
-              Text(o.customerName ?? '—', style: const TextStyle(fontWeight: FontWeight.w700)),
-              if (o.customerPhone != null) Text(o.customerPhone!, style: const TextStyle(color: AppColors.ink60)),
-              if (o.customerPhone != null) ContactActions(phone: o.customerPhone!),
-              if (o.fulfillment == 'DELIVERY' && o.addressLine != null) Text(o.addressLine!, style: const TextStyle(color: AppColors.ink60)),
-              if (o.fulfillment == 'PICKUP' && o.pickupAt != null) Text(s.pickupAt(dateTime(s, o.pickupAt!)), style: const TextStyle(color: AppColors.ink60)),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.carrot50,
+                    child: Text(_initial(o.customerName), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(o.customerName ?? '—', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                        if (o.customerPhone != null)
+                          Text(formatKzPhone(o.customerPhone!), style: const TextStyle(fontSize: 15, color: AppColors.ink60, letterSpacing: 0.3)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (o.customerPhone != null) ...[
+                const SizedBox(height: 14),
+                ContactActions(phone: o.customerPhone!),
+              ],
+              if (o.fulfillment == 'DELIVERY' && o.addressLine != null) ...[
+                const SizedBox(height: 14),
+                InkWell(onTap: () => _route(o), child: _infoRow(Icons.place_outlined, o.addressLine!)),
+              ],
+              if (o.fulfillment == 'PICKUP' && o.pickupAt != null) ...[
+                const SizedBox(height: 14),
+                _infoRow(Icons.schedule, s.pickupAt(dateTime(s, o.pickupAt!))),
+              ],
               if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
-                const SizedBox(height: 10),
-                DeliveryMap(lat: o.lat!, lng: o.lng!, approx: false),
+                const SizedBox(height: 12),
+                DeliveryMap(lat: o.lat!, lng: o.lng!, approx: false, onTap: () => _route(o)),
+              ],
+              if (o.fulfillment == 'DELIVERY' && (o.hasLocation || o.addressLine != null)) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _route(o),
+                    icon: const Icon(Icons.directions),
+                    label: Text(s.buildRoute),
+                  ),
+                ),
               ],
             ],
           ],
         ),
       ),
     );
+  }
+
+  String _initial(String? name) {
+    final n = (name ?? '').trim();
+    return n.isEmpty ? '?' : n.substring(0, 1).toUpperCase();
+  }
+
+  Widget _infoRow(IconData icon, String text) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.carrot),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+        ],
+      );
+
+  /// Сумма позиции: весовые — цена за кг × фактический (или заказанный) вес.
+  int _lineTiyn(OrderItem it) {
+    if (it.status == 'missing') return 0;
+    if (it.weighted) return (it.priceSnapTiyn * (it.qtyActualG ?? it.qtyRequestedG ?? 0) / 1000).round();
+    return it.priceSnapTiyn * (it.qtyRequested ?? 1);
   }
 
   Widget _itemsCard(S s, OrderDetail o) {
     final canPick = o.status == 'PICKING';
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(s.orderItems, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            ...o.items.map((it) {
-              final missing = it.status == 'missing';
-              final qty = it.weighted
-                  ? grams(s, it.qtyActualG ?? it.qtyRequestedG ?? 0)
-                  : '${it.qtyRequested ?? 1} ${s.unitPcs}';
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(it.name, style: TextStyle(fontWeight: FontWeight.w600, decoration: missing ? TextDecoration.lineThrough : null, color: missing ? AppColors.ink40 : AppColors.ink)),
-                          Text('$qty${it.weighted && it.qtyActualG == null ? ' · ${s.needsWeighing}' : ''}', style: const TextStyle(color: AppColors.ink40, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    if (canPick && !missing) ...[
-                      if (it.weighted)
-                        IconButton(onPressed: _busy ? null : () => _weighDialog(it), icon: const Icon(Icons.scale, color: AppColors.carrot)),
-                      IconButton(
-                        onPressed: _busy ? null : () => _do(() => context.read<Session>().api.markMissing(widget.orderId, it.id)),
-                        icon: const Icon(Icons.remove_circle_outline, color: AppColors.sale),
-                        tooltip: s.outOfStock,
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            }),
+            _sectionLabel(s.orderItems, trailing: _chip('${o.items.length}', AppColors.ink60)),
+            for (var i = 0; i < o.items.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              _itemRow(s, o.items[i], canPick),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _payCard(S s, OrderDetail o) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _itemRow(S s, OrderItem it, bool canPick) {
+    final missing = it.status == 'missing';
+    final needsWeigh = it.weighted && it.qtyActualG == null && !missing;
+    final qty = it.weighted ? grams(s, it.qtyActualG ?? it.qtyRequestedG ?? 0) : '${it.qtyRequested ?? 1} ${s.unitPcs}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.payOnReceipt, style: const TextStyle(color: AppColors.ink60)),
-                  Text(payLabel(s, o.payMethod), style: const TextStyle(fontWeight: FontWeight.w700)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(it.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, decoration: missing ? TextDecoration.lineThrough : null, color: missing ? AppColors.ink40 : AppColors.ink)),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(qty, style: const TextStyle(color: AppColors.ink60, fontWeight: FontWeight.w600)),
+                        if (needsWeigh) _chip(s.needsWeighing, AppColors.carrot600),
+                        if (it.weighted && it.qtyActualG != null && !missing) ...[
+                          _chip('✓ ${s.weighed}', AppColors.leaf),
+                          if (it.qtyRequestedG != null && it.qtyRequestedG != it.qtyActualG)
+                            Text(s.ordered(grams(s, it.qtyRequestedG!)), style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                        ],
+                        if (missing) _chip(s.outOfStock, AppColors.sale),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              Text(tenge(o.finalTiyn ?? o.subtotalTiyn), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.carrot600)),
+              const SizedBox(width: 12),
+              Text(missing ? '—' : tenge(_lineTiyn(it)), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: missing ? AppColors.ink40 : AppColors.ink)),
             ],
           ),
+          if (canPick && !missing) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (it.weighted) ...[
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _weighDialog(it),
+                    icon: const Icon(Icons.scale_outlined, size: 18),
+                    label: Text(it.qtyActualG == null ? s.weigh : s.changeWeight),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                TextButton.icon(
+                  style: TextButton.styleFrom(foregroundColor: AppColors.sale),
+                  onPressed: _busy ? null : () => _do(() => context.read<Session>().api.markMissing(widget.orderId, it.id)),
+                  icon: const Icon(Icons.remove_circle_outline, size: 18),
+                  label: Text(s.outOfStock),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _payCard(S s, OrderDetail o) {
+    final estimate = o.finalTiyn == null && o.items.any((it) => it.weighted && it.status != 'missing');
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s.total, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink40)),
+                      const SizedBox(height: 2),
+                      Text(tenge(o.finalTiyn ?? o.subtotalTiyn), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(s.payOnReceipt, style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                    const SizedBox(height: 4),
+                    _chip(payLabel(s, o.payMethod), AppColors.leaf),
+                  ],
+                ),
+              ],
+            ),
+            if (estimate) ...[
+              const SizedBox(height: 8),
+              Text(s.estimateNote, style: const TextStyle(fontSize: 13, color: AppColors.ink60)),
+            ],
+          ],
         ),
-      );
+      ),
+    );
+  }
 
   Widget? _actions(S s, OrderDetail o) {
     final session = context.read<Session>();
-    Widget bar(Widget child) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: child));
+    // Белая панель с основной кнопкой этапа; пока идёт запрос — индикатор вместо текста.
+    Widget bar(Widget child) => Container(
+          decoration: const BoxDecoration(color: AppColors.card, border: Border(top: BorderSide(color: AppColors.line))),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: SizedBox(height: 52, child: child),
+            ),
+          ),
+        );
 
     switch (o.status) {
       case 'PLACED':
