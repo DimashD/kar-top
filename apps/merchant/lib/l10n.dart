@@ -140,6 +140,7 @@ abstract class S {
   String get needsWeighing;
   String get outOfStock;
   String get payOnReceipt;
+  String get payment;
   String get acceptOrder;
   String get startPicking;
   String get pickedReady;
@@ -164,6 +165,9 @@ abstract class S {
   String get proposeItem;
   String get catalogEmpty;
   String get searchProducts;
+  String get allCategories;
+  String productsCount(int n);
+  String hiddenCount(int n);
   String get all;
   String get inStockFilter;
   String get hiddenFilter;
@@ -185,6 +189,13 @@ abstract class S {
   String get ownDelivery;
   String get ownDeliveryHelper;
   String aboutMinutes(int n);
+  String get ownDeliveryTitle;
+  String get ownDeliverySubtitle;
+  String get courierService;
+  String get courierServiceSubtitle;
+  String get soon;
+  String get keepOneMethod;
+  String get averageTime;
   String get security;
   String get appLock;
   String get appLockSubtitle;
@@ -242,7 +253,7 @@ class _Ru extends S {
   @override String get unitBunch => 'пучок';
   @override String get unitPack => 'упак.';
   @override String get payCash => 'Наличными';
-  @override String get payCardCourier => 'Картой курьеру';
+  @override String get payCardCourier => 'Картой при получении';
   @override String get payKaspi => 'Перевод Kaspi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Новый',
@@ -324,6 +335,7 @@ class _Ru extends S {
   @override String get needsWeighing => 'нужно взвесить';
   @override String get outOfStock => 'Нет в наличии';
   @override String get payOnReceipt => 'Оплата при получении';
+  @override String get payment => 'Оплата';
   @override String get acceptOrder => 'Принять заказ';
   @override String get startPicking => 'Начать сборку';
   @override String get pickedReady => 'Собрано, готово';
@@ -344,6 +356,9 @@ class _Ru extends S {
   @override String get proposeItem => 'Предложить товар или категорию';
   @override String get catalogEmpty => 'Ассортимент пуст';
   @override String get searchProducts => 'Поиск товаров';
+  @override String get allCategories => 'Все категории';
+  @override String productsCount(int n) => '$n товаров';
+  @override String hiddenCount(int n) => '$n скрыто';
   @override String get all => 'Все';
   @override String get inStockFilter => 'В наличии';
   @override String get hiddenFilter => 'Скрыты';
@@ -363,6 +378,13 @@ class _Ru extends S {
   @override String get ownDelivery => 'Своя доставка: среднее время';
   @override String get ownDeliveryHelper => 'Сколько в среднем минут от заказа до вручения клиенту';
   @override String aboutMinutes(int n) => '≈ $n мин от оформления до вручения';
+  @override String get ownDeliveryTitle => 'Своя доставка';
+  @override String get ownDeliverySubtitle => 'Курьер магазина привозит заказ клиенту';
+  @override String get courierService => 'Курьерская служба';
+  @override String get courierServiceSubtitle => 'Подключим скоро — курьер службы будет забирать заказ из магазина';
+  @override String get soon => 'Скоро';
+  @override String get keepOneMethod => 'Оставьте включённым хотя бы один способ: доставку или самовывоз';
+  @override String get averageTime => 'Среднее время доставки';
   @override String get security => 'Безопасность';
   @override String get appLock => 'Защита входа';
   @override String get appLockSubtitle => 'Face ID / отпечаток или PIN при открытии';
@@ -416,7 +438,7 @@ class _Kk extends S {
   @override String get unitBunch => 'байлам';
   @override String get unitPack => 'қаптама';
   @override String get payCash => 'Қолма-қол';
-  @override String get payCardCourier => 'Курьерге картамен';
+  @override String get payCardCourier => 'Алған кезде картамен';
   @override String get payKaspi => 'Kaspi аударымы';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Жаңа',
@@ -498,6 +520,7 @@ class _Kk extends S {
   @override String get needsWeighing => 'өлшеу керек';
   @override String get outOfStock => 'Қолда жоқ';
   @override String get payOnReceipt => 'Алған кезде төлеу';
+  @override String get payment => 'Төлем';
   @override String get acceptOrder => 'Тапсырысты қабылдау';
   @override String get startPicking => 'Жинауды бастау';
   @override String get pickedReady => 'Жиналды, дайын';
@@ -518,6 +541,9 @@ class _Kk extends S {
   @override String get proposeItem => 'Тауар немесе санат ұсыну';
   @override String get catalogEmpty => 'Ассортимент бос';
   @override String get searchProducts => 'Тауар іздеу';
+  @override String get allCategories => 'Барлық санаттар';
+  @override String productsCount(int n) => '$n тауар';
+  @override String hiddenCount(int n) => '$n жасырылған';
   @override String get all => 'Барлығы';
   @override String get inStockFilter => 'Бар';
   @override String get hiddenFilter => 'Жасырылған';
@@ -537,6 +563,13 @@ class _Kk extends S {
   @override String get ownDelivery => 'Өз жеткізуіміз: орташа уақыт';
   @override String get ownDeliveryHelper => 'Тапсырыстан клиентке тапсыруға дейін орта есеппен неше минут';
   @override String aboutMinutes(int n) => '≈ $n мин рәсімдеуден тапсыруға дейін';
+  @override String get ownDeliveryTitle => 'Өз жеткізуіміз';
+  @override String get ownDeliverySubtitle => 'Дүкен курьері тапсырысты клиентке жеткізеді';
+  @override String get courierService => 'Курьерлік қызмет';
+  @override String get courierServiceSubtitle => 'Жақында қосамыз — қызмет курьері тапсырысты дүкеннен алып кетеді';
+  @override String get soon => 'Жақында';
+  @override String get keepOneMethod => 'Кем дегенде бір тәсілді қосулы қалдырыңыз: жеткізу немесе өзі алып кету';
+  @override String get averageTime => 'Жеткізудің орташа уақыты';
   @override String get security => 'Қауіпсіздік';
   @override String get appLock => 'Кіруді қорғау';
   @override String get appLockSubtitle => 'Ашқанда Face ID / саусақ ізі немесе PIN';
@@ -590,7 +623,7 @@ class _Tg extends S {
   @override String get unitBunch => 'даста';
   @override String get unitPack => 'баста';
   @override String get payCash => 'Нақд';
-  @override String get payCardCourier => 'Бо корт ба курьер';
+  @override String get payCardCourier => 'Бо корт ҳангоми гирифтан';
   @override String get payKaspi => 'Интиқоли Kaspi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Нав',
@@ -672,6 +705,7 @@ class _Tg extends S {
   @override String get needsWeighing => 'бояд баркашид';
   @override String get outOfStock => 'Дар мавҷудият нест';
   @override String get payOnReceipt => 'Пардохт ҳангоми гирифтан';
+  @override String get payment => 'Пардохт';
   @override String get acceptOrder => 'Қабул кардани фармоиш';
   @override String get startPicking => 'Оғози ҷамъоварӣ';
   @override String get pickedReady => 'Ҷамъ шуд, тайёр';
@@ -692,6 +726,9 @@ class _Tg extends S {
   @override String get proposeItem => 'Пешниҳоди мол ё категория';
   @override String get catalogEmpty => 'Ассортимент холӣ аст';
   @override String get searchProducts => 'Ҷустуҷӯи молҳо';
+  @override String get allCategories => 'Ҳамаи категорияҳо';
+  @override String productsCount(int n) => '$n мол';
+  @override String hiddenCount(int n) => '$n пинҳон';
   @override String get all => 'Ҳама';
   @override String get inStockFilter => 'Мавҷуд';
   @override String get hiddenFilter => 'Пинҳон';
@@ -711,6 +748,13 @@ class _Tg extends S {
   @override String get ownDelivery => 'Расонидани худӣ: вақти миёна';
   @override String get ownDeliveryHelper => 'Аз фармоиш то супоридан ба мизоҷ ба ҳисоби миёна чанд дақиқа';
   @override String aboutMinutes(int n) => '≈ $n дақ аз фармоиш то супоридан';
+  @override String get ownDeliveryTitle => 'Расонидани худӣ';
+  @override String get ownDeliverySubtitle => 'Курьери мағоза фармоишро ба мизоҷ мерасонад';
+  @override String get courierService => 'Хадамоти курьерӣ';
+  @override String get courierServiceSubtitle => 'Ба наздикӣ пайваст мекунем — курьери хадамот фармоишро аз мағоза мебарад';
+  @override String get soon => 'Ба наздикӣ';
+  @override String get keepOneMethod => 'Ақаллан як усулро фаъол гузоред: расонидан ё худ бурдан';
+  @override String get averageTime => 'Вақти миёнаи расонидан';
   @override String get security => 'Амният';
   @override String get appLock => 'Ҳифзи вуруд';
   @override String get appLockSubtitle => 'Face ID / изи ангушт ё PIN ҳангоми кушодан';
@@ -764,7 +808,7 @@ class _Uz extends S {
   @override String get unitBunch => 'bogʻ';
   @override String get unitPack => 'qadoq';
   @override String get payCash => 'Naqd pul';
-  @override String get payCardCourier => 'Kuryerga karta orqali';
+  @override String get payCardCourier => 'Qabul qilishda karta orqali';
   @override String get payKaspi => 'Kaspi oʻtkazmasi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Yangi',
@@ -846,6 +890,7 @@ class _Uz extends S {
   @override String get needsWeighing => 'tortish kerak';
   @override String get outOfStock => 'Mavjud emas';
   @override String get payOnReceipt => 'Qabul qilishda toʻlov';
+  @override String get payment => 'Toʻlov';
   @override String get acceptOrder => 'Buyurtmani qabul qilish';
   @override String get startPicking => 'Yigʻishni boshlash';
   @override String get pickedReady => 'Yigʻildi, tayyor';
@@ -866,6 +911,9 @@ class _Uz extends S {
   @override String get proposeItem => 'Mahsulot yoki toifa taklif qilish';
   @override String get catalogEmpty => 'Assortiment boʻsh';
   @override String get searchProducts => 'Mahsulot qidirish';
+  @override String get allCategories => 'Barcha toifalar';
+  @override String productsCount(int n) => '$n ta mahsulot';
+  @override String hiddenCount(int n) => '$n ta yashirin';
   @override String get all => 'Hammasi';
   @override String get inStockFilter => 'Mavjud';
   @override String get hiddenFilter => 'Yashirin';
@@ -885,6 +933,13 @@ class _Uz extends S {
   @override String get ownDelivery => 'Oʻz yetkazib berishimiz: oʻrtacha vaqt';
   @override String get ownDeliveryHelper => 'Buyurtmadan mijozga topshirishgacha oʻrtacha necha daqiqa';
   @override String aboutMinutes(int n) => '≈ $n daq rasmiylashtirishdan topshirishgacha';
+  @override String get ownDeliveryTitle => 'Oʻz yetkazib berishimiz';
+  @override String get ownDeliverySubtitle => 'Doʻkon kuryeri buyurtmani mijozga yetkazadi';
+  @override String get courierService => 'Kuryerlik xizmati';
+  @override String get courierServiceSubtitle => 'Tez orada ulaymiz — xizmat kuryeri buyurtmani doʻkondan olib ketadi';
+  @override String get soon => 'Tez orada';
+  @override String get keepOneMethod => 'Kamida bitta usulni yoqilgan holda qoldiring: yetkazib berish yoki olib ketish';
+  @override String get averageTime => 'Oʻrtacha yetkazish vaqti';
   @override String get security => 'Xavfsizlik';
   @override String get appLock => 'Kirishni himoyalash';
   @override String get appLockSubtitle => 'Ochishda Face ID / barmoq izi yoki PIN';

@@ -60,11 +60,36 @@ class _OrdersScreenState extends State<OrdersScreen> {
     await _future;
   }
 
+  // Свой цвет у каждой группы статусов: новые — морковный, в работе — синий,
+  // ждём клиента — янтарный, готовы и в пути — фиолетовый, выданы — зелёный, отменены — серый.
+  static const _blue = Color(0xFF2F6FDE);
+  static const _amber = Color(0xFFD48A00);
+  static const _violet = Color(0xFF7B4FD6);
   Color _statusColor(String s) {
     if (s == 'PLACED') return AppColors.carrot;
-    if (s == 'DELIVERED' || s == 'COMPLETED') return AppColors.leaf;
-    if (s == 'CANCELLED') return AppColors.ink40;
-    return AppColors.ink60;
+    if (s == 'AWAITING_CUSTOMER') return _amber;
+    if (_inWork.contains(s)) return _blue;
+    if (_ready.contains(s)) return _violet;
+    if (_done.contains(s)) return AppColors.leaf;
+    return AppColors.ink40;
+  }
+
+  /// Порядок в списке: новые всегда сверху, затем ждём клиента, в работе, готовы/в пути, выданы, отменены.
+  /// Внутри группы: новые и в работе — сначала самые старые (дольше всех ждут), остальные — сначала свежие.
+  static int _rank(String s) {
+    if (s == 'PLACED') return 0;
+    if (s == 'AWAITING_CUSTOMER') return 1;
+    if (_inWork.contains(s)) return 2;
+    if (_ready.contains(s)) return 3;
+    if (_done.contains(s)) return 4;
+    return 5;
+  }
+
+  static int _compare(OrderSummary a, OrderSummary b) {
+    final r = _rank(a.status).compareTo(_rank(b.status));
+    if (r != 0) return r;
+    final oldestFirst = _rank(a.status) <= 2;
+    return oldestFirst ? a.createdAt.compareTo(b.createdAt) : b.createdAt.compareTo(a.createdAt);
   }
 
   @override
@@ -85,7 +110,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           if (all.isEmpty) {
             return ListView(children: [Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.noOrders, style: const TextStyle(color: AppColors.ink60))))]);
           }
-          final shown = all.where((o) => _matches(_filter, o.status)).toList();
+          final shown = all.where((o) => _matches(_filter, o.status)).toList()..sort(_compare);
           return Column(
             children: [
               Container(
@@ -144,31 +169,65 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Widget _tile(S s, OrderSummary o) {
     final isNew = o.status == 'PLACED';
+    final color = _statusColor(o.status);
+    final muted = o.status == 'CANCELLED';
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: isNew ? AppColors.carrot50 : AppColors.bg,
-          child: Text(o.fulfillment == 'PICKUP' ? '🛍️' : '🚗'),
-        ),
-        title: Row(
-          children: [
-            Text(s.orderNo(o.number), style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: _statusColor(o.status).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-              child: Text(statusLabel(s, o.status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _statusColor(o.status))),
-            ),
-          ],
-        ),
-        subtitle: Text('${s.positions(o.itemCount)} · ${tenge(o.amountTiyn)} · ${dateTime(s, o.createdAt)}', style: const TextStyle(color: AppColors.ink40)),
-        trailing: const Icon(Icons.chevron_right),
+      clipBehavior: Clip.antiAlias,
+      color: isNew ? AppColors.carrot50 : AppColors.card,
+      child: InkWell(
         onTap: () async {
           await Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: o.id)));
           if (mounted) setState(_load);
         },
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 5, color: color),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                  child: Row(
+                    children: [
+                      Icon(o.fulfillment == 'PICKUP' ? Icons.storefront_outlined : Icons.delivery_dining_outlined,
+                          color: muted ? AppColors.ink40 : AppColors.ink60),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(s.orderNo(o.number),
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: muted ? AppColors.ink40 : AppColors.ink)),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(color: color.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(999)),
+                                    child: Text(statusLabel(s, o.status), maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text('${s.positions(o.itemCount)} · ${tenge(o.amountTiyn)}',
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.ink60)),
+                            Text(o.fulfillment == 'PICKUP' && o.pickupAt != null ? s.pickupAt(dateTime(s, o.pickupAt!)) : dateTime(s, o.createdAt),
+                                style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: AppColors.ink40),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
