@@ -15,8 +15,9 @@ import MapPicker from './MapPicker';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
+// Шаг «−/+»: весовые — 100 г (как в шторке веса и корзине), штучные — 1.
 function defaultStep(p: CatalogProduct): number {
-  return isWeighted(p.unit) ? (p.stepG && p.stepG > 0 ? p.stepG : 500) : 1;
+  return isWeighted(p.unit) ? 100 : 1;
 }
 function lineTiyn(l: Line): number {
   return isWeighted(l.product.unit)
@@ -286,16 +287,19 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
       {qty === 0 ? (
         <button aria-label={t.addToCart} onClick={onAdd}
           style={{ width: 44, height: 44, borderRadius: 12, border: 'none', background: '#F4F2F0', fontSize: 24, color: 'var(--ink)', cursor: 'pointer' }}>+</button>
-      ) : weighted ? (
-        <button onClick={onEdit}
-          style={{ height: 44, padding: '0 12px', borderRadius: 12, border: 'none', background: 'var(--carrot)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-          {qtyLabel(p.unit, qty, t)}
-        </button>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', background: '#F4F2F0', borderRadius: 12, height: 44 }}>
-          <button aria-label={t.remove} onClick={onDec} style={{ width: 38, height: 44, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer' }}>−</button>
-          <span style={{ minWidth: 40, textAlign: 'center', fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty, t)}</span>
-          <button aria-label={t.add} onClick={onInc} style={{ width: 38, height: 44, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer' }}>+</button>
+        // Уже в корзине: тот же счётчик, что в корзине — «− 1 кг +»; у весовых нажатие на вес открывает шторку.
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--carrot-50)', border: '1px solid var(--carrot)', borderRadius: 12, height: 44 }}>
+          <button aria-label={t.remove} onClick={onDec} style={{ width: 38, height: 42, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--carrot-600)' }}>−</button>
+          {weighted ? (
+            <button onClick={onEdit} aria-label={t.howMuch}
+              style={{ minWidth: 52, height: 42, border: 'none', background: 'transparent', font: 'inherit', fontWeight: 800, fontSize: 14, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 4, color: 'var(--ink)' }}>
+              {qtyLabel(p.unit, qty, t)}
+            </button>
+          ) : (
+            <span style={{ minWidth: 40, textAlign: 'center', fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty, t)}</span>
+          )}
+          <button aria-label={t.add} onClick={onInc} style={{ width: 38, height: 42, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--carrot-600)' }}>+</button>
         </div>
       )}
     </div>
