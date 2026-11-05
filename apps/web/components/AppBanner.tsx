@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ANDROID_URL, APP_SCHEME, detectPlatform, Platform } from '../lib/app-links';
+import { ANDROID_URL, APP_SCHEME, detectPlatform, inKartopApp, Platform } from '../lib/app-links';
 import { useT } from './LangProvider';
 
 // Иконка Google Play — простой inline-SVG (без официальных ассетов).
@@ -55,7 +55,10 @@ function StoreActions({ platform, orderId }: { platform: Platform; orderId?: str
 export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: string; variant?: 'banner' | 'full' }) {
   const t = useT();
   const [platform, setPlatform] = useState<Platform>('other');
-  useEffect(() => { setPlatform(detectPlatform(navigator.userAgent)); }, []);
+  // Внутри приложения баннер «скачайте приложение» не нужен.
+  const [inApp, setInApp] = useState(false);
+  useEffect(() => { setPlatform(detectPlatform(navigator.userAgent)); setInApp(inKartopApp()); }, []);
+  if (inApp) return null;
 
   if (variant === 'full') {
     return (

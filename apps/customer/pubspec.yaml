@@ -1,0 +1,29 @@
+name: kartop_customer
+description: "Kartop — приложение покупателя: витрина магазина у дома, корзина, заказ, голосовой список покупок."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Витрина — та же, что на сайте (WebView): приложение всегда совпадает с вебом.
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.3.0
+  # Нативное: голосовой список покупок, внешние ссылки (звонок, WhatsApp, карты), диплинки.
+  speech_to_text: ^7.0.0
+  url_launcher: ^6.3.1
+  app_links: ^6.3.2
+  permission_handler: ^11.3.1
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -10,7 +10,7 @@ import { findProducts, ListMatch, parseList, qtyFor, SearchProduct } from '../li
 import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
-import { ANDROID_URL } from '../lib/app-links';
+import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import MapPicker from './MapPicker';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
@@ -485,6 +485,15 @@ function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (ite
   const [text, setText] = useState('');
   // Голосовой ввод — только в приложении Kartop; на сайте кнопка предлагает его скачать.
   const [askApp, setAskApp] = useState(false);
+  // В приложении голос распознаёт телефон и возвращает текст сюда — он дописывается в список.
+  useEffect(() => {
+    (window as any).kartopVoiceResult = (said: string) => setText((prev) => (prev.trim() ? `${prev.trim()}\n${said}` : said));
+    return () => { delete (window as any).kartopVoiceResult; };
+  }, []);
+  function speak() {
+    if (inKartopApp()) (window as any).KartopApp.postMessage(`voice:${lang}`);
+    else setAskApp(true);
+  }
   // Выбор покупателя по каждой строке: индекс варианта и количество; «снята галочка» — не добавлять.
   const [picked, setPicked] = useState<Record<number, { option: number; qty: number; off?: boolean }>>({});
 
@@ -504,7 +513,7 @@ function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (ite
       <label htmlFor="smart-list" style={{ fontWeight: 800, fontSize: 15 }}>{t.listLabel}</label>
       <textarea id="smart-list" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={t.listPlaceholder}
         style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', border: '1.5px solid var(--carrot)', borderRadius: 14, font: 'inherit', fontSize: 16, lineHeight: 1.5, resize: 'vertical', color: 'var(--ink)', background: 'var(--card)' }} />
-      <button onClick={() => setAskApp(true)} className="btn"
+      <button onClick={speak} className="btn"
         style={{ height: 48, justifyContent: 'center', gap: 10, fontWeight: 800, background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
         {t.speak}
