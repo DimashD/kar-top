@@ -10,9 +10,12 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true },
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
+    const { geom, ...storeInfo } = store;
+    const coords = (geom as any)?.coordinates as [number, number] | undefined; // GeoJSON: [lng, lat]
+    const location = coords ? { lat: coords[1], lng: coords[0] } : null;
 
     const items = await this.prisma.storeProduct.findMany({
       where: { storeId: store.id, inStock: true },
@@ -56,7 +59,7 @@ export class ShopsService {
       });
     }
     const categories = [...byCat.values()].sort((a, b) => a.groupSort - b.groupSort || a.sort - b.sort);
-    return { store, categories };
+    return { store: { ...storeInfo, location }, categories };
   }
 
   /** Проверка, попадает ли адрес в зону доставки магазина. */

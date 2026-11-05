@@ -11,6 +11,7 @@ import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
 import { ANDROID_URL } from '../lib/app-links';
+import MapPicker from './MapPicker';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -540,7 +541,7 @@ function CheckoutDrawer(props: {
   }, []);
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoBusy, setGeoBusy] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [pickupAt, setPickupAt] = useState('');
   const [payChoice, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
   // Курьерская служба денег не берёт — при её доставке только перевод Kaspi (то же правило на сервере).
@@ -556,15 +557,6 @@ function CheckoutDrawer(props: {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }, [store.pickupLeadMinutes]);
 
-  function locate() {
-    if (!navigator.geolocation) return;
-    setGeoBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (p) => { setGeo({ lat: p.coords.latitude, lng: p.coords.longitude }); setGeoBusy(false); },
-      () => setGeoBusy(false),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  }
 
   const phoneOk = isValidKzPhone(phone);
   const verified = !!auth && auth.phone === kzPhoneE164(phone);
@@ -690,8 +682,9 @@ function CheckoutDrawer(props: {
           {mode === 'DELIVERY' ? (
             <Field label={t.deliveryAddress}>
               <input value={line} onChange={(e) => setLine(e.target.value)} placeholder={t.addressPlaceholder} style={inputStyle(true)} />
-              <button type="button" onClick={locate} className="btn btn-ghost" style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
-                {geoBusy ? t.locating : geo ? t.locationAdded : t.addLocation}
+              <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
+                style={{ marginTop: 8, width: '100%', justifyContent: 'center', ...(geo ? { borderColor: 'var(--leaf)', color: 'var(--leaf)' } : {}) }}>
+                {geo ? t.changePoint : t.addLocation}
               </button>
               <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
                 {t.locationHint}
@@ -705,6 +698,11 @@ function CheckoutDrawer(props: {
               </div>
             </Field>
           )}
+
+          {mapOpen ? (
+            <MapPicker initial={geo} fallback={store.location ?? null} onClose={() => setMapOpen(false)}
+              onPick={(pt, address) => { setGeo(pt); if (address && !line.trim()) setLine(address); setMapOpen(false); }} />
+          ) : null}
 
           <Field label={t.payment}>
             <div style={{ display: 'grid', gap: 8 }}>

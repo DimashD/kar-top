@@ -25,7 +25,9 @@ export interface CatalogCategory {
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;
-    deliveryMode: string; deliveryEnabled?: boolean; pickupEnabled: boolean; pickupLeadMinutes: number; reviewCount?: number;
+    deliveryMode: string; deliveryEnabled?: boolean; pickupEnabled: boolean;
+    /** Точка магазина — карта выбора адреса открывается рядом с ним. */
+    location?: { lat: number; lng: number } | null; pickupLeadMinutes: number; reviewCount?: number;
   };
   categories: CatalogCategory[];
 }
