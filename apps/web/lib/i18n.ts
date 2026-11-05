@@ -42,7 +42,7 @@ const ru = {
   heroTitle: 'Продукты из магазинов у дома — ',
   heroAccent: 'теперь онлайн',
   heroText: 'Овощи, фрукты, мясо, молочка, корейские салаты, орехи и сухофрукты — заказывайте в знакомом магазине рядом с домом и получайте с доставкой или забирайте сами.',
-  shopLinkHint: 'Заказы — по ссылке от вашего магазина. Попросите продавца прислать её в WhatsApp или Telegram.',
+  shopLinkHint: 'Скоро здесь появится список магазинов рядом с вами. А пока магазин сам присылает вам ссылку на свою витрину — в WhatsApp, Telegram или SMS.',
   cats: ['Овощи', 'Фрукты', 'Мясо', 'Молочка', 'Корейские салаты', 'Орехи и сухофрукты'],
   howItWorks: 'Как это работает',
   steps: [
@@ -225,7 +225,7 @@ const kk: Dict = {
   heroTitle: 'Үй жанындағы дүкендердің өнімдері — ',
   heroAccent: 'енді онлайн',
   heroText: 'Көкөніс, жеміс, ет, сүт өнімдері, корей салаттары, жаңғақ пен кептірілген жемістер — үйіңіздің жанындағы таныс дүкенге тапсырыс беріп, жеткізумен алыңыз немесе өзіңіз алып кетіңіз.',
-  shopLinkHint: 'Тапсырыс — дүкеніңіз жіберген сілтеме арқылы. Сатушыдан оны WhatsApp немесе Telegram арқылы жіберуін сұраңыз.',
+  shopLinkHint: 'Жақында мұнда жаныңыздағы дүкендердің тізімі пайда болады. Әзірге дүкен өз витринасының сілтемесін сізге өзі жібереді — WhatsApp, Telegram немесе SMS арқылы.',
   cats: ['Көкөністер', 'Жемістер', 'Ет', 'Сүт өнімдері', 'Корей салаттары', 'Жаңғақ пен кептірілген жемістер'],
   howItWorks: 'Бұл қалай жұмыс істейді',
   steps: [
@@ -398,7 +398,7 @@ const en: Dict = {
   heroTitle: 'Groceries from the shops near you — ',
   heroAccent: 'now online',
   heroText: 'Vegetables, fruit, meat, dairy, Korean salads, nuts and dried fruit — order from the shop you already know near your home and get it delivered or pick it up yourself.',
-  shopLinkHint: 'Orders are placed via the link from your shop. Ask the seller to send it to you on WhatsApp or Telegram.',
+  shopLinkHint: 'A list of shops near you is coming soon. For now, your shop sends you a link to its storefront via WhatsApp, Telegram or SMS.',
   cats: ['Vegetables', 'Fruit', 'Meat', 'Dairy', 'Korean salads', 'Nuts & dried fruit'],
   howItWorks: 'How it works',
   steps: [
