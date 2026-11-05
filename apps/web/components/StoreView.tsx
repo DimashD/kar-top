@@ -45,21 +45,135 @@ function saveLast(slug: string, lines: Line[], totalTiyn: number) {
 
 type Look = { pic: string | null; tint: string; initials: string };
 
-// Подтверждённый по SMS номер: access-токен живёт 15 минут, храним с запасом 14.
-type PhoneAuth = { token: string; phone: string; exp: number };
-const AUTH_KEY = 'kartop:phone-auth';
-function readAuth(): PhoneAuth | null {
+// Вход покупателя по SMS: access-токен (15 мин) + refresh (30 дней, с ротацией).
+// Код спрашиваем только при первом заказе с устройства; дальше продлеваем вход без SMS.
+type Session = { access: string; refresh: string; phone: string; accessExp: number };
+const SESSION_KEY = 'kartop:session';
+function readSession(): Session | null {
   try {
-    const a = JSON.parse(localStorage.getItem(AUTH_KEY) ?? 'null') as PhoneAuth | null;
-    return a && a.exp > Date.now() ? a : null;
+    return JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as Session | null;
   } catch {
     return null;
   }
 }
-function saveAuth(a: PhoneAuth | null) {
+function saveSession(s: Session | null) {
   try {
-    if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY);
-  } catch { /* приватный режим — подтвердим ещё раз при следующем заказе */ }
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY);
+  } catch { /* приватный режим — подтвердим номер ещё раз */ }
+}
+function sessionFrom(data: { accessToken: string; refreshToken: string }, phone: string): Session {
+  return { access: data.accessToken, refresh: data.refreshToken, phone, accessExp: Date.now() + 14 * 60_000 };
+}
+/** Действующий access-токен: из памяти или продлённый по refresh. null — нужно подтвердить номер. */
+async function accessToken(force = false): Promise<string | null> {
+  const s = readSession();
+  if (!s) return null;
+  if (!force && s.accessExp > Date.now()) return s.access;
+  try {
+    const r = await fetch(`${CLIENT_API}/auth/otp/refresh`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ refreshToken: s.refresh }),
+    });
+    if (!r.ok) throw new Error();
+    const next = sessionFrom(await r.json(), s.phone);
+    saveSession(next);
+    return next.access;
+  } catch {
+    saveSession(null);
+    return null;
+  }
+}
+
+/**
+ * Подтверждение номера — шторка после «Оформить заказ»: номер → код из SMS (6 цифр, автоподстановка,
+ * отправка сама при последней цифре, повтор через 60 с). После кода заказ оформляется сразу.
+ */
+function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void }) {
+  const t = useT();
+  const [phone, setPhone] = useState(initialPhone);
+  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [wait, setWait] = useState(0);
+  useEffect(() => {
+    if (!wait) return;
+    const id = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(id);
+  }, [wait]);
+
+  async function send() {
+    setErr(null); setBusy(true);
+    try {
+      const r = await fetch(`${CLIENT_API}/auth/otp/request`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: kzPhoneE164(phone), channel: 'sms' }),
+      });
+      if (!r.ok) throw new Error();
+      setStep('code'); setCode(''); setWait(60);
+    } catch {
+      setErr(t.checkoutError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify(c: string) {
+    setErr(null); setBusy(true);
+    try {
+      const r = await fetch(`${CLIENT_API}/auth/otp/verify`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: kzPhoneE164(phone), code: c, deviceLabel: 'web' }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.accessToken) throw new Error();
+      const s = sessionFrom(data, kzPhoneE164(phone));
+      saveSession(s);
+      onDone(s);
+    } catch {
+      setErr(t.wrongCode); setCode('');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const big: React.CSSProperties = { width: '100%', boxSizing: 'border-box', height: 56, padding: '0 16px', fontSize: 20, fontWeight: 800, border: '1.5px solid var(--line)', borderRadius: 14, background: 'var(--card)', color: 'var(--ink)', fontFamily: 'inherit' };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 10000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div role="dialog" aria-label={t.confirmPhoneTitle} onClick={(e) => e.stopPropagation()}
+        style={{ background: 'var(--card)', width: '100%', maxWidth: 520, borderRadius: '22px 22px 0 0', padding: '22px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 21, fontWeight: 800 }}>{step === 'phone' ? t.confirmPhoneTitle : t.enterCode}</div>
+        {step === 'phone' ? (
+          <>
+            <div className="muted" style={{ fontSize: 15 }}>{t.confirmPhoneHint}</div>
+            <PhoneInput value={phone} onChange={setPhone} style={big} />
+            <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={send} style={{ height: 54, fontSize: 16 }}>
+              {busy ? t.sendingCode : t.getCode}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="muted" style={{ fontSize: 15 }}>
+              {t.codeSent(formatKzPhone(phone))} · <button type="button" onClick={() => { setStep('phone'); setErr(null); }} style={{ border: 'none', background: 'none', padding: 0, color: 'var(--carrot-600)', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t.changePhone}</button>
+            </div>
+            <input value={code} autoFocus inputMode="numeric" autoComplete="one-time-code" aria-label={t.smsCode} placeholder="••••••"
+              onChange={(e) => {
+                const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setCode(v);
+                if (v.length === 6 && !busy) verify(v);
+              }}
+              style={{ ...big, textAlign: 'center', letterSpacing: '0.4em', fontSize: 26 }} />
+            <button className="btn btn-primary btn-block" disabled={code.length < 6 || busy} onClick={() => verify(code)} style={{ height: 54, fontSize: 16 }}>
+              {busy ? t.checkingCode : t.confirmAndOrder}
+            </button>
+            <button className="btn btn-ghost btn-block" disabled={wait > 0 || busy} onClick={send} style={{ height: 46 }}>
+              {wait > 0 ? t.resendIn(wait) : t.resendCode}
+            </button>
+          </>
+        )}
+        {err ? <div style={{ color: 'var(--sale)', fontSize: 14 }}>{err}</div> : null}
+      </div>
+    </div>
+  );
 }
 
 type Section = { id: string; title: string; groups: { title: string; items: CatalogProduct[] }[] };
@@ -532,17 +646,10 @@ function CheckoutDrawer(props: {
   // Своя доставка может быть выключена магазином — тогда только самовывоз.
   const deliveryOn = store.deliveryEnabled !== false;
   const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(deliveryOn ? 'DELIVERY' : 'PICKUP');
-  const [phone, setPhone] = useState('+7');
-  // Подтверждение номера по SMS перед оформлением.
-  const [auth, setAuth] = useState<PhoneAuth | null>(null);
-  const [codeSent, setCodeSent] = useState(false);
-  const [code, setCode] = useState('');
-  const [otpBusy, setOtpBusy] = useState(false);
-  const [otpErr, setOtpErr] = useState<string | null>(null);
-  useEffect(() => {
-    const a = readAuth();
-    if (a) { setAuth(a); setPhone(formatKzPhone(a.phone)); }
-  }, []);
+  // Номер — не в форме: его спрашивает шторка после «Оформить заказ» (если устройство ещё не подтверждено).
+  const [knownPhone, setKnownPhone] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  useEffect(() => { setKnownPhone(readSession()?.phone ?? null); }, []);
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -562,48 +669,19 @@ function CheckoutDrawer(props: {
   }, [store.pickupLeadMinutes]);
 
 
-  const phoneOk = isValidKzPhone(phone);
-  const verified = !!auth && auth.phone === kzPhoneE164(phone);
-
-  async function requestCode() {
-    setOtpErr(null); setOtpBusy(true);
-    try {
-      const r = await fetch(`${CLIENT_API}/auth/otp/request`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: kzPhoneE164(phone), channel: 'sms' }),
-      });
-      if (!r.ok) throw new Error();
-      setCodeSent(true);
-    } catch {
-      setOtpErr(t.checkoutError);
-    } finally {
-      setOtpBusy(false);
-    }
-  }
-
-  async function confirmCode() {
-    setOtpErr(null); setOtpBusy(true);
-    try {
-      const r = await fetch(`${CLIENT_API}/auth/otp/verify`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: kzPhoneE164(phone), code: code.trim(), deviceLabel: 'web' }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok || !data.accessToken) throw new Error();
-      const a = { token: data.accessToken as string, phone: kzPhoneE164(phone), exp: Date.now() + 14 * 60_000 };
-      saveAuth(a); setAuth(a); setCodeSent(false); setCode('');
-    } catch {
-      setOtpErr(t.wrongCode);
-    } finally {
-      setOtpBusy(false);
-    }
-  }
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
   const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
-  const canSubmit = lines.length > 0 && verified && addrOk && pickupOk && !busy;
+  const canSubmit = lines.length > 0 && addrOk && pickupOk && !busy;
 
   async function submit() {
-    setErr(null); setBusy(true);
+    setErr(null);
+    const token = await accessToken();
+    if (!token) { setAuthOpen(true); return; }
+    await place(token);
+  }
+
+  async function place(token: string, retried = false): Promise<void> {
+    setBusy(true);
     try {
       const items = lines.map((l) => isWeighted(l.product.unit)
         ? { storeProductId: l.product.id, qtyG: l.qty }
@@ -614,12 +692,18 @@ function CheckoutDrawer(props: {
       else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${auth?.token ?? ''}` },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
+      // Вход истёк: продлеваем один раз, иначе — снова шторка с номером.
+      if (r.status === 401) {
+        setBusy(false);
+        const fresh = retried ? null : await accessToken(true);
+        if (fresh) return place(fresh, true);
+        setAuthOpen(true);
+        return;
+      }
       const data = await r.json();
-      // Подтверждение истекло — просим код ещё раз.
-      if (r.status === 401) { saveAuth(null); setAuth(null); throw new Error(t.confirmPhoneHint); }
       if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || t.checkoutError));
       onDone({ id: data.id, number: data.number, estimatedTiyn: data.estimatedTiyn ?? data.subtotalTiyn ?? subtotal, deliveryCode: data.deliveryCode });
     } catch (e) {
@@ -650,38 +734,12 @@ function CheckoutDrawer(props: {
             </div>
           </Field>
 
-          <Field label={t.contactPhone}>
-            {verified ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--leaf-50)', color: 'var(--leaf)', fontWeight: 700 }}>
-                <span style={{ flex: 1 }}>✓ {t.phoneConfirmed(formatKzPhone(auth!.phone))}</span>
-                <button type="button" className="btn btn-ghost" onClick={() => { saveAuth(null); setAuth(null); setCodeSent(false); }} style={{ padding: '6px 10px', fontSize: 13 }}>{t.changePhone}</button>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <PhoneInput value={phone} onChange={(v) => { setPhone(v); setCodeSent(false); }} style={{ ...inputStyle(!phone || phone === '+7' || phoneOk), flex: 1 }} />
-                  {!codeSent ? (
-                    <button type="button" className="btn btn-primary" disabled={!phoneOk || otpBusy} onClick={requestCode} style={{ whiteSpace: 'nowrap' }}>
-                      {otpBusy ? t.sendingCode : t.getCode}
-                    </button>
-                  ) : null}
-                </div>
-                {codeSent ? (
-                  <div style={{ marginTop: 8 }}>
-                    <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>{t.codeSent(phone)}</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code"
-                        placeholder={t.smsCode} aria-label={t.smsCode} style={{ ...inputStyle(true), flex: 1, letterSpacing: '0.2em', fontWeight: 800 }} />
-                      <button type="button" className="btn btn-primary" disabled={code.length < 4 || otpBusy} onClick={confirmCode} style={{ whiteSpace: 'nowrap' }}>
-                        {otpBusy ? t.checkingCode : t.confirmPhone}
-                      </button>
-                    </div>
-                  </div>
-                ) : <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t.confirmPhoneHint}</div>}
-                {otpErr ? <div style={{ color: 'var(--sale)', fontSize: 13, marginTop: 6 }}>{otpErr}</div> : null}
-              </>
-            )}
-          </Field>
+          {knownPhone ? (
+            <div className="muted" style={{ fontSize: 14 }}>
+              {t.orderForPhone(formatKzPhone(knownPhone))} · <button type="button" onClick={() => { saveSession(null); setKnownPhone(null); }}
+                style={{ border: 'none', background: 'none', padding: 0, color: 'var(--carrot-600)', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t.changePhone}</button>
+            </div>
+          ) : null}
 
           {mode === 'DELIVERY' ? (
             <Field label={t.deliveryAddress}>
@@ -702,6 +760,11 @@ function CheckoutDrawer(props: {
               </div>
             </Field>
           )}
+
+          {authOpen ? (
+            <AuthSheet initialPhone={knownPhone ? formatKzPhone(knownPhone) : '+7'} onClose={() => setAuthOpen(false)}
+              onDone={(s) => { setAuthOpen(false); setKnownPhone(s.phone); place(s.access); }} />
+          ) : null}
 
           {mapOpen ? (
             <MapPicker initial={geo} fallback={store.location ?? null} onClose={() => setMapOpen(false)}

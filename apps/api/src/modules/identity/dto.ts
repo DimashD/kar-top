@@ -6,6 +6,10 @@ export class OtpRequestDto {
   @IsOptional() @IsIn(['telegram', 'whatsapp', 'sms']) channel?: 'telegram' | 'whatsapp' | 'sms';
 }
 
+export class RefreshDto {
+  @IsString() refreshToken!: string;
+}
+
 export class OtpVerifyDto {
   @IsString() phone!: string;
   @IsString() @Length(6, 6) code!: string;
