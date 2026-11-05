@@ -21,27 +21,42 @@ export class ShopsService {
         priceTiyn: true,
         oldPriceTiyn: true,
         master: {
-          select: { name: true, unit: true, stepG: true, avgPieceG: true, perishable: true, media: true, category: { select: { id: true, name: true } } },
+          select: {
+            name: true, unit: true, stepG: true, avgPieceG: true, perishable: true, media: true,
+            category: { select: { id: true, name: true, sort: true, parent: { select: { id: true, name: true, sort: true } } } },
+          },
         },
       },
     });
 
-    const byCat = new Map<string, { category: unknown; items: unknown[] }>();
+    // Категория + её крупная группа («Овощи и зелень»…) — витрина строит быстрые кнопки по группам.
+    const byCat = new Map<string, { category: unknown; group: unknown; sort: number; groupSort: number; items: unknown[] }>();
     for (const it of items) {
-      const catId = it.master.category.id;
-      if (!byCat.has(catId)) byCat.set(catId, { category: it.master.category.name, items: [] });
+      const c = it.master.category;
+      const catId = c.id;
+      if (!byCat.has(catId)) {
+        byCat.set(catId, {
+          category: c.name,
+          group: c.parent ? { id: c.parent.id, name: c.parent.name } : null,
+          sort: c.sort,
+          groupSort: c.parent?.sort ?? 999,
+          items: [],
+        });
+      }
       byCat.get(catId)!.items.push({
         id: it.id,
         name: it.master.name,
         unit: it.master.unit,
         stepG: it.master.stepG,
+        avgPieceG: it.master.avgPieceG,
         perishable: it.master.perishable,
         photo: (it.master.media as any)?.url ?? null, // media = { url } | null
         priceTiyn: it.priceTiyn,
         oldPriceTiyn: it.oldPriceTiyn,
       });
     }
-    return { store, categories: [...byCat.values()] };
+    const categories = [...byCat.values()].sort((a, b) => a.groupSort - b.groupSort || a.sort - b.sort);
+    return { store, categories };
   }
 
   /** Проверка, попадает ли адрес в зону доставки магазина. */
