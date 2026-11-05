@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { OrderingService } from './ordering.service';
 import { weightRange } from './weight-tolerance';
+import { allowedPayMethods } from './payment-rules';
 
 // Лёгкий мок PrismaService — проверяем арифметику суммы и эмиссию outbox без БД.
 function makePrisma(overrides: any = {}) {
@@ -250,5 +251,25 @@ describe('OrderingService.weighItem (лимит веса)', () => {
     await new OrderingService(prisma as any).weighItem('o1', 'it1', 1200, 'user1', true);
     expect(prisma.orderItem.update).toHaveBeenCalled();
     expect(prisma.outboxEvent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: 'order.weight_override' }) }));
+  });
+});
+
+describe('Оплата по способу получения', () => {
+  it('курьерская служба: только перевод Kaspi', () => {
+    expect(allowedPayMethods('DELIVERY', 'SERVICE')).toEqual(['KASPI_TRANSFER']);
+  });
+  it('своя доставка и самовывоз: наличные, карта при получении, Kaspi', () => {
+    expect(allowedPayMethods('DELIVERY', 'OWN')).toHaveLength(3);
+    expect(allowedPayMethods('PICKUP', 'SERVICE')).toHaveLength(3);
+  });
+  it('заказ наличными при доставке курьерской службой → 400', async () => {
+    const prisma = makePrisma({
+      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, deliveryMode: 'SERVICE' }) },
+    });
+    const svc = new OrderingService(prisma as any);
+    await expect(svc.create({
+      storeSlug: 's', phone: '+77011234567', payMethod: 'CASH', fulfillment: 'DELIVERY',
+      address: { line: 'ул. Абая, 1' }, items: [{ storeProductId: 'sp-pcs', qty: 1 }],
+    } as any)).rejects.toBeInstanceOf(BadRequestException);
   });
 });

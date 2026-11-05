@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
 import { piiVisibleToMerchant, canTransition } from './order-state';
 import { weightRange } from './weight-tolerance';
+import { allowedPayMethods } from './payment-rules';
 
 @Injectable()
 export class OrderingService {
@@ -14,16 +15,19 @@ export class OrderingService {
     return String(Math.floor(1000 + Math.random() * 9000));
   }
 
-  /** Создание заказа. Оплата при получении (MVP). Сумма — оценочная, уточняется после взвешивания. */
+  /** Создание заказа. Онлайн-оплаты нет (MVP): см. allowedPayMethods. Сумма — оценочная, уточняется после взвешивания. */
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
     // Способ получения: доставка (по умолчанию) или самовывоз.
     const fulfillment = dto.fulfillment ?? 'DELIVERY';
+    if (!allowedPayMethods(fulfillment, store.deliveryMode ?? 'OWN').includes(dto.payMethod)) {
+      throw new BadRequestException('Доставку выполняет курьерская служба — оплата только переводом Kaspi заранее');
+    }
     let pickupAt: Date | null = null;
     if (fulfillment === 'PICKUP') {
       if (!store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
@@ -271,7 +275,7 @@ export class OrderingService {
         id: true, number: true, status: true, createdAt: true,
         subtotalTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
         fulfillment: true, pickupAt: true,
-        store: { select: { name: true, slug: true, address: true } },
+        store: { select: { name: true, slug: true, address: true, kaspiPhone: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
         items: { select: { status: true } },
         review: { select: { rating: true, comment: true } },
@@ -284,7 +288,11 @@ export class OrderingService {
       number: o.number,
       status: o.status,
       createdAt: o.createdAt,
-      store: o.store,
+      // Номер Kaspi магазина показываем только тем, кто платит переводом, и пока заказ не закрыт.
+      store: {
+        name: o.store.name, slug: o.store.slug, address: o.store.address,
+        kaspiPhone: o.payMethod === 'KASPI_TRANSFER' && !CLOSED.includes(o.status) ? o.store.kaspiPhone : null,
+      },
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
       pickupAt: o.pickupAt,

@@ -140,6 +140,7 @@ abstract class S {
   String get needsWeighing;
   String get outOfStock;
   String get payOnReceipt;
+  String get payment;
   String get acceptOrder;
   String get startPicking;
   String get pickedReady;
@@ -242,7 +243,7 @@ class _Ru extends S {
   @override String get unitBunch => 'пучок';
   @override String get unitPack => 'упак.';
   @override String get payCash => 'Наличными';
-  @override String get payCardCourier => 'Картой курьеру';
+  @override String get payCardCourier => 'Картой при получении';
   @override String get payKaspi => 'Перевод Kaspi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Новый',
@@ -324,6 +325,7 @@ class _Ru extends S {
   @override String get needsWeighing => 'нужно взвесить';
   @override String get outOfStock => 'Нет в наличии';
   @override String get payOnReceipt => 'Оплата при получении';
+  @override String get payment => 'Оплата';
   @override String get acceptOrder => 'Принять заказ';
   @override String get startPicking => 'Начать сборку';
   @override String get pickedReady => 'Собрано, готово';
@@ -416,7 +418,7 @@ class _Kk extends S {
   @override String get unitBunch => 'байлам';
   @override String get unitPack => 'қаптама';
   @override String get payCash => 'Қолма-қол';
-  @override String get payCardCourier => 'Курьерге картамен';
+  @override String get payCardCourier => 'Алған кезде картамен';
   @override String get payKaspi => 'Kaspi аударымы';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Жаңа',
@@ -498,6 +500,7 @@ class _Kk extends S {
   @override String get needsWeighing => 'өлшеу керек';
   @override String get outOfStock => 'Қолда жоқ';
   @override String get payOnReceipt => 'Алған кезде төлеу';
+  @override String get payment => 'Төлем';
   @override String get acceptOrder => 'Тапсырысты қабылдау';
   @override String get startPicking => 'Жинауды бастау';
   @override String get pickedReady => 'Жиналды, дайын';
@@ -590,7 +593,7 @@ class _Tg extends S {
   @override String get unitBunch => 'даста';
   @override String get unitPack => 'баста';
   @override String get payCash => 'Нақд';
-  @override String get payCardCourier => 'Бо корт ба курьер';
+  @override String get payCardCourier => 'Бо корт ҳангоми гирифтан';
   @override String get payKaspi => 'Интиқоли Kaspi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Нав',
@@ -672,6 +675,7 @@ class _Tg extends S {
   @override String get needsWeighing => 'бояд баркашид';
   @override String get outOfStock => 'Дар мавҷудият нест';
   @override String get payOnReceipt => 'Пардохт ҳангоми гирифтан';
+  @override String get payment => 'Пардохт';
   @override String get acceptOrder => 'Қабул кардани фармоиш';
   @override String get startPicking => 'Оғози ҷамъоварӣ';
   @override String get pickedReady => 'Ҷамъ шуд, тайёр';
@@ -764,7 +768,7 @@ class _Uz extends S {
   @override String get unitBunch => 'bogʻ';
   @override String get unitPack => 'qadoq';
   @override String get payCash => 'Naqd pul';
-  @override String get payCardCourier => 'Kuryerga karta orqali';
+  @override String get payCardCourier => 'Qabul qilishda karta orqali';
   @override String get payKaspi => 'Kaspi oʻtkazmasi';
   @override Map<String, String> get statuses => const {
         'PLACED': 'Yangi',
@@ -846,6 +850,7 @@ class _Uz extends S {
   @override String get needsWeighing => 'tortish kerak';
   @override String get outOfStock => 'Mavjud emas';
   @override String get payOnReceipt => 'Qabul qilishda toʻlov';
+  @override String get payment => 'Toʻlov';
   @override String get acceptOrder => 'Buyurtmani qabul qilish';
   @override String get startPicking => 'Yigʻishni boshlash';
   @override String get pickedReady => 'Yigʻildi, tayyor';

@@ -128,7 +128,12 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           <Row label={t.itemsCount} value={String(o.itemCount)} />
           {o.missingCount > 0 ? <Row label={t.missing} value={String(o.missingCount)} /> : null}
           <Row label={o.finalTiyn != null ? t.totalByWeight : t.estimate} value={tenge(o.finalTiyn ?? o.estimatedTiyn)} strong />
-          <Row label={t.payOnReceipt} value={payLabel(o.payMethod, t)} />
+          <Row label={t.payment} value={payLabel(o.payMethod, t)} />
+          {o.store.kaspiPhone ? (
+            <p style={{ fontSize: 15, fontWeight: 700, margin: '12px 0 0', padding: 12, borderRadius: 'var(--radius-sm)', background: 'var(--carrot-50)' }}>
+              {t.kaspiPayTo(tenge(o.finalTiyn ?? o.estimatedTiyn), o.store.kaspiPhone)}
+            </p>
+          ) : null}
           {!delivered ? <p className="muted" style={{ fontSize: 13, margin: '12px 0 0' }}>{t.exactSumNote}</p> : null}
         </div>
 

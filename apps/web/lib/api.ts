@@ -45,7 +45,7 @@ export interface OrderTrack {
   number: number;
   status: OrderStatus;
   createdAt: string;
-  store: { name: string; slug: string; address: string | null };
+  store: { name: string; slug: string; address: string | null; kaspiPhone?: string | null };
   payMethod: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
   fulfillment: 'DELIVERY' | 'PICKUP';
   pickupAt: string | null;

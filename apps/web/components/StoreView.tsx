@@ -174,7 +174,10 @@ function CheckoutDrawer(props: {
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoBusy, setGeoBusy] = useState(false);
   const [pickupAt, setPickupAt] = useState('');
-  const [pay, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
+  const [payChoice, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
+  // Курьерская служба денег не берёт — при её доставке только перевод Kaspi (то же правило на сервере).
+  const serviceDelivery = mode === 'DELIVERY' && store.deliveryMode === 'SERVICE';
+  const pay = serviceDelivery ? 'KASPI_TRANSFER' : payChoice;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -279,15 +282,19 @@ function CheckoutDrawer(props: {
             </Field>
           )}
 
-          <Field label={t.payOnReceipt}>
+          <Field label={t.payment}>
             <div style={{ display: 'grid', gap: 8 }}>
-              {([['CASH', t.payCash], ['CARD_COURIER', t.payCard], ['KASPI_TRANSFER', t.payKaspi]] as const).map(([v, label]) => (
+              {([['CASH', t.payCash], ['CARD_COURIER', t.payCard], ['KASPI_TRANSFER', t.payKaspi]] as const)
+                .filter(([v]) => !serviceDelivery || v === 'KASPI_TRANSFER').map(([v, label]) => (
                 <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: `1px solid ${pay === v ? 'var(--carrot)' : 'var(--line)'}`, borderRadius: 'var(--radius-sm)', background: pay === v ? 'var(--carrot-50)' : 'var(--card)', cursor: 'pointer' }}>
                   <input type="radio" name="pay" checked={pay === v} onChange={() => setPay(v)} />
                   <span style={{ fontWeight: 600 }}>{label}</span>
                 </label>
               ))}
             </div>
+            {serviceDelivery || pay === 'KASPI_TRANSFER' ? (
+              <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>{serviceDelivery ? t.serviceDeliveryNote : t.kaspiNote}</div>
+            ) : null}
           </Field>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, marginTop: 4 }}>

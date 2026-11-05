@@ -520,7 +520,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(s.payOnReceipt, style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                    Text(s.payment, style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
                     const SizedBox(height: 4),
                     _chip(payLabel(s, o.payMethod), AppColors.leaf),
                   ],
