@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
 import '../push.dart';
+import '../widgets/language_picker.dart';
 import 'home_screen.dart';
 
 class StoresScreen extends StatefulWidget {
@@ -31,10 +33,11 @@ class _StoresScreenState extends State<StoresScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Мои магазины'),
-        actions: [IconButton(onPressed: () => context.read<Session>().logout(), icon: const Icon(Icons.logout))],
+        title: Text(s.myStores),
+        actions: [const LanguageButton(), IconButton(onPressed: () => context.read<Session>().logout(), icon: const Icon(Icons.logout))],
       ),
       body: FutureBuilder<List<StoreSummary>>(
         future: _future,
@@ -47,22 +50,22 @@ class _StoresScreenState extends State<StoresScreen> {
           }
           final stores = snap.data ?? [];
           if (stores.isEmpty) {
-            return const Center(child: Text('Вы пока не привязаны к магазину', style: TextStyle(color: AppColors.ink60)));
+            return Center(child: Text(s.notLinkedToStore, style: const TextStyle(color: AppColors.ink60)));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: stores.length,
             itemBuilder: (context, i) {
-              final s = stores[i];
+              final st = stores[i];
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   leading: const CircleAvatar(backgroundColor: AppColors.carrot50, child: Text('🏪')),
-                  title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text('${s.status} · ${s.myRole}', style: const TextStyle(color: AppColors.ink40)),
+                  title: Text(st.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text('${st.status} · ${st.myRole}', style: const TextStyle(color: AppColors.ink40)),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _open(s),
+                  onTap: () => _open(st),
                 ),
               );
             },

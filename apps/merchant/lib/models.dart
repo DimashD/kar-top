@@ -164,9 +164,11 @@ class CatalogItem {
   final String id;
   final String name;
   final String unit;
+  /// Названия по языкам из общего каталога: { ru, kk, en }.
+  final Map<String, dynamic> names;
   int priceTiyn;
   bool inStock;
-  CatalogItem({required this.id, required this.name, required this.unit, required this.priceTiyn, required this.inStock});
+  CatalogItem({required this.id, required this.name, required this.unit, required this.names, required this.priceTiyn, required this.inStock});
   factory CatalogItem.fromJson(Map<String, dynamic> j) {
     final master = j['master'] as Map<String, dynamic>?;
     final name = master?['name'] as Map<String, dynamic>?;
@@ -174,6 +176,7 @@ class CatalogItem {
       id: j['id'] as String,
       name: name?['ru'] as String? ?? 'Товар',
       unit: master?['unit'] as String? ?? 'PCS',
+      names: name ?? const {},
       priceTiyn: (j['priceTiyn'] as num?)?.toInt() ?? 0,
       inStock: j['inStock'] as bool? ?? true,
     );

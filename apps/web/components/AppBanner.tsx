@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ANDROID_URL, APP_SCHEME, detectPlatform, Platform } from '../lib/app-links';
+import { useT } from './LangProvider';
 
 // Иконка Google Play — простой inline-SVG (без официальных ассетов).
 function Play() {
@@ -10,6 +11,7 @@ function Play() {
 }
 
 function AndroidButton() {
+  const t = useT();
   return (
     <a href={ANDROID_URL} className="btn" style={{
       background: 'var(--ink)', color: '#fff', gap: 10, padding: '10px 16px', borderRadius: 12,
@@ -17,7 +19,7 @@ function AndroidButton() {
     }}>
       <Play />
       <span style={{ textAlign: 'left', lineHeight: 1.1 }}>
-        <span style={{ display: 'block', fontSize: 10, fontWeight: 500, opacity: 0.8 }}>Доступно в</span>
+        <span style={{ display: 'block', fontSize: 10, fontWeight: 500, opacity: 0.8 }}>{t.availableOn}</span>
         <span style={{ display: 'block', fontSize: 15, fontWeight: 800 }}>Google Play</span>
       </span>
     </a>
@@ -25,6 +27,7 @@ function AndroidButton() {
 }
 
 function StoreActions({ platform, orderId }: { platform: Platform; orderId?: string }) {
+  const t = useT();
   function openApp() {
     if (!orderId) return;
     const started = Date.now();
@@ -38,7 +41,7 @@ function StoreActions({ platform, orderId }: { platform: Platform; orderId?: str
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
       {orderId && platform === 'android' ? (
-        <button className="btn btn-primary btn-block" onClick={openApp} style={{ height: 48 }}>Открыть в приложении</button>
+        <button className="btn btn-primary btn-block" onClick={openApp} style={{ height: 48 }}>{t.openInApp}</button>
       ) : null}
       <AndroidButton />
     </div>
@@ -50,6 +53,7 @@ function StoreActions({ platform, orderId }: { platform: Platform; orderId?: str
  * приложение — только Android (Google Play), опционально.
  */
 export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: string; variant?: 'banner' | 'full' }) {
+  const t = useT();
   const [platform, setPlatform] = useState<Platform>('other');
   useEffect(() => { setPlatform(detectPlatform(navigator.userAgent)); }, []);
 
@@ -57,13 +61,10 @@ export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: s
     return (
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 56 }}>🧺</div>
-        <h1 style={{ fontSize: 32, margin: '12px 0 8px' }}>Kartop — в браузере и в приложении</h1>
-        <p className="muted" style={{ fontSize: 18, maxWidth: 440, margin: '0 auto 24px' }}>
-          Заказывайте прямо в браузере — ничего ставить не нужно. А для живого статуса заказа и
-          пуш-уведомлений есть приложение для Android.
-        </p>
+        <h1 style={{ fontSize: 32, margin: '12px 0 8px' }}>{t.appTitle}</h1>
+        <p className="muted" style={{ fontSize: 18, maxWidth: 440, margin: '0 auto 24px' }}>{t.appText}</p>
         <div style={{ maxWidth: 360, margin: '0 auto 16px' }}><StoreActions platform={platform} orderId={orderId} /></div>
-        <Link href="/" className="btn btn-ghost">Продолжить в браузере →</Link>
+        <Link href="/" className="btn btn-ghost">{t.continueInBrowser}</Link>
       </div>
     );
   }
@@ -73,10 +74,8 @@ export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: s
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ fontSize: 30 }}>🧺</div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Следите за заказом</div>
-          <div className="muted" style={{ fontSize: 14 }}>
-            Здесь, в браузере — или в приложении для Android: живой статус, пуши и код получения.
-          </div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{t.trackTitle}</div>
+          <div className="muted" style={{ fontSize: 14 }}>{t.trackText}</div>
         </div>
       </div>
       <StoreActions platform={platform} orderId={orderId} />

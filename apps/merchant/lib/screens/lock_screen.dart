@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../lock.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -27,7 +28,9 @@ class _LockScreenState extends State<LockScreen> {
   Future<void> _tryBiometric() async {
     final ok = await AppLock.biometricAvailable();
     if (mounted) setState(() => _bioAvailable = ok);
-    if (ok && await AppLock.authenticateBiometric()) widget.onUnlocked();
+    if (!mounted) return;
+    final reason = context.read<Lang>().s.biometricReason;
+    if (ok && await AppLock.authenticateBiometric(reason)) widget.onUnlocked();
   }
 
   Future<void> _tap(String d) async {
@@ -48,6 +51,7 @@ class _LockScreenState extends State<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -57,7 +61,7 @@ class _LockScreenState extends State<LockScreen> {
               const Spacer(),
               const Text('Kartop', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: AppColors.carrot)),
               const SizedBox(height: 6),
-              const Text('Введите PIN для входа', style: TextStyle(color: AppColors.ink60)),
+              Text(s.enterPin, style: const TextStyle(color: AppColors.ink60)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -74,13 +78,13 @@ class _LockScreenState extends State<LockScreen> {
                   );
                 }),
               ),
-              if (_error) const Padding(padding: EdgeInsets.only(top: 12), child: Text('Неверный PIN', style: TextStyle(color: AppColors.sale))),
+              if (_error) Padding(padding: const EdgeInsets.only(top: 12), child: Text(s.wrongPin, style: const TextStyle(color: AppColors.sale))),
               const Spacer(),
               _keypad(),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => context.read<Session>().logout(),
-                child: const Text('Забыли PIN? Войти заново'),
+                child: Text(s.forgotPin),
               ),
             ],
           ),

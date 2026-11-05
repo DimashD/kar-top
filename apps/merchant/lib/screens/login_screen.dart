@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/language_picker.dart';
 import 'partner_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -44,61 +46,67 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text('Kartop', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.carrot)),
-                const SizedBox(height: 4),
-                const Text('Кабинет магазина', style: TextStyle(fontSize: 16, color: AppColors.ink60)),
-                const SizedBox(height: 32),
-                if (!_sent) ...[
-                  const Text('Телефон', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
-                  const SizedBox(height: 6),
-                  TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+77011234567')),
-                  const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _busy ? null : _request, child: Text(_busy ? 'Отправляем…' : 'Получить код')),
-                ] else ...[
-                  Text('Код отправлен на ${_phone.text}', style: const TextStyle(color: AppColors.ink60)),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _code,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 8),
-                    decoration: const InputDecoration(hintText: '••••••'),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _busy ? null : _verify, child: Text(_busy ? 'Проверяем…' : 'Войти')),
-                  TextButton(onPressed: _busy ? null : () => setState(() => _sent = false), child: const Text('Изменить номер')),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: AppColors.sale)),
-                ],
-                if (!_sent) ...[
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  const Text('Ещё не партнёр Kartop?',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppColors.ink60)),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: _busy
-                        ? null
-                        : () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PartnerScreen())),
-                    child: const Text('Стать партнёром'),
-                  ),
-                ],
-              ],
+        child: Stack(
+          children: [
+            const Align(alignment: Alignment.topRight, child: Padding(padding: EdgeInsets.all(8), child: LanguageButton())),
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Kartop', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.carrot)),
+                    const SizedBox(height: 4),
+                    Text(s.merchantCabinet, style: const TextStyle(fontSize: 16, color: AppColors.ink60)),
+                    const SizedBox(height: 32),
+                    if (!_sent) ...[
+                      Text(s.phone, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
+                      const SizedBox(height: 6),
+                      TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+77011234567')),
+                      const SizedBox(height: 16),
+                      ElevatedButton(onPressed: _busy ? null : _request, child: Text(_busy ? s.sending : s.getCode)),
+                    ] else ...[
+                      Text(s.codeSentTo(_phone.text), style: const TextStyle(color: AppColors.ink60)),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _code,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 8),
+                        decoration: const InputDecoration(hintText: '••••••'),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(onPressed: _busy ? null : _verify, child: Text(_busy ? s.checking : s.signIn)),
+                      TextButton(onPressed: _busy ? null : () => setState(() => _sent = false), child: Text(s.changeNumber)),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(_error!, style: const TextStyle(color: AppColors.sale)),
+                    ],
+                    if (!_sent) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(s.notPartnerYet,
+                          textAlign: TextAlign.center, style: const TextStyle(color: AppColors.ink60)),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const PartnerScreen())),
+                        child: Text(s.becomePartner),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
