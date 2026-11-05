@@ -82,21 +82,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _editLead() async {
+  /// Диалог «сколько минут»: общий для самовывоза, курьерской службы и своей доставки.
+  Future<void> _editMinutes({required String title, required String helper, required int current, required String field}) async {
     final s = context.read<Lang>().s;
-    final ctrl = TextEditingController(text: _s!.pickupLeadMinutes.toString());
+    final ctrl = TextEditingController(text: current.toString());
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(s.pickupReadiness),
-        content: TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: InputDecoration(suffixText: s.minutes, helperText: s.pickupReadinessHelper)),
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(suffixText: s.minutes, helperText: helper, helperMaxLines: 3),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
           ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: Text(s.save)),
         ],
       ),
     );
-    if (result != null && result >= 0) await _save({'pickupLeadMinutes': result});
+    if (result != null && result >= 0 && result <= 1440) await _save({field: result});
   }
 
   @override
@@ -126,7 +132,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(s.pickupLeadValue(st.pickupLeadMinutes)),
                 trailing: const Icon(Icons.chevron_right),
                 enabled: st.pickupEnabled,
-                onTap: st.pickupEnabled ? _editLead : null,
+                onTap: st.pickupEnabled
+                    ? () => _editMinutes(title: s.pickupReadiness, helper: s.pickupReadinessHelper, current: st.pickupLeadMinutes, field: 'pickupLeadMinutes')
+                    : null,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.local_shipping_outlined, color: AppColors.carrot),
+                title: Text(s.courierHandover),
+                subtitle: Text(s.pickupLeadValue(st.courierHandoverMinutes)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _editMinutes(title: s.courierHandover, helper: s.courierHandoverHelper, current: st.courierHandoverMinutes, field: 'courierHandoverMinutes'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.delivery_dining_outlined, color: AppColors.carrot),
+                title: Text(s.ownDelivery),
+                subtitle: Text(s.aboutMinutes(st.ownDeliveryMinutes)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _editMinutes(title: s.ownDelivery, helper: s.ownDeliveryHelper, current: st.ownDeliveryMinutes, field: 'ownDeliveryMinutes'),
               ),
             ],
           ),

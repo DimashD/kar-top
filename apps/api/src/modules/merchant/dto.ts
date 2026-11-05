@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class AddProductDto {
   @IsString() masterProductId!: string;
@@ -19,6 +19,10 @@ export class StoreSettingsDto {
   // Минимум времени от оформления до готовности к самовывозу (минуты).
   @IsOptional() @IsInt() @Min(0) pickupLeadMinutes?: number;
   @IsOptional() @IsIn(['OWN', 'SERVICE', 'BOTH']) deliveryMode?: 'OWN' | 'SERVICE' | 'BOTH';
+  // Готовность к передаче курьерской службе (минуты от оформления).
+  @IsOptional() @IsInt() @Min(0) @Max(1440) courierHandoverMinutes?: number;
+  // Средняя продолжительность своей доставки (минуты от оформления до вручения).
+  @IsOptional() @IsInt() @Min(0) @Max(1440) ownDeliveryMinutes?: number;
 }
 
 export class CatalogRequestDto {

@@ -28,7 +28,7 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true },
+      select: { id: true, name: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
     return s;
@@ -43,8 +43,10 @@ export class MerchantService {
         ...(dto.pickupEnabled != null ? { pickupEnabled: dto.pickupEnabled } : {}),
         ...(dto.pickupLeadMinutes != null ? { pickupLeadMinutes: dto.pickupLeadMinutes } : {}),
         ...(dto.deliveryMode != null ? { deliveryMode: dto.deliveryMode } : {}),
+        ...(dto.courierHandoverMinutes != null ? { courierHandoverMinutes: dto.courierHandoverMinutes } : {}),
+        ...(dto.ownDeliveryMinutes != null ? { ownDeliveryMinutes: dto.ownDeliveryMinutes } : {}),
       },
-      select: { id: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true },
+      select: { id: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
     return s;
   }

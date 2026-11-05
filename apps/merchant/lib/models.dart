@@ -20,11 +20,21 @@ class StoreSummary {
 class StoreSettings {
   bool pickupEnabled;
   int pickupLeadMinutes;
+  int courierHandoverMinutes;
+  int ownDeliveryMinutes;
   String deliveryMode;
-  StoreSettings({required this.pickupEnabled, required this.pickupLeadMinutes, required this.deliveryMode});
+  StoreSettings({
+    required this.pickupEnabled,
+    required this.pickupLeadMinutes,
+    required this.courierHandoverMinutes,
+    required this.ownDeliveryMinutes,
+    required this.deliveryMode,
+  });
   factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
         pickupEnabled: j['pickupEnabled'] as bool? ?? true,
         pickupLeadMinutes: (j['pickupLeadMinutes'] as num?)?.toInt() ?? 60,
+        courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
+        ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
       );
 }
@@ -166,17 +176,32 @@ class CatalogItem {
   final String unit;
   /// Названия по языкам из общего каталога: { ru, kk, en }.
   final Map<String, dynamic> names;
+  final String categoryId;
+  /// Название категории по языкам: { ru, kk, en }.
+  final Map<String, dynamic> categoryNames;
   int priceTiyn;
   bool inStock;
-  CatalogItem({required this.id, required this.name, required this.unit, required this.names, required this.priceTiyn, required this.inStock});
+  CatalogItem({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.names,
+    required this.categoryId,
+    required this.categoryNames,
+    required this.priceTiyn,
+    required this.inStock,
+  });
   factory CatalogItem.fromJson(Map<String, dynamic> j) {
     final master = j['master'] as Map<String, dynamic>?;
     final name = master?['name'] as Map<String, dynamic>?;
+    final category = master?['category'] as Map<String, dynamic>?;
     return CatalogItem(
       id: j['id'] as String,
       name: name?['ru'] as String? ?? 'Товар',
       unit: master?['unit'] as String? ?? 'PCS',
       names: name ?? const {},
+      categoryId: category?['id'] as String? ?? '',
+      categoryNames: category?['name'] as Map<String, dynamic>? ?? const {},
       priceTiyn: (j['priceTiyn'] as num?)?.toInt() ?? 0,
       inStock: j['inStock'] as bool? ?? true,
     );

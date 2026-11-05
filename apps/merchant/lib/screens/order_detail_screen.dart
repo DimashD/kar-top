@@ -4,6 +4,7 @@ import '../format.dart';
 import 'package:flutter/services.dart';
 import '../l10n.dart';
 import '../map_links.dart';
+import '../phone.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
