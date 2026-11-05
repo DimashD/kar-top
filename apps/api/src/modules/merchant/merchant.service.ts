@@ -28,7 +28,7 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
     return s;
@@ -37,16 +37,24 @@ export class MerchantService {
   /** Изменить настройки доставки/самовывоза. Только OWNER/MANAGER. */
   async updateSettings(storeId: string, userId: string, dto: StoreSettingsDto) {
     await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    // Хотя бы один способ получения должен остаться — иначе магазин не сможет принимать заказы.
+    if (dto.pickupEnabled === false || dto.deliveryEnabled === false) {
+      const cur = await this.prisma.store.findUnique({ where: { id: storeId }, select: { pickupEnabled: true, deliveryEnabled: true } });
+      const pickup = dto.pickupEnabled ?? cur?.pickupEnabled;
+      const delivery = dto.deliveryEnabled ?? cur?.deliveryEnabled;
+      if (!pickup && !delivery) throw new BadRequestException('Оставьте включённым хотя бы один способ: доставку или самовывоз');
+    }
     const s = await this.prisma.store.update({
       where: { id: storeId },
       data: {
         ...(dto.pickupEnabled != null ? { pickupEnabled: dto.pickupEnabled } : {}),
+        ...(dto.deliveryEnabled != null ? { deliveryEnabled: dto.deliveryEnabled } : {}),
         ...(dto.pickupLeadMinutes != null ? { pickupLeadMinutes: dto.pickupLeadMinutes } : {}),
         ...(dto.deliveryMode != null ? { deliveryMode: dto.deliveryMode } : {}),
         ...(dto.courierHandoverMinutes != null ? { courierHandoverMinutes: dto.courierHandoverMinutes } : {}),
         ...(dto.ownDeliveryMinutes != null ? { ownDeliveryMinutes: dto.ownDeliveryMinutes } : {}),
       },
-      select: { id: true, deliveryMode: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
+      select: { id: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
     return s;
   }
@@ -61,7 +69,7 @@ export class MerchantService {
         priceTiyn: true,
         oldPriceTiyn: true,
         inStock: true,
-        master: { select: { id: true, name: true, unit: true, category: { select: { id: true, name: true } } } },
+        master: { select: { id: true, name: true, unit: true, category: { select: { id: true, name: true, sort: true, parent: { select: { id: true, name: true, sort: true } } } } } },
       },
       orderBy: { master: { name: 'asc' } },
     });

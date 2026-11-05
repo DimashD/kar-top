@@ -143,6 +143,10 @@ const DATA = [
   ]},
 ];
 
+// Крупные группы (те же id, что в миграции 20261105120000_catalog_groups).
+const GROUPS = [{"id": "a0000000-0000-4000-8000-000000000001", "name": {"ru": "Фрукты и ягоды", "kk": "Жемістер мен жидектер", "en": "Fruit & berries"}, "subs": ["Цитрусовые", "Яблоки", "Груши", "Виноград", "Косточковые", "Бахчевые", "Хурма", "Бананы", "Авокадо", "Ананасы", "Гранаты", "Манго", "Киви", "Экзотические фрукты", "Ягоды"]}, {"id": "a0000000-0000-4000-8000-000000000002", "name": {"ru": "Овощи и зелень", "kk": "Көкөністер мен көкөніс шөптері", "en": "Vegetables & greens"}, "subs": ["Томаты", "Огурцы", "Перцы", "Овощи", "Корнеплоды", "Зелень и салаты", "Грибы"]}, {"id": "a0000000-0000-4000-8000-000000000003", "name": {"ru": "Салаты и соленья", "kk": "Салаттар мен тұздықтар", "en": "Salads & pickles"}, "subs": ["Корейские салаты", "Соленья и квашеное"]}, {"id": "a0000000-0000-4000-8000-000000000004", "name": {"ru": "Орехи и сухофрукты", "kk": "Жаңғақтар мен кептірілген жемістер", "en": "Nuts & dried fruit"}, "subs": ["Орехи", "Финики и сухофрукты"]}, {"id": "a0000000-0000-4000-8000-000000000005", "name": {"ru": "Молочка и яйца", "kk": "Сүт өнімдері мен жұмыртқа", "en": "Dairy & eggs"}, "subs": ["Молочная продукция", "Яйца"]}, {"id": "a0000000-0000-4000-8000-000000000006", "name": {"ru": "Мясо и рыба", "kk": "Ет пен балық", "en": "Meat & fish"}, "subs": ["Мясо и птица", "Рыба и морепродукты"]}, {"id": "a0000000-0000-4000-8000-000000000007", "name": {"ru": "Мёд и сладости", "kk": "Бал мен тәттілер", "en": "Honey & sweets"}, "subs": ["Мёд и варенье"]}];
+function groupFor(ru) { return GROUPS.find((g) => g.subs.includes(ru)); }
+
 async function findCategory(ru) {
   return prisma.category.findFirst({ where: { name: { path: ['ru'], equals: ru } }, select: { id: true } });
 }
@@ -155,13 +159,23 @@ async function findProduct(categoryId, ru) {
   try {
     for (let i = 0; i < DATA.length; i++) {
       const g = DATA[i];
+      const group = groupFor(g.cat);
+      if (group) {
+        await prisma.category.upsert({
+          where: { id: group.id },
+          update: {},
+          create: { id: group.id, name: group.name, sort: GROUPS.indexOf(group) },
+        });
+      }
       let cat = await findCategory(g.cat);
       if (!cat) {
         cat = await prisma.category.create({
-          data: { name: { ru: g.cat }, perishable: !!g.perishable, coldChain: !!g.coldChain, sort: i },
+          data: { name: { ru: g.cat }, perishable: !!g.perishable, coldChain: !!g.coldChain, sort: i, parentId: group ? group.id : null },
           select: { id: true },
         });
         cCreated++;
+      } else if (group) {
+        await prisma.category.updateMany({ where: { id: cat.id, parentId: null }, data: { parentId: group.id } });
       }
       for (const raw of g.items) {
         const it = typeof raw === 'string' ? { n: raw } : raw;

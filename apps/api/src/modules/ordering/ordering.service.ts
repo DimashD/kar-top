@@ -19,12 +19,15 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
     // Способ получения: доставка (по умолчанию) или самовывоз.
     const fulfillment = dto.fulfillment ?? 'DELIVERY';
+    if (fulfillment === 'DELIVERY' && store.deliveryEnabled === false) {
+      throw new BadRequestException('Доставка в этом магазине сейчас недоступна — выберите самовывоз');
+    }
     if (!allowedPayMethods(fulfillment, store.deliveryMode ?? 'OWN').includes(dto.payMethod)) {
       throw new BadRequestException('Доставку выполняет курьерская служба — оплата только переводом Kaspi заранее');
     }

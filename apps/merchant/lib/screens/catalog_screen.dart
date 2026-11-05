@@ -5,6 +5,7 @@ import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/share_store.dart';
 import 'catalog_request_screen.dart';
 
 enum _Stock { all, inStock, hidden }
@@ -20,7 +21,8 @@ class CatalogScreen extends StatefulWidget {
 class _CatalogScreenState extends State<CatalogScreen> {
   List<CatalogItem>? _items;
   String? _error;
-  String? _category; // null — все категории
+  String? _group; // null — экран групп (плитки); иначе — товары группы
+  String? _category; // подкатегория внутри группы; null — все
   _Stock _stock = _Stock.all;
   String _query = '';
   final _search = SearchController();
@@ -112,6 +114,21 @@ class _CatalogScreenState extends State<CatalogScreen> {
     return scored.map((e) => e.$1).toList();
   }
 
+  static const _groupEmoji = [
+    ('фрукт', '🍎'), ('овощ', '🥕'), ('салат', '🥗'), ('орех', '🥜'),
+    ('молоч', '🧀'), ('мяс', '🥩'), ('мёд', '🍯'), ('мед', '🍯'),
+  ];
+  String _emoji(String ru) {
+    final l = ru.toLowerCase();
+    for (final (k, e) in _groupEmoji) {
+      if (l.contains(k)) return e;
+    }
+    return '🧺';
+  }
+
+  String _groupName(S s, CatalogItem it) =>
+      (it.groupNames[s.code] ?? it.groupNames['ru']) as String? ?? s.otherCategory;
+
   String _catName(S s, CatalogItem it) =>
       (it.categoryNames[s.code] ?? it.categoryNames['ru']) as String? ?? s.otherCategory;
 
@@ -168,29 +185,39 @@ class _CatalogScreenState extends State<CatalogScreen> {
           : const Center(child: CircularProgressIndicator());
     }
 
-    // Категории с количеством товаров — для чипов.
-    final cats = <String, (String, int)>{};
-    for (final it in items) {
-      final prev = cats[it.categoryId];
-      cats[it.categoryId] = (_catName(s, it), (prev?.$2 ?? 0) + 1);
-    }
-    final catList = cats.entries.toList()..sort((a, b) => a.value.$1.compareTo(b.value.$1));
+    final searching = _query.isNotEmpty;
+    final inGroup = items.where((it) => _group == null || it.groupId == _group).toList();
 
-    final visible = (_query.isEmpty ? items : _searchResults(_query)).where((it) {
-      if (_category != null && it.categoryId != _category) return false;
+    // Подкатегории текущей группы с количеством — для чипов.
+    final cats = <String, (String, int, int)>{}; // id → (название, кол-во, порядок)
+    for (final it in inGroup) {
+      final prev = cats[it.categoryId];
+      cats[it.categoryId] = (_catName(s, it), (prev?.$2 ?? 0) + 1, it.categorySort);
+    }
+    final catList = cats.entries.toList()..sort((a, b) => a.value.$3.compareTo(b.value.$3));
+
+    final visible = (searching ? _searchResults(_query) : inGroup).where((it) {
+      if (!searching && _category != null && it.categoryId != _category) return false;
       if (_stock == _Stock.inStock && !it.inStock) return false;
       if (_stock == _Stock.hidden && it.inStock) return false;
       return true;
     }).toList();
 
-    // Группировка по категориям (внутри — по алфавиту); при поиске порядок — по релевантности.
+    // Группировка списка по подкатегориям (при поиске — по релевантности внутри подкатегории).
     final groups = <String, List<CatalogItem>>{};
     for (final it in visible) {
       groups.putIfAbsent(it.categoryId, () => []).add(it);
     }
-    final groupKeys = groups.keys.toList()..sort((a, b) => cats[a]!.$1.compareTo(cats[b]!.$1));
+    final catNames = {for (final it in visible) it.categoryId: (_catName(s, it), it.categorySort)};
+    final groupKeys = groups.keys.toList()..sort((a, b) => catNames[a]!.$2.compareTo(catNames[b]!.$2));
 
-    return Column(
+    return PopScope(
+      // Внутри группы «Назад» возвращает к плиткам групп, а не закрывает магазин.
+      canPop: _group == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() { _group = null; _category = null; });
+      },
+      child: Column(
       children: [
         Container(
           color: AppColors.card,
@@ -242,18 +269,29 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _catChip('${s.all} · ${items.length}', _category == null, () => setState(() => _category = null)),
-                    for (final c in catList)
-                      _catChip('${c.value.$1} · ${c.value.$2}', _category == c.key, () => setState(() => _category = c.key)),
-                  ],
+              if (_group != null && !searching) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.arrow_back, size: 18),
+                          label: Text(s.allCategories),
+                          onPressed: () => setState(() { _group = null; _category = null; }),
+                        ),
+                      ),
+                      _catChip('${s.all} · ${inGroup.length}', _category == null, () => setState(() => _category = null)),
+                      for (final c in catList)
+                        _catChip('${c.value.$1} · ${c.value.$2}', _category == c.key, () => setState(() => _category = c.key)),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+              if (_group != null || searching) ...[
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -268,6 +306,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   onSelectionChanged: (v) => setState(() => _stock = v.first),
                 ),
               ),
+              ],
             ],
           ),
         ),
@@ -280,15 +319,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
               children: [
                 if (items.isEmpty)
                   Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.catalogEmpty, style: const TextStyle(color: AppColors.ink60))))
-                else if (visible.isEmpty)
-                  Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.nothingFound, style: const TextStyle(color: AppColors.ink60)))),
-                for (final key in groupKeys) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6, bottom: 8),
-                    child: Text(cats[key]!.$1.toUpperCase(),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink40, letterSpacing: 0.6)),
-                  ),
-                  for (final it in groups[key]!) _productCard(s, it),
+                else if (_group == null && !searching) ...[
+                  if (context.watch<Session>().store case final store?) ...[
+                    StoreLinkCard(store: store),
+                    const SizedBox(height: 14),
+                  ],
+                  _groupGrid(s, items),
+                ]
+                else ...[
+                  if (visible.isEmpty)
+                    Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.nothingFound, style: const TextStyle(color: AppColors.ink60)))),
+                  for (final key in groupKeys) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 8),
+                      child: Text(catNames[key]!.$1.toUpperCase(),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.ink40, letterSpacing: 0.6)),
+                    ),
+                    for (final it in groups[key]!) _productCard(s, it),
+                  ],
                 ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
@@ -303,6 +351,55 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           ),
         ),
+      ],
+    ),
+    );
+  }
+
+  /// Крупные группы плитками 2×N: эмодзи, название, сколько товаров и сколько скрыто.
+  Widget _groupGrid(S s, List<CatalogItem> items) {
+    final byGroup = <String, List<CatalogItem>>{};
+    for (final it in items) {
+      byGroup.putIfAbsent(it.groupId, () => []).add(it);
+    }
+    final keys = byGroup.keys.toList()..sort((a, b) => byGroup[a]!.first.groupSort.compareTo(byGroup[b]!.first.groupSort));
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.35,
+      children: [
+        for (final g in keys)
+          Builder(builder: (_) {
+            final list = byGroup[g]!;
+            final name = _groupName(s, list.first);
+            final hidden = list.where((it) => !it.inStock).length;
+            return Material(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => setState(() { _group = g; _category = null; }),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.line)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_emoji((list.first.groupNames['ru'] as String?) ?? ''), style: const TextStyle(fontSize: 30)),
+                      const Spacer(),
+                      Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, height: 1.15)),
+                      const SizedBox(height: 2),
+                      Text(hidden > 0 ? '${s.productsCount(list.length)} · ${s.hiddenCount(hidden)}' : s.productsCount(list.length),
+                          style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
       ],
     );
   }

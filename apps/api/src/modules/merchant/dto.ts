@@ -16,6 +16,7 @@ export class UpdateProductDto {
 
 export class StoreSettingsDto {
   @IsOptional() @IsBoolean() pickupEnabled?: boolean;
+  @IsOptional() @IsBoolean() deliveryEnabled?: boolean;
   // Минимум времени от оформления до готовности к самовывозу (минуты).
   @IsOptional() @IsInt() @Min(0) pickupLeadMinutes?: number;
   @IsOptional() @IsIn(['OWN', 'SERVICE', 'BOTH']) deliveryMode?: 'OWN' | 'SERVICE' | 'BOTH';

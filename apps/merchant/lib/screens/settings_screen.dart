@@ -83,6 +83,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// Вкл/выкл способа получения. Выключить последний оставшийся нельзя — магазин не сможет принимать заказы.
+  Future<void> _toggleMethod(String field, bool on, {required bool other}) async {
+    if (!on && !other) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.read<Lang>().s.keepOneMethod)));
+      return;
+    }
+    await _save({field: on});
+  }
+
   /// Диалог «сколько минут»: общий для самовывоза, курьерской службы и своей доставки.
   Future<void> _editMinutes({required String title, required String helper, required int current, required String field}) async {
     final s = context.read<Lang>().s;
@@ -122,43 +131,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
         Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
+        // Самовывоз
         Card(
           child: Column(
             children: [
               SwitchListTile(
                 value: st.pickupEnabled,
                 activeThumbColor: AppColors.leaf,
-                title: Text(s.pickup),
+                secondary: const Icon(Icons.storefront_outlined, color: AppColors.carrot),
+                title: Text(s.pickup, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text(s.pickupSubtitle),
-                onChanged: (v) => _save({'pickupEnabled': v}),
+                onChanged: (v) => _toggleMethod('pickupEnabled', v, other: st.deliveryEnabled),
               ),
-              const Divider(height: 1),
-              ListTile(
-                title: Text(s.pickupReadiness),
-                subtitle: Text(s.pickupLeadValue(st.pickupLeadMinutes)),
-                trailing: const Icon(Icons.chevron_right),
-                enabled: st.pickupEnabled,
-                onTap: st.pickupEnabled
-                    ? () => _editMinutes(title: s.pickupReadiness, helper: s.pickupReadinessHelper, current: st.pickupLeadMinutes, field: 'pickupLeadMinutes')
-                    : null,
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.local_shipping_outlined, color: AppColors.carrot),
-                title: Text(s.courierHandover),
-                subtitle: Text(s.pickupLeadValue(st.courierHandoverMinutes)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editMinutes(title: s.courierHandover, helper: s.courierHandoverHelper, current: st.courierHandoverMinutes, field: 'courierHandoverMinutes'),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.delivery_dining_outlined, color: AppColors.carrot),
-                title: Text(s.ownDelivery),
-                subtitle: Text(s.aboutMinutes(st.ownDeliveryMinutes)),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editMinutes(title: s.ownDelivery, helper: s.ownDeliveryHelper, current: st.ownDeliveryMinutes, field: 'ownDeliveryMinutes'),
-              ),
+              if (st.pickupEnabled) ...[
+                const Divider(height: 1),
+                ListTile(
+                  title: Text(s.pickupReadiness),
+                  subtitle: Text(s.pickupLeadValue(st.pickupLeadMinutes)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _editMinutes(title: s.pickupReadiness, helper: s.pickupReadinessHelper, current: st.pickupLeadMinutes, field: 'pickupLeadMinutes'),
+                ),
+              ],
             ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Своя доставка магазина
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile(
+                value: st.deliveryEnabled,
+                activeThumbColor: AppColors.leaf,
+                secondary: const Icon(Icons.delivery_dining_outlined, color: AppColors.carrot),
+                title: Text(s.ownDeliveryTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(s.ownDeliverySubtitle),
+                onChanged: (v) => _toggleMethod('deliveryEnabled', v, other: st.pickupEnabled),
+              ),
+              if (st.deliveryEnabled) ...[
+                const Divider(height: 1),
+                ListTile(
+                  title: Text(s.averageTime),
+                  subtitle: Text(s.aboutMinutes(st.ownDeliveryMinutes)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _editMinutes(title: s.averageTime, helper: s.ownDeliveryHelper, current: st.ownDeliveryMinutes, field: 'ownDeliveryMinutes'),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Курьерская служба — пока не работает: выключатель неактивен, метка «Скоро».
+        Card(
+          child: SwitchListTile(
+            value: false,
+            onChanged: null,
+            secondary: const Icon(Icons.local_shipping_outlined, color: AppColors.ink40),
+            title: Row(
+              children: [
+                Flexible(child: Text(s.courierService, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60))),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.carrot50, borderRadius: BorderRadius.circular(999)),
+                  child: Text(s.soon, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+                ),
+              ],
+            ),
+            subtitle: Text(s.courierServiceSubtitle),
           ),
         ),
         const SizedBox(height: 20),

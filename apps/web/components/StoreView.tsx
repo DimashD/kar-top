@@ -168,7 +168,9 @@ function CheckoutDrawer(props: {
   const { slug, store, lines, subtotal, onClose, onInc, onDec, onDone } = props;
   const t = useT();
   const lang = useLang();
-  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
+  // Своя доставка может быть выключена магазином — тогда только самовывоз.
+  const deliveryOn = store.deliveryEnabled !== false;
+  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(deliveryOn ? 'DELIVERY' : 'PICKUP');
   const [phone, setPhone] = useState('+7');
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
@@ -253,8 +255,8 @@ function CheckoutDrawer(props: {
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Способ получения */}
           <Field label={t.fulfillment}>
-            <div style={{ display: 'grid', gridTemplateColumns: store.pickupEnabled ? '1fr 1fr' : '1fr', gap: 8 }}>
-              <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚗" title={t.delivery} />
+            <div style={{ display: 'grid', gridTemplateColumns: store.pickupEnabled && deliveryOn ? '1fr 1fr' : '1fr', gap: 8 }}>
+              {deliveryOn ? <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚗" title={t.delivery} /> : null}
               {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="🛍️" title={t.pickup} /> : null}
             </div>
           </Field>

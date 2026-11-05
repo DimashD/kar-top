@@ -20,12 +20,14 @@ class StoreSummary {
 class StoreSettings {
   bool pickupEnabled;
   int pickupLeadMinutes;
+  bool deliveryEnabled;
   int courierHandoverMinutes;
   int ownDeliveryMinutes;
   String deliveryMode;
   StoreSettings({
     required this.pickupEnabled,
     required this.pickupLeadMinutes,
+    required this.deliveryEnabled,
     required this.courierHandoverMinutes,
     required this.ownDeliveryMinutes,
     required this.deliveryMode,
@@ -33,6 +35,7 @@ class StoreSettings {
   factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
         pickupEnabled: j['pickupEnabled'] as bool? ?? true,
         pickupLeadMinutes: (j['pickupLeadMinutes'] as num?)?.toInt() ?? 60,
+        deliveryEnabled: j['deliveryEnabled'] as bool? ?? true,
         courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
@@ -179,6 +182,11 @@ class CatalogItem {
   final String categoryId;
   /// Название категории по языкам: { ru, kk, en }.
   final Map<String, dynamic> categoryNames;
+  final int categorySort;
+  /// Крупная группа каталога («Фрукты и ягоды»…): родитель категории. Пусто — без группы.
+  final String groupId;
+  final Map<String, dynamic> groupNames;
+  final int groupSort;
   int priceTiyn;
   bool inStock;
   CatalogItem({
@@ -188,6 +196,10 @@ class CatalogItem {
     required this.names,
     required this.categoryId,
     required this.categoryNames,
+    required this.categorySort,
+    required this.groupId,
+    required this.groupNames,
+    required this.groupSort,
     required this.priceTiyn,
     required this.inStock,
   });
@@ -195,6 +207,7 @@ class CatalogItem {
     final master = j['master'] as Map<String, dynamic>?;
     final name = master?['name'] as Map<String, dynamic>?;
     final category = master?['category'] as Map<String, dynamic>?;
+    final group = category?['parent'] as Map<String, dynamic>?;
     return CatalogItem(
       id: j['id'] as String,
       name: name?['ru'] as String? ?? 'Товар',
@@ -202,6 +215,10 @@ class CatalogItem {
       names: name ?? const {},
       categoryId: category?['id'] as String? ?? '',
       categoryNames: category?['name'] as Map<String, dynamic>? ?? const {},
+      categorySort: (category?['sort'] as num?)?.toInt() ?? 0,
+      groupId: group?['id'] as String? ?? '',
+      groupNames: group?['name'] as Map<String, dynamic>? ?? const {},
+      groupSort: (group?['sort'] as num?)?.toInt() ?? 999,
       priceTiyn: (j['priceTiyn'] as num?)?.toInt() ?? 0,
       inStock: j['inStock'] as bool? ?? true,
     );

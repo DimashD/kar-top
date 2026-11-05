@@ -18,7 +18,7 @@ export interface CatalogCategory { category: { ru: string; kk?: string; en?: str
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;
-    deliveryMode: string; pickupEnabled: boolean; pickupLeadMinutes: number; reviewCount?: number;
+    deliveryMode: string; deliveryEnabled?: boolean; pickupEnabled: boolean; pickupLeadMinutes: number; reviewCount?: number;
   };
   categories: CatalogCategory[];
 }
