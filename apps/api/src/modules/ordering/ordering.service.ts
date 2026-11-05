@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Unit, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
@@ -13,6 +13,13 @@ export class OrderingService {
   /** 4-значный код подтверждения получения (покупатель называет курьеру). */
   private genDeliveryCode(): string {
     return String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  /** Заказ от покупателя, подтвердившего номер по SMS: телефон — из его аккаунта. */
+  async createForUser(dto: CreateOrderDto, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
+    if (!user?.phone) throw new UnauthorizedException('Подтвердите номер телефона');
+    return this.create({ ...dto, phone: user.phone });
   }
 
   /** Создание заказа. Онлайн-оплаты нет (MVP): см. allowedPayMethods. Сумма — оценочная, уточняется после взвешивания. */
@@ -76,9 +83,9 @@ export class OrderingService {
 
     // Email НЕ привязываем здесь: спаривание требует подтверждения владения (см. auth/email/*).
     const user = await this.prisma.user.upsert({
-      where: { phone: dto.phone },
+      where: { phone: dto.phone! },
       update: {},
-      create: { phone: dto.phone },
+      create: { phone: dto.phone! },
     });
 
     const order = await this.prisma.order.create({

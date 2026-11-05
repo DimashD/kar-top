@@ -9,11 +9,11 @@ import { CurrentUser, RequestUser } from '../../common/auth/current-user.decorat
 export class OrderingController {
   constructor(private readonly ordering: OrderingService) {}
 
-  // Гостевой заказ — публично (личность подтверждается OTP на шаге оформления).
-  @Public()
+  // Оформление — только после подтверждения номера по SMS: нужен access-токен покупателя,
+  // номер заказа берётся из его аккаунта, а не из формы.
   @Post('orders')
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordering.create(dto);
+  create(@Body() dto: CreateOrderDto, @CurrentUser() user: RequestUser) {
+    return this.ordering.createForUser(dto, user.userId);
   }
 
   // Публичный трекинг заказа покупателем (по id-ссылке). Показывает код получения до закрытия.

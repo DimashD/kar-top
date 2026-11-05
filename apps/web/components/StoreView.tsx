@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, qtyLabel, grams } from '../lib/format';
-import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
+import { formatKzPhone, isValidKzPhone, kzPhoneE164 } from '../lib/phone';
 import { Lang, localized } from '../lib/i18n';
 import { findProducts, ListMatch, parseList, qtyFor, SearchProduct } from '../lib/smart-list';
 import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
+import { ANDROID_URL } from '../lib/app-links';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -41,6 +42,23 @@ function saveLast(slug: string, lines: Line[], totalTiyn: number) {
 }
 
 type Look = { pic: string | null; tint: string; initials: string };
+
+// Подтверждённый по SMS номер: access-токен живёт 15 минут, храним с запасом 14.
+type PhoneAuth = { token: string; phone: string; exp: number };
+const AUTH_KEY = 'kartop:phone-auth';
+function readAuth(): PhoneAuth | null {
+  try {
+    const a = JSON.parse(localStorage.getItem(AUTH_KEY) ?? 'null') as PhoneAuth | null;
+    return a && a.exp > Date.now() ? a : null;
+  } catch {
+    return null;
+  }
+}
+function saveAuth(a: PhoneAuth | null) {
+  try {
+    if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY);
+  } catch { /* приватный режим — подтвердим ещё раз при следующем заказе */ }
+}
 
 type Section = { id: string; title: string; groups: { title: string; items: CatalogProduct[] }[] };
 
@@ -329,47 +347,18 @@ function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initi
   );
 }
 
-// Распознавание речи браузера (Chrome/Android, Safari/iOS). Нет — кнопка микрофона не показывается.
-type Recognition = { lang: string; continuous: boolean; interimResults: boolean; start: () => void; stop: () => void; onresult: ((e: any) => void) | null; onend: (() => void) | null; onerror: (() => void) | null };
-function makeRecognition(): Recognition | null {
-  if (typeof window === 'undefined') return null;
-  const C = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  return C ? (new C() as Recognition) : null;
-}
-const SPEECH_LANG: Record<Lang, string> = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US' };
-
 /** «Списком»: текст как в заметках или голос → подобранные товары с количеством → в корзину. */
 function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (items: { product: CatalogProduct; qty: number }[]) => void }) {
   const t = useT();
   const lang = useLang();
   const [text, setText] = useState('');
-  const [listening, setListening] = useState(false);
-  const [canSpeak, setCanSpeak] = useState(false);
-  const rec = useRef<Recognition | null>(null);
+  // Голосовой ввод — только в приложении Kartop; на сайте кнопка предлагает его скачать.
+  const [askApp, setAskApp] = useState(false);
   // Выбор покупателя по каждой строке: индекс варианта и количество; «снята галочка» — не добавлять.
   const [picked, setPicked] = useState<Record<number, { option: number; qty: number; off?: boolean }>>({});
-  useEffect(() => { setCanSpeak(!!makeRecognition()); }, []);
 
   const matches: ListMatch[] = useMemo(() => parseList(text, products), [text, products]);
   useEffect(() => { setPicked({}); }, [text]);
-
-  function toggleVoice() {
-    if (listening) { rec.current?.stop(); return; }
-    const r = makeRecognition();
-    if (!r) return;
-    r.lang = SPEECH_LANG[lang];
-    r.continuous = true;
-    r.interimResults = false;
-    r.onresult = (e: any) => {
-      const said = Array.from(e.results as ArrayLike<any>).slice(e.resultIndex).map((res: any) => res[0].transcript).join(' ').trim();
-      if (said) setText((prev) => (prev.trim() ? `${prev.trim()}\n${said}` : said));
-    };
-    r.onend = () => setListening(false);
-    r.onerror = () => setListening(false);
-    rec.current = r;
-    setListening(true);
-    r.start();
-  }
 
   const chosen = matches.map((m, i) => {
     const sel = picked[i];
@@ -384,14 +373,23 @@ function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (ite
       <label htmlFor="smart-list" style={{ fontWeight: 800, fontSize: 15 }}>{t.listLabel}</label>
       <textarea id="smart-list" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={t.listPlaceholder}
         style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', border: '1.5px solid var(--carrot)', borderRadius: 14, font: 'inherit', fontSize: 16, lineHeight: 1.5, resize: 'vertical', color: 'var(--ink)', background: 'var(--card)' }} />
-      {canSpeak ? (
-        <button onClick={toggleVoice} className="btn"
-          style={{ height: 48, justifyContent: 'center', gap: 10, fontWeight: 800, background: listening ? 'var(--carrot)' : 'var(--card)', color: listening ? '#fff' : 'var(--ink)', border: '1px solid var(--line)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
-          {listening ? t.stopListening : t.speak}
-        </button>
+      <button onClick={() => setAskApp(true)} className="btn"
+        style={{ height: 48, justifyContent: 'center', gap: 10, fontWeight: 800, background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--line)' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+        {t.speak}
+      </button>
+      <div className="muted" style={{ fontSize: 13 }}>{t.listHint}</div>
+      {askApp ? (
+        <div onClick={() => setAskApp(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div role="dialog" aria-label={t.voiceInApp} onClick={(e) => e.stopPropagation()}
+            style={{ background: 'var(--card)', width: '100%', maxWidth: 520, borderRadius: '22px 22px 0 0', padding: '22px 20px 24px', display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{t.voiceInApp}</div>
+            <div className="muted" style={{ fontSize: 15 }}>{t.voiceInAppText}</div>
+            <a className="btn btn-primary btn-block" href={ANDROID_URL} style={{ height: 52, fontSize: 16, justifyContent: 'center' }}>{t.downloadApp}</a>
+            <button className="btn btn-ghost btn-block" onClick={() => setAskApp(false)} style={{ height: 48 }}>{t.continueInBrowser}</button>
+          </div>
+        </div>
       ) : null}
-      {listening ? <div className="muted" style={{ fontSize: 13 }}>{t.listening}</div> : <div className="muted" style={{ fontSize: 13 }}>{t.listHint}</div>}
 
       <div>
         {chosen.map(({ m, i, product, qty, off }) => (
@@ -459,6 +457,16 @@ function CheckoutDrawer(props: {
   const deliveryOn = store.deliveryEnabled !== false;
   const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(deliveryOn ? 'DELIVERY' : 'PICKUP');
   const [phone, setPhone] = useState('+7');
+  // Подтверждение номера по SMS перед оформлением.
+  const [auth, setAuth] = useState<PhoneAuth | null>(null);
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpErr, setOtpErr] = useState<string | null>(null);
+  useEffect(() => {
+    const a = readAuth();
+    if (a) { setAuth(a); setPhone(formatKzPhone(a.phone)); }
+  }, []);
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoBusy, setGeoBusy] = useState(false);
@@ -488,9 +496,44 @@ function CheckoutDrawer(props: {
   }
 
   const phoneOk = isValidKzPhone(phone);
+  const verified = !!auth && auth.phone === kzPhoneE164(phone);
+
+  async function requestCode() {
+    setOtpErr(null); setOtpBusy(true);
+    try {
+      const r = await fetch(`${CLIENT_API}/auth/otp/request`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: kzPhoneE164(phone), channel: 'sms' }),
+      });
+      if (!r.ok) throw new Error();
+      setCodeSent(true);
+    } catch {
+      setOtpErr(t.checkoutError);
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    setOtpErr(null); setOtpBusy(true);
+    try {
+      const r = await fetch(`${CLIENT_API}/auth/otp/verify`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phone: kzPhoneE164(phone), code: code.trim(), deviceLabel: 'web' }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.accessToken) throw new Error();
+      const a = { token: data.accessToken as string, phone: kzPhoneE164(phone), exp: Date.now() + 14 * 60_000 };
+      saveAuth(a); setAuth(a); setCodeSent(false); setCode('');
+    } catch {
+      setOtpErr(t.wrongCode);
+    } finally {
+      setOtpBusy(false);
+    }
+  }
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
   const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
-  const canSubmit = lines.length > 0 && phoneOk && addrOk && pickupOk && !busy;
+  const canSubmit = lines.length > 0 && verified && addrOk && pickupOk && !busy;
 
   async function submit() {
     setErr(null); setBusy(true);
@@ -498,15 +541,18 @@ function CheckoutDrawer(props: {
       const items = lines.map((l) => isWeighted(l.product.unit)
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
-      const body: any = { storeSlug: slug, phone: kzPhoneE164(phone), payMethod: pay, fulfillment: mode, items };
+      // Номер заказа сервер берёт из подтверждённого аккаунта (токен).
+      const body: any = { storeSlug: slug, payMethod: pay, fulfillment: mode, items };
       if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
       else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${auth?.token ?? ''}` },
         body: JSON.stringify(body),
       });
       const data = await r.json();
+      // Подтверждение истекло — просим код ещё раз.
+      if (r.status === 401) { saveAuth(null); setAuth(null); throw new Error(t.confirmPhoneHint); }
       if (!r.ok) throw new Error(Array.isArray(data.message) ? data.message[0] : (data.message || t.checkoutError));
       onDone({ id: data.id, number: data.number, estimatedTiyn: data.estimatedTiyn ?? data.subtotalTiyn ?? subtotal, deliveryCode: data.deliveryCode });
     } catch (e) {
@@ -549,7 +595,36 @@ function CheckoutDrawer(props: {
           </Field>
 
           <Field label={t.contactPhone}>
-            <PhoneInput value={phone} onChange={(v) => setPhone(v)} style={inputStyle(!phone || phone === '+7' || phoneOk)} />
+            {verified ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--leaf-50)', color: 'var(--leaf)', fontWeight: 700 }}>
+                <span style={{ flex: 1 }}>✓ {t.phoneConfirmed(formatKzPhone(auth!.phone))}</span>
+                <button type="button" className="btn btn-ghost" onClick={() => { saveAuth(null); setAuth(null); setCodeSent(false); }} style={{ padding: '6px 10px', fontSize: 13 }}>{t.changePhone}</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <PhoneInput value={phone} onChange={(v) => { setPhone(v); setCodeSent(false); }} style={{ ...inputStyle(!phone || phone === '+7' || phoneOk), flex: 1 }} />
+                  {!codeSent ? (
+                    <button type="button" className="btn btn-primary" disabled={!phoneOk || otpBusy} onClick={requestCode} style={{ whiteSpace: 'nowrap' }}>
+                      {otpBusy ? t.sendingCode : t.getCode}
+                    </button>
+                  ) : null}
+                </div>
+                {codeSent ? (
+                  <div style={{ marginTop: 8 }}>
+                    <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>{t.codeSent(phone)}</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code"
+                        placeholder={t.smsCode} aria-label={t.smsCode} style={{ ...inputStyle(true), flex: 1, letterSpacing: '0.2em', fontWeight: 800 }} />
+                      <button type="button" className="btn btn-primary" disabled={code.length < 4 || otpBusy} onClick={confirmCode} style={{ whiteSpace: 'nowrap' }}>
+                        {otpBusy ? t.checkingCode : t.confirmPhone}
+                      </button>
+                    </div>
+                  </div>
+                ) : <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t.confirmPhoneHint}</div>}
+                {otpErr ? <div style={{ color: 'var(--sale)', fontSize: 13, marginTop: 6 }}>{otpErr}</div> : null}
+              </>
+            )}
           </Field>
 
           {mode === 'DELIVERY' ? (

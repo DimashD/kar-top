@@ -24,7 +24,8 @@ export class AddressDto {
 
 export class CreateOrderDto {
   @IsString() storeSlug!: string;
-  @IsString() phone!: string;
+  // Номер берётся из подтверждённого аккаунта (createForUser); в форме — не обязателен.
+  @IsOptional() @IsString() phone?: string;
   @IsArray() @ArrayNotEmpty() @ValidateNested({ each: true }) @Type(() => OrderItemDto) items!: OrderItemDto[];
   @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
   @IsIn(['CASH', 'CARD_COURIER', 'KASPI_TRANSFER']) payMethod!: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
