@@ -7,6 +7,7 @@ import { tenge, perUnit, isWeighted, qtyLabel, grams } from '../lib/format';
 import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
 import { Lang, localized } from '../lib/i18n';
 import { findProducts, ListMatch, parseList, qtyFor } from '../lib/smart-list';
+import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
 
@@ -39,6 +40,8 @@ function saveLast(slug: string, lines: Line[], totalTiyn: number) {
   } catch { /* приватный режим — просто без «Повторить» */ }
 }
 
+type Look = { pic: string | null; tint: string; initials: string };
+
 type Section = { id: string; title: string; groups: { title: string; items: CatalogProduct[] }[] };
 
 /** Разделы витрины: крупные группы каталога, внутри — подкатегории. */
@@ -68,6 +71,16 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   const all = useMemo(() => catalog.categories.flatMap((c) => c.items), [catalog]);
   const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
+  // Пиктограмма и фон каждого товара — по его названию, подкатегории и группе (русские названия каталога).
+  const looks = useMemo(() => {
+    const m = new Map<string, Look>();
+    for (const c of catalog.categories) {
+      for (const p of c.items) {
+        m.set(p.id, { pic: pictureFor(p.name.ru, c.category.ru), tint: tintFor(c.group?.name.ru ?? c.category.ru), initials: initialsFor(localized(p.name, lang)) });
+      }
+    }
+    return m;
+  }, [catalog, lang]);
   const secs = useMemo(() => sections(catalog, lang), [catalog, lang]);
   const found = useMemo(() => (query.trim() ? findProducts(query, all) : null), [query, all]);
 
@@ -144,7 +157,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
             {found ? (
               <section>
                 {found.length ? found.slice(0, 30).map((p) => (
-                  <ProductRow key={p.id} p={p} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
+                  <ProductRow key={p.id} p={p} look={looks.get(p.id)} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
                 )) : <p className="muted" style={{ padding: '24px 0', textAlign: 'center' }}>{t.nothingFound}</p>}
               </section>
             ) : (
@@ -164,7 +177,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
                       <div key={gi}>
                         {s.groups.length > 1 || g.title !== s.title ? <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-40)', padding: '12px 0 2px' }}>{g.title}</div> : null}
                         {g.items.map((p) => (
-                          <ProductRow key={p.id} p={p} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
+                          <ProductRow key={p.id} p={p} look={looks.get(p.id)} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
                         ))}
                       </div>
                     ))}
@@ -226,7 +239,7 @@ function Header({ name, rating, reviewCount, address, slug }: { name: string; ra
 }
 
 /** Строка товара (вариант «список»): фото, название, цена; справа «+» или счётчик. */
-function ProductRow({ p, qty, onAdd, onInc, onDec, onEdit }: { p: CatalogProduct; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onEdit: () => void }) {
+function ProductRow({ p, look, qty, onAdd, onInc, onDec, onEdit }: { p: CatalogProduct; look?: Look; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onEdit: () => void }) {
   const t = useT();
   const lang = useLang();
   const name = localized(p.name, lang);
@@ -234,9 +247,11 @@ function ProductRow({ p, qty, onAdd, onInc, onDec, onEdit }: { p: CatalogProduct
   const weighted = isWeighted(p.unit);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F1ECE8' }}>
-      <div style={{ width: 64, height: 64, borderRadius: 14, background: '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Фото магазина; пока его нет — пиктограмма самого товара (или инициалы) на фоне цвета группы. */}
+      <div style={{ width: 64, height: 64, borderRadius: 16, background: look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {p.photo ? <img src={p.photo} alt={name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9BFB7" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="11" r="2" /><path d="M21 17l-5-5-8 7" /></svg>}
+          : look?.pic ? <span aria-hidden="true" style={{ fontSize: 36, lineHeight: 1 }}>{look.pic}</span>
+          : <span aria-hidden="true" style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.25 }}>{name}</div>
