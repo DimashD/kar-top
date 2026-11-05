@@ -75,7 +75,8 @@ export class MerchantService {
           id: z.id,
           kind: shape.kind ?? 'polygon',
           radiusM: shape.radiusM ?? null,
-          points: shape.kind === 'radius' ? [] : (shape.coordinates?.[0] ?? []).slice(0, -1).map(([lng, lat]) => [lat, lng]),
+          // Старые зоны (сид) хранили кольцо в rings, новые — в coordinates (GeoJSON).
+          points: shape.kind === 'radius' ? [] : ((shape.coordinates ?? (shape as any).rings)?.[0] ?? []).slice(0, -1).map(([lng, lat]: [number, number]) => [lat, lng]),
           feeTiyn: z.feeTiyn,
           minOrderTiyn: z.minOrderTiyn,
           freeFromTiyn: z.freeFromTiyn,
