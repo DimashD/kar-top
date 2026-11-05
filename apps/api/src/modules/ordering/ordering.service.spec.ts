@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { OrderingService } from './ordering.service';
+import { weightRange } from './weight-tolerance';
 
 // Лёгкий мок PrismaService — проверяем арифметику суммы и эмиссию outbox без БД.
 function makePrisma(overrides: any = {}) {
@@ -200,5 +201,54 @@ describe('OrderingService.delivered (код получения — «страх�
     prisma.storeMember.findUnique = jest.fn().mockResolvedValue(null);
     const svc = new OrderingService(prisma as any);
     await expect(svc.delivered('o1', 'stranger', '7605')).rejects.toBeInstanceOf(ForbiddenException);
+  });
+});
+
+describe('weightRange (допуск при взвешивании)', () => {
+  it('1 кг: от 800 г до 1100 г', () => {
+    expect(weightRange(1000)).toEqual({ minG: 800, maxG: 1100 });
+  });
+  it('перевес не больше 300 г даже на крупном заказе', () => {
+    expect(weightRange(5000).maxG).toBe(5300);
+  });
+  it('мелкая позиция: допуск не меньше 20 г', () => {
+    expect(weightRange(100)).toEqual({ minG: 80, maxG: 120 });
+  });
+});
+
+describe('OrderingService.weighItem (лимит веса)', () => {
+  function prismaFor(qtyRequestedG: number | null) {
+    return {
+      order: {
+        findUnique: jest.fn().mockResolvedValue({ storeId: 'store1' }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      storeMember: { findUnique: jest.fn().mockResolvedValue({ role: 'PICKER' }) },
+      orderItem: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'it1', priceSnapTiyn: 100000, qtyRequestedG }),
+        update: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      outboxEvent: { create: jest.fn().mockResolvedValue({}) },
+    };
+  }
+
+  it('вес в допуске сохраняется', async () => {
+    const prisma = prismaFor(1000);
+    await new OrderingService(prisma as any).weighItem('o1', 'it1', 1050, 'user1');
+    expect(prisma.orderItem.update).toHaveBeenCalled();
+  });
+
+  it('перевес сверх допуска без согласия покупателя → 400, вес не сохраняется', async () => {
+    const prisma = prismaFor(1000);
+    await expect(new OrderingService(prisma as any).weighItem('o1', 'it1', 1200, 'user1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.orderItem.update).not.toHaveBeenCalled();
+  });
+
+  it('с согласием покупателя сохраняется и пишется в outbox', async () => {
+    const prisma = prismaFor(1000);
+    await new OrderingService(prisma as any).weighItem('o1', 'it1', 1200, 'user1', true);
+    expect(prisma.orderItem.update).toHaveBeenCalled();
+    expect(prisma.outboxEvent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ type: 'order.weight_override' }) }));
   });
 });

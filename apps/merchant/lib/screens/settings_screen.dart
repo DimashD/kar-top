@@ -6,6 +6,7 @@ import '../session.dart';
 import '../theme.dart';
 import '../lock.dart';
 import '../widgets/language_picker.dart';
+import '../widgets/share_store.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -111,9 +112,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     final st = _s;
     if (st == null) return Center(child: Text(_error ?? s.error, style: const TextStyle(color: AppColors.sale)));
+    final store = context.watch<Session>().store;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (store != null) ...[
+          StoreLinkCard(store: store),
+          const SizedBox(height: 20),
+        ],
         Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         Card(

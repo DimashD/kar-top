@@ -55,8 +55,19 @@ export class OrderingController {
   }
 
   @Post('merchant/orders/:id/items/:itemId/weigh')
-  weigh(@Param('id') id: string, @Param('itemId') itemId: string, @Body('qtyActualG') qtyActualG: number, @CurrentUser() user: RequestUser) {
-    return this.ordering.weighItem(id, itemId, Number(qtyActualG), user.userId);
+  weigh(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body('qtyActualG') qtyActualG: number,
+    @Body('customerApproved') customerApproved: boolean | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ordering.weighItem(id, itemId, Number(qtyActualG), user.userId, customerApproved === true);
+  }
+
+  @Post('merchant/orders/:id/await-customer')
+  awaitCustomer(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.ordering.awaitCustomer(id, user.userId);
   }
 
   @Post('merchant/orders/:id/items/:itemId/missing')
