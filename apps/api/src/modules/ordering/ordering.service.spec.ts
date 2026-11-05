@@ -288,3 +288,35 @@ describe('OrderingService.createForUser (заказ только с подтве
     expect(prisma.user.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { phone: '+77010000001' } }));
   });
 });
+
+describe('Зоны доставки', () => {
+  // Квадрат ~1 км вокруг точки [76.95, 43.26].
+  const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
+  function prismaWithZone(minOrderTiyn = 0) {
+    return makePrisma({
+      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, deliveryMode: 'OWN', deliveryEnabled: true,
+        zones: [{ polygon: square, feeTiyn: 50000, minOrderTiyn, freeFromTiyn: null }] }) },
+    });
+  }
+  const base = { storeSlug: 's', phone: '+77011234567', payMethod: 'CASH', fulfillment: 'DELIVERY', items: [{ storeProductId: 'sp-pcs', qty: 1 }] };
+
+  it('адрес вне зоны → 400', async () => {
+    const svc = new OrderingService(prismaWithZone() as any);
+    await expect(svc.create({ ...base, address: { line: 'x', lat: 43.5, lng: 77.2 } } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('без точки на карте → 400', async () => {
+    const svc = new OrderingService(prismaWithZone() as any);
+    await expect(svc.create({ ...base, address: { line: 'x' } } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('сумма ниже минимальной → 400', async () => {
+    const svc = new OrderingService(prismaWithZone(1_000_000) as any);
+    await expect(svc.create({ ...base, address: { line: 'x', lat: 43.26, lng: 76.95 } } as any)).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('в зоне — заказ с ценой доставки', async () => {
+    const prisma = prismaWithZone();
+    const svc = new OrderingService(prisma as any);
+    const r = await svc.create({ ...base, address: { line: 'x', lat: 43.26, lng: 76.95 } } as any);
+    expect(r.deliveryFeeTiyn).toBe(50000);
+    expect(prisma.order.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ deliveryFeeTiyn: 50000 }) }));
+  });
+});

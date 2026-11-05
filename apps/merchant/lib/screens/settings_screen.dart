@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../lock.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/share_store.dart';
+import 'delivery_zones_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -169,6 +170,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => _toggleMethod('deliveryEnabled', v, other: st.pickupEnabled),
               ),
               if (st.deliveryEnabled) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.map_outlined, color: AppColors.carrot),
+                  title: Text(s.deliveryZone),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeliveryZonesScreen())),
+                ),
                 const Divider(height: 1),
                 ListTile(
                   title: Text(s.averageTime),

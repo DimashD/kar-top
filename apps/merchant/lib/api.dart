@@ -34,6 +34,8 @@ class Api {
   Future<dynamic> _get(String path) async => _decode(await http.get(_u(path), headers: _headers));
   Future<dynamic> _post(String path, [Map<String, dynamic>? body]) async =>
       _decode(await http.post(_u(path), headers: _headers, body: jsonEncode(body ?? {})));
+  Future<dynamic> _put(String path, Map<String, dynamic> body) async =>
+      _decode(await http.put(_u(path), headers: _headers, body: jsonEncode(body)));
   Future<dynamic> _patch(String path, Map<String, dynamic> body) async =>
       _decode(await http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
 
@@ -89,6 +91,10 @@ class Api {
   Future<void> restoreItem(String id, String itemId) => _post('/merchant/orders/$id/items/$itemId/restore');
   Future<void> delivering(String id) => _post('/courier/orders/$id/delivering');
   Future<void> delivered(String id, String code) => _post('/courier/orders/$id/delivered', {'code': code});
+
+  // --- Зоны доставки ---
+  Future<Map<String, dynamic>> zones(String storeId) async => await _get('/merchant/stores/$storeId/zones') as Map<String, dynamic>;
+  Future<void> saveZones(String storeId, Map<String, dynamic> body) => _put('/merchant/stores/$storeId/zones', body);
 
   // --- Push ---
   Future<void> registerPushToken(String platform, String token) =>

@@ -1,4 +1,5 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class AddProductDto {
   @IsString() masterProductId!: string;
@@ -24,6 +25,24 @@ export class StoreSettingsDto {
   @IsOptional() @IsInt() @Min(0) @Max(1440) courierHandoverMinutes?: number;
   // Средняя продолжительность своей доставки (минуты от оформления до вручения).
   @IsOptional() @IsInt() @Min(0) @Max(1440) ownDeliveryMinutes?: number;
+}
+
+export class ZoneDto {
+  @IsIn(['radius', 'polygon']) kind!: 'radius' | 'polygon';
+  // Радиус круга вокруг магазина, метры (для kind = radius).
+  @IsOptional() @IsInt() @Min(100) @Max(30000) radiusM?: number;
+  // Точки обведённой области [[lat, lng], ...] (для kind = polygon).
+  @IsOptional() @IsArray() points?: [number, number][];
+  @IsInt() @Min(0) feeTiyn!: number;
+  @IsInt() @Min(0) minOrderTiyn!: number;
+  @IsOptional() @IsInt() @Min(0) freeFromTiyn?: number | null;
+}
+
+export class ZonesDto {
+  // Точка магазина — центр радиуса и ориентир для покупателя.
+  @IsNumber() @Min(-90) @Max(90) lat!: number;
+  @IsNumber() @Min(-180) @Max(180) lng!: number;
+  @IsArray() @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => ZoneDto) zones!: ZoneDto[];
 }
 
 export class CatalogRequestDto {

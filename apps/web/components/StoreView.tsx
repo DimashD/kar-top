@@ -652,6 +652,22 @@ function CheckoutDrawer(props: {
   useEffect(() => { setKnownPhone(readSession()?.phone ?? null); }, []);
   const [line, setLine] = useState('');
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  // Зона доставки магазина для выбранной точки: цена, минимальный заказ или «сюда не доставляем».
+  type ZoneInfo = { inZone: boolean; noZones?: boolean; feeTiyn?: number; minOrderTiyn?: number; freeFromTiyn?: number | null };
+  const [zone, setZone] = useState<ZoneInfo | null>(null);
+  useEffect(() => {
+    if (!geo) { setZone(null); return; }
+    let stale = false;
+    fetch(`${CLIENT_API}/shops/${encodeURIComponent(slug)}/zone-check?lat=${geo.lat}&lng=${geo.lng}`)
+      .then((r) => r.json()).then((z) => { if (!stale) setZone(z); }).catch(() => { if (!stale) setZone(null); });
+    return () => { stale = true; };
+  }, [geo, slug]);
+  const delivering = mode === 'DELIVERY';
+  const outOfZone = delivering && zone?.inZone === false;
+  const belowMin = delivering && !!zone?.inZone && (zone.minOrderTiyn ?? 0) > subtotal;
+  const feeTiyn = delivering && zone?.inZone
+    ? (zone.freeFromTiyn != null && subtotal >= zone.freeFromTiyn ? 0 : zone.feeTiyn ?? 0)
+    : 0;
   const [mapOpen, setMapOpen] = useState(false);
   const [pickupAt, setPickupAt] = useState('');
   const [payChoice, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
@@ -671,7 +687,7 @@ function CheckoutDrawer(props: {
 
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
   const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
-  const canSubmit = lines.length > 0 && addrOk && pickupOk && !busy;
+  const canSubmit = lines.length > 0 && addrOk && pickupOk && !outOfZone && !belowMin && !busy;
 
   async function submit() {
     setErr(null);
@@ -748,9 +764,19 @@ function CheckoutDrawer(props: {
                 style={{ marginTop: 8, width: '100%', justifyContent: 'center', ...(geo ? { borderColor: 'var(--leaf)', color: 'var(--leaf)' } : {}) }}>
                 {geo ? t.changePoint : t.addLocation}
               </button>
-              <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                {t.locationHint}
-              </div>
+              {outOfZone ? (
+                <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FBEAEA', color: 'var(--sale)', fontWeight: 700, fontSize: 14 }}>
+                  {t.outOfZone}
+                </div>
+              ) : zone?.inZone && !zone.noZones ? (
+                <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--leaf-50)', color: 'var(--leaf)', fontWeight: 700, fontSize: 14 }}>
+                  {feeTiyn ? t.deliveryCost(tenge(feeTiyn)) : t.freeDelivery}
+                  {zone.freeFromTiyn != null && feeTiyn ? <span style={{ fontWeight: 500 }}> · {t.freeFrom(tenge(zone.freeFromTiyn))}</span> : null}
+                  {belowMin ? <div style={{ color: 'var(--sale)', marginTop: 4 }}>{t.minOrderNote(tenge(zone.minOrderTiyn ?? 0))}</div> : null}
+                </div>
+              ) : (
+                <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t.locationHint}</div>
+              )}
             </Field>
           ) : (
             <Field label={t.pickupTime(store.pickupLeadMinutes)}>
@@ -786,9 +812,15 @@ function CheckoutDrawer(props: {
             ) : null}
           </Field>
 
+          {feeTiyn ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, marginTop: 4 }}>
+              <span className="muted">{t.deliveryLine}</span>
+              <span style={{ fontWeight: 700 }}>{tenge(feeTiyn)}</span>
+            </div>
+          ) : null}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, marginTop: 4 }}>
             <span className="muted">{t.estimate}</span>
-            <span className="price">{tenge(subtotal)}</span>
+            <span className="price">{tenge(subtotal + feeTiyn)}</span>
           </div>
           <p className="muted" style={{ fontSize: 13, margin: 0 }}>
             {t.estimateNote}
