@@ -6,7 +6,7 @@ import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, qtyLabel, grams } from '../lib/format';
 import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
 import { Lang, localized } from '../lib/i18n';
-import { findProducts, ListMatch, parseList, qtyFor } from '../lib/smart-list';
+import { findProducts, ListMatch, parseList, qtyFor, SearchProduct } from '../lib/smart-list';
 import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
@@ -69,7 +69,8 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   const [last, setLast] = useState<LastOrder | null>(null);
   useEffect(() => { setLast(readLast(slug)); }, [slug]);
 
-  const all = useMemo(() => catalog.categories.flatMap((c) => c.items), [catalog]);
+  // Товары с подкатегорией: поиск «яблоки» находит сорта «Фуджи», «Апорт».
+  const all: SearchProduct[] = useMemo(() => catalog.categories.flatMap((c) => c.items.map((p) => ({ ...p, category: c.category }))), [catalog]);
   const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
   // Пиктограмма и фон каждого товара — по его названию, подкатегории и группе (русские названия каталога).
   const looks = useMemo(() => {
@@ -157,7 +158,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
             {found ? (
               <section>
                 {found.length ? found.slice(0, 30).map((p) => (
-                  <ProductRow key={p.id} p={p} look={looks.get(p.id)} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
+                  <ProductRow key={p.id} p={p} look={looks.get(p.id)} showCategory qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
                 )) : <p className="muted" style={{ padding: '24px 0', textAlign: 'center' }}>{t.nothingFound}</p>}
               </section>
             ) : (
@@ -239,7 +240,7 @@ function Header({ name, rating, reviewCount, address, slug }: { name: string; ra
 }
 
 /** Строка товара (вариант «список»): фото, название, цена; справа «+» или счётчик. */
-function ProductRow({ p, look, qty, onAdd, onInc, onDec, onEdit }: { p: CatalogProduct; look?: Look; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onEdit: () => void }) {
+function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }: { p: SearchProduct; look?: Look; showCategory?: boolean; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onEdit: () => void }) {
   const t = useT();
   const lang = useLang();
   const name = localized(p.name, lang);
@@ -254,6 +255,7 @@ function ProductRow({ p, look, qty, onAdd, onInc, onDec, onEdit }: { p: CatalogP
           : <span aria-hidden="true" style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
+        {showCategory && p.category ? <div style={{ fontSize: 12, color: 'var(--ink-40)' }}>{localized(p.category, lang)}</div> : null}
         <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.25 }}>{name}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
           <span style={{ fontWeight: 800, fontSize: 15 }}>{tenge(p.priceTiyn)}</span>
@@ -337,7 +339,7 @@ function makeRecognition(): Recognition | null {
 const SPEECH_LANG: Record<Lang, string> = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US' };
 
 /** «Списком»: текст как в заметках или голос → подобранные товары с количеством → в корзину. */
-function QuickList({ products, onAdd }: { products: CatalogProduct[]; onAdd: (items: { product: CatalogProduct; qty: number }[]) => void }) {
+function QuickList({ products, onAdd }: { products: SearchProduct[]; onAdd: (items: { product: CatalogProduct; qty: number }[]) => void }) {
   const t = useT();
   const lang = useLang();
   const [text, setText] = useState('');
@@ -404,7 +406,7 @@ function QuickList({ products, onAdd }: { products: CatalogProduct[]; onAdd: (it
               <div style={{ fontSize: 12, color: 'var(--ink-40)' }}>«{m.typed}»</div>
               {product ? (
                 <>
-                  <div style={{ fontWeight: 700 }}>{localized(product.name, lang)}</div>
+                  <div style={{ fontWeight: 700 }}>{product.category ? <span style={{ color: 'var(--ink-40)', fontWeight: 600 }}>{localized(product.category, lang)} · </span> : null}{localized(product.name, lang)}</div>
                   {m.options.length > 1 ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                       {m.ambiguous ? <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-60)' }}>{t.whichOne}</span> : null}
