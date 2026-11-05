@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -43,6 +44,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return RefreshIndicator(
       onRefresh: _refresh,
       child: FutureBuilder<List<OrderSummary>>(
@@ -58,15 +60,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
           final active = all.where((o) => _active.contains(o.status)).toList();
           final done = all.where((o) => !_active.contains(o.status)).toList();
           if (all.isEmpty) {
-            return ListView(children: const [Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Заказов пока нет', style: TextStyle(color: AppColors.ink60))))]);
+            return ListView(children: [Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.noOrders, style: const TextStyle(color: AppColors.ink60))))]);
           }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (active.isNotEmpty) const _SectionTitle('Активные'),
-              ...active.map(_tile),
-              if (done.isNotEmpty) const _SectionTitle('Завершённые'),
-              ...done.map(_tile),
+              if (active.isNotEmpty) _SectionTitle(s.activeOrders),
+              ...active.map((o) => _tile(s, o)),
+              if (done.isNotEmpty) _SectionTitle(s.completedOrders),
+              ...done.map((o) => _tile(s, o)),
             ],
           );
         },
@@ -74,7 +76,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _tile(OrderSummary o) {
+  Widget _tile(S s, OrderSummary o) {
     final isNew = o.status == 'PLACED';
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -86,16 +88,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
         title: Row(
           children: [
-            Text('Заказ №${o.number}', style: const TextStyle(fontWeight: FontWeight.w800)),
+            Text(s.orderNo(o.number), style: const TextStyle(fontWeight: FontWeight.w800)),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(color: _statusColor(o.status).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-              child: Text(statusLabel(o.status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _statusColor(o.status))),
+              child: Text(statusLabel(s, o.status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _statusColor(o.status))),
             ),
           ],
         ),
-        subtitle: Text('${o.itemCount} поз. · ${tenge(o.amountTiyn)} · ${dateTime(o.createdAt)}', style: const TextStyle(color: AppColors.ink40)),
+        subtitle: Text('${s.positions(o.itemCount)} · ${tenge(o.amountTiyn)} · ${dateTime(s, o.createdAt)}', style: const TextStyle(color: AppColors.ink40)),
         trailing: const Icon(Icons.chevron_right),
         onTap: () async {
           await Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: o.id)));

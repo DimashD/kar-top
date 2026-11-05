@@ -1,22 +1,24 @@
 import type { ReactNode } from 'react';
 import './globals.css';
 import { EnvBanner } from '../components/EnvBanner';
+import { LangProvider } from '../components/LangProvider';
+import { getDict, getLang } from '../lib/i18n-server';
 
-export const metadata = {
-  title: 'Kartop — зелёный базар рядом',
-  description: 'Свежие продукты с рынка: овощи, фрукты, мясо, молочка, корейские салаты — доставка и самовывоз из магазинов вашего района.',
-  openGraph: {
-    title: 'Kartop — зелёный базар рядом',
-    description: 'Свежие продукты с рынка с доставкой из магазинов вашего района.',
-    type: 'website',
-  },
-};
+export function generateMetadata() {
+  const t = getDict();
+  return {
+    title: t.metaTitle,
+    description: t.metaDescription,
+    openGraph: { title: t.metaTitle, description: t.metaOgDescription, type: 'website' },
+  };
+}
 
 export const viewport = { themeColor: '#D9531E', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const lang = getLang();
   return (
-    <html lang="ru">
+    <html lang={lang}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -26,8 +28,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <EnvBanner />
-        {children}
+        <LangProvider lang={lang}>
+          <EnvBanner />
+          {children}
+        </LangProvider>
       </body>
     </html>
   );

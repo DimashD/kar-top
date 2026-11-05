@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'config.dart';
+import 'l10n.dart';
 import 'session.dart';
 import 'theme.dart';
 import 'lock.dart';
@@ -12,25 +13,34 @@ import 'screens/lock_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ru');
+  // Данные дат для всех языков (ru, kk, uz; таджикский показывает даты по-русски).
+  await initializeDateFormatting();
   await PushService.instance.init();
   final session = Session();
-  await session.bootstrap();
-  runApp(ChangeNotifierProvider.value(value: session, child: const KartopMerchantApp()));
+  final lang = Lang();
+  await Future.wait([session.bootstrap(), lang.load()]);
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: session),
+      ChangeNotifierProvider.value(value: lang),
+    ],
+    child: const KartopMerchantApp(),
+  ));
 }
 
 class KartopMerchantApp extends StatelessWidget {
   const KartopMerchantApp({super.key});
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return MaterialApp(
-      title: 'Kartop — магазин',
+      title: s.appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       // Тестовая сборка (flavor staging) — лента «ТЕСТ», чтобы не перепутать с боевым приложением.
       builder: kIsStaging
           ? (context, child) => Banner(
-                message: 'ТЕСТ',
+                message: s.testBanner,
                 location: BannerLocation.topEnd,
                 color: const Color(0xFFC62828),
                 child: child ?? const SizedBox.shrink(),

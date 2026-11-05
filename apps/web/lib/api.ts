@@ -14,7 +14,7 @@ export interface CatalogProduct {
   priceTiyn: number;
   oldPriceTiyn: number | null;
 }
-export interface CatalogCategory { category: { ru: string }; items: CatalogProduct[] }
+export interface CatalogCategory { category: { ru: string; kk?: string; en?: string }; items: CatalogProduct[] }
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;

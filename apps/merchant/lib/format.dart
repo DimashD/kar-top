@@ -1,48 +1,51 @@
 import 'package:intl/intl.dart';
+import 'l10n.dart';
 
 /// Тиыны → «1 290 ₸».
 String tenge(int tiyn) {
   final t = (tiyn / 100).round();
-  final s = t.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
-  return '$s ₸';
+  final s = t.toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ' ');
+  return '$s ₸';
 }
 
 /// Граммы → «1.5 кг» / «500 г».
-String grams(int g) {
+String grams(S s, int g) {
   if (g >= 1000) {
     final kg = (g / 1000).toStringAsFixed(1).replaceAll('.0', '');
-    return '$kg кг';
+    return '$kg ${s.unitKg}';
   }
-  return '$g г';
+  return '$g ${s.unitG}';
 }
 
-String payLabel(String p) {
+/// Подпись единицы измерения (KG, G, PCS, BUNCH, PACK).
+String unitLabel(S s, String unit) {
+  switch (unit) {
+    case 'KG':
+      return s.unitKg;
+    case 'G':
+      return s.unitG;
+    case 'BUNCH':
+      return s.unitBunch;
+    case 'PACK':
+      return s.unitPack;
+    default:
+      return s.unitPcs;
+  }
+}
+
+String payLabel(S s, String p) {
   switch (p) {
     case 'CASH':
-      return 'Наличными';
+      return s.payCash;
     case 'CARD_COURIER':
-      return 'Картой курьеру';
+      return s.payCardCourier;
     case 'KASPI_TRANSFER':
-      return 'Перевод Kaspi';
+      return s.payKaspi;
     default:
       return p;
   }
 }
 
-String statusLabel(String s) {
-  const m = {
-    'PLACED': 'Новый',
-    'ACCEPTED': 'Принят',
-    'PICKING': 'Сборка',
-    'AWAITING_CUSTOMER': 'Ждём клиента',
-    'READY': 'Готов',
-    'COURIER_ASSIGNED': 'Курьер назначен',
-    'DELIVERING': 'В пути',
-    'DELIVERED': 'Доставлен',
-    'COMPLETED': 'Завершён',
-    'CANCELLED': 'Отменён',
-  };
-  return m[s] ?? s;
-}
+String statusLabel(S s, String status) => s.statuses[status] ?? status;
 
-String dateTime(DateTime d) => DateFormat('d MMM, HH:mm', 'ru').format(d.toLocal());
+String dateTime(S s, DateTime d) => DateFormat('d MMM, HH:mm', s.dateLocale).format(d.toLocal());

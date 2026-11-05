@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
 import '../lock.dart';
+import '../widgets/language_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -48,11 +50,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<String?> _askPin() {
+    final s = context.read<Lang>().s;
     final ctrl = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Задайте PIN (4 цифры)'),
+        title: Text(s.setPin),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
@@ -61,8 +64,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: const InputDecoration(hintText: '••••'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Включить')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(s.enable)),
         ],
       ),
     );
@@ -80,15 +83,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _editLead() async {
+    final s = context.read<Lang>().s;
     final ctrl = TextEditingController(text: _s!.pickupLeadMinutes.toString());
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Готовность к самовывозу'),
-        content: TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: 'мин', helperText: 'Через сколько минут после заказа можно забрать')),
+        title: Text(s.pickupReadiness),
+        content: TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: InputDecoration(suffixText: s.minutes, helperText: s.pickupReadinessHelper)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: const Text('Сохранить')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: Text(s.save)),
         ],
       ),
     );
@@ -97,53 +101,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     if (_loading) return const Center(child: CircularProgressIndicator());
-    final s = _s;
-    if (s == null) return Center(child: Text(_error ?? 'Ошибка', style: const TextStyle(color: AppColors.sale)));
+    final st = _s;
+    if (st == null) return Center(child: Text(_error ?? s.error, style: const TextStyle(color: AppColors.sale)));
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Доставка и самовывоз', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         Card(
           child: Column(
             children: [
               SwitchListTile(
-                value: s.pickupEnabled,
+                value: st.pickupEnabled,
                 activeThumbColor: AppColors.leaf,
-                title: const Text('Самовывоз'),
-                subtitle: const Text('Клиент забирает заказ сам'),
+                title: Text(s.pickup),
+                subtitle: Text(s.pickupSubtitle),
                 onChanged: (v) => _save({'pickupEnabled': v}),
               ),
               const Divider(height: 1),
               ListTile(
-                title: const Text('Готовность к самовывозу'),
-                subtitle: Text('${s.pickupLeadMinutes} мин после оформления'),
+                title: Text(s.pickupReadiness),
+                subtitle: Text(s.pickupLeadValue(st.pickupLeadMinutes)),
                 trailing: const Icon(Icons.chevron_right),
-                enabled: s.pickupEnabled,
-                onTap: s.pickupEnabled ? _editLead : null,
+                enabled: st.pickupEnabled,
+                onTap: st.pickupEnabled ? _editLead : null,
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
-        const Text('Безопасность', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        Text(s.security, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         Card(
           child: SwitchListTile(
             value: _lockEnabled,
             activeThumbColor: AppColors.leaf,
             secondary: const Icon(Icons.lock_outline, color: AppColors.carrot),
-            title: const Text('Защита входа'),
-            subtitle: const Text('Face ID / отпечаток или PIN при открытии'),
+            title: Text(s.appLock),
+            subtitle: Text(s.appLockSubtitle),
             onChanged: _toggleLock,
           ),
         ),
         const SizedBox(height: 20),
         Card(
           child: ListTile(
+            leading: const Icon(Icons.language, color: AppColors.carrot),
+            title: Text(s.language),
+            subtitle: Text(S.names[s.code]!),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showLanguagePicker(context),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.logout, color: AppColors.sale),
-            title: const Text('Выйти из аккаунта'),
+            title: Text(s.logout),
             onTap: () => context.read<Session>().logout(),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../l10n.dart';
 import '../theme.dart';
 
 /// Карта доставки. До принятия (approx) — зона-круг без точной точки;
@@ -61,7 +62,7 @@ class DeliveryMap extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(999)),
-                  child: const Text('Примерная зона', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.carrot600)),
+                  child: Text(S.of(context).approxZone, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.carrot600)),
                 ),
               ),
           ],

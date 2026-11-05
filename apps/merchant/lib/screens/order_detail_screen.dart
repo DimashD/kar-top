@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/contact_actions.dart';
 import '../widgets/delivery_map.dart';
 import 'courier_screen.dart';
 
@@ -52,74 +54,76 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _weighDialog(OrderItem item) async {
-    final s = context.read<Session>();
+    final session = context.read<Session>();
+    final s = context.read<Lang>().s;
     final ctrl = TextEditingController(text: (item.qtyActualG ?? item.qtyRequestedG ?? 0).toString());
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Взвесить: ${item.name}'),
+        title: Text(s.weighTitle(item.name)),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(suffixText: 'г', hintText: 'Фактический вес'),
+          decoration: InputDecoration(suffixText: s.unitG, hintText: s.actualWeight),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: const Text('Сохранить')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: Text(s.save)),
         ],
       ),
     );
     if (result != null && result > 0) {
-      await _do(() => s.api.weigh(widget.orderId, item.id, result));
+      await _do(() => session.api.weigh(widget.orderId, item.id, result));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final o = _order;
     return Scaffold(
-      appBar: AppBar(title: Text(o != null ? 'Заказ №${o.number}' : 'Заказ')),
+      appBar: AppBar(title: Text(o != null ? s.orderNo(o.number) : s.order)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : o == null
-              ? Center(child: Text(_error ?? 'Ошибка', style: const TextStyle(color: AppColors.sale)))
+              ? Center(child: Text(_error ?? s.error, style: const TextStyle(color: AppColors.sale)))
               : ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    _statusChip(o.status),
+                    _statusChip(s, o.status),
                     const SizedBox(height: 12),
-                    _customerCard(o),
+                    _customerCard(s, o),
                     const SizedBox(height: 12),
-                    _itemsCard(o),
+                    _itemsCard(s, o),
                     const SizedBox(height: 12),
-                    _payCard(o),
+                    _payCard(s, o),
                   ],
                 ),
-      bottomNavigationBar: o == null ? null : _actions(o),
+      bottomNavigationBar: o == null ? null : _actions(s, o),
     );
   }
 
-  Widget _statusChip(String status) => Align(
+  Widget _statusChip(S s, String status) => Align(
         alignment: Alignment.centerLeft,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(color: AppColors.carrot50, borderRadius: BorderRadius.circular(999)),
-          child: Text(statusLabel(status), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+          child: Text(statusLabel(s, status), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.carrot600)),
         ),
       );
 
-  Widget _customerCard(OrderDetail o) {
+  Widget _customerCard(S s, OrderDetail o) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(o.fulfillment == 'PICKUP' ? 'Самовывоз' : 'Доставка', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(o.fulfillment == 'PICKUP' ? s.pickup : s.delivery, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             if (!o.piiVisible) ...[
-              if (o.district != null) Text('Район: ${o.district}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              const Text('Имя, телефон и точный адрес откроются после принятия заказа', style: TextStyle(color: AppColors.ink40)),
+              if (o.district != null) Text(s.district(o.district!), style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(s.piiHidden, style: const TextStyle(color: AppColors.ink40)),
               if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
                 const SizedBox(height: 10),
                 DeliveryMap(lat: o.lat!, lng: o.lng!, approx: true),
@@ -127,8 +131,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ] else ...[
               Text(o.customerName ?? '—', style: const TextStyle(fontWeight: FontWeight.w700)),
               if (o.customerPhone != null) Text(o.customerPhone!, style: const TextStyle(color: AppColors.ink60)),
+              if (o.customerPhone != null) ContactActions(phone: o.customerPhone!),
               if (o.fulfillment == 'DELIVERY' && o.addressLine != null) Text(o.addressLine!, style: const TextStyle(color: AppColors.ink60)),
-              if (o.fulfillment == 'PICKUP' && o.pickupAt != null) Text('Самовывоз: ${dateTime(o.pickupAt!)}', style: const TextStyle(color: AppColors.ink60)),
+              if (o.fulfillment == 'PICKUP' && o.pickupAt != null) Text(s.pickupAt(dateTime(s, o.pickupAt!)), style: const TextStyle(color: AppColors.ink60)),
               if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
                 const SizedBox(height: 10),
                 DeliveryMap(lat: o.lat!, lng: o.lng!, approx: false),
@@ -140,7 +145,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _itemsCard(OrderDetail o) {
+  Widget _itemsCard(S s, OrderDetail o) {
     final canPick = o.status == 'PICKING';
     return Card(
       child: Padding(
@@ -148,13 +153,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Состав заказа', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(s.orderItems, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             ...o.items.map((it) {
               final missing = it.status == 'missing';
               final qty = it.weighted
-                  ? grams(it.qtyActualG ?? it.qtyRequestedG ?? 0)
-                  : '${it.qtyRequested ?? 1} шт';
+                  ? grams(s, it.qtyActualG ?? it.qtyRequestedG ?? 0)
+                  : '${it.qtyRequested ?? 1} ${s.unitPcs}';
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
@@ -164,7 +169,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(it.name, style: TextStyle(fontWeight: FontWeight.w600, decoration: missing ? TextDecoration.lineThrough : null, color: missing ? AppColors.ink40 : AppColors.ink)),
-                          Text('$qty${it.weighted && it.qtyActualG == null ? ' · нужно взвесить' : ''}', style: const TextStyle(color: AppColors.ink40, fontSize: 13)),
+                          Text('$qty${it.weighted && it.qtyActualG == null ? ' · ${s.needsWeighing}' : ''}', style: const TextStyle(color: AppColors.ink40, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -174,7 +179,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       IconButton(
                         onPressed: _busy ? null : () => _do(() => context.read<Session>().api.markMissing(widget.orderId, it.id)),
                         icon: const Icon(Icons.remove_circle_outline, color: AppColors.sale),
-                        tooltip: 'Нет в наличии',
+                        tooltip: s.outOfStock,
                       ),
                     ],
                   ],
@@ -187,7 +192,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _payCard(OrderDetail o) => Card(
+  Widget _payCard(S s, OrderDetail o) => Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -196,8 +201,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Оплата при получении', style: TextStyle(color: AppColors.ink60)),
-                  Text(payLabel(o.payMethod), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(s.payOnReceipt, style: const TextStyle(color: AppColors.ink60)),
+                  Text(payLabel(s, o.payMethod), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ],
               ),
               Text(tenge(o.finalTiyn ?? o.subtotalTiyn), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.carrot600)),
@@ -206,21 +211,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       );
 
-  Widget? _actions(OrderDetail o) {
-    final s = context.read<Session>();
+  Widget? _actions(S s, OrderDetail o) {
+    final session = context.read<Session>();
     Widget bar(Widget child) => SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: child));
 
     switch (o.status) {
       case 'PLACED':
-        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => s.api.transition(o.id, 'accept')), child: const Text('Принять заказ')));
+        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'accept')), child: Text(s.acceptOrder)));
       case 'ACCEPTED':
-        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => s.api.transition(o.id, 'picking')), child: const Text('Начать сборку')));
+        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'picking')), child: Text(s.startPicking)));
       case 'PICKING':
-        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => s.api.transition(o.id, 'ready')), child: const Text('Собрано, готово')));
+        return bar(ElevatedButton(onPressed: _busy ? null : () => _do(() => session.api.transition(o.id, 'ready')), child: Text(s.pickedReady)));
       case 'READY':
         return bar(ElevatedButton(
-          onPressed: _busy ? null : () => _do(() => s.api.delivering(o.id)),
-          child: Text(o.fulfillment == 'PICKUP' ? 'К выдаче' : 'Передать в доставку'),
+          onPressed: _busy ? null : () => _do(() => session.api.delivering(o.id)),
+          child: Text(o.fulfillment == 'PICKUP' ? s.readyForPickup : s.handToDelivery),
         ));
       case 'DELIVERING':
         return bar(ElevatedButton(
@@ -232,7 +237,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ));
                   if (ok == true) await _load();
                 },
-          child: const Text('Подтвердить выдачу по коду'),
+          child: Text(s.confirmByCode),
         ));
       default:
         return null;

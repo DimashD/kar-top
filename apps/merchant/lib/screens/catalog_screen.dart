@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -39,21 +40,22 @@ class _CatalogScreenState extends State<CatalogScreen> {
   }
 
   Future<void> _editPrice(CatalogItem it) async {
-    final s = context.read<Session>();
+    final session = context.read<Session>();
+    final s = context.read<Lang>().s;
     final messenger = ScaffoldMessenger.of(context);
     final ctrl = TextEditingController(text: (it.priceTiyn ~/ 100).toString());
     final result = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(it.name),
+        title: Text(it.localName(s)),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(suffixText: '₸', labelText: it.weightedUnit ? 'Цена за кг' : 'Цена за шт'),
+          decoration: InputDecoration(suffixText: '₸', labelText: it.weightedUnit ? s.pricePerKg : s.pricePerPcs),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: const Text('Сохранить')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text)), child: Text(s.save)),
         ],
       ),
     );
@@ -61,14 +63,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
       final tiyn = result * 100;
       setState(() => it.priceTiyn = tiyn);
       try {
-        await s.api.updateProduct(s.store!.id, it.id, {'priceTiyn': tiyn});
+        await session.api.updateProduct(session.store!.id, it.id, {'priceTiyn': tiyn});
       } catch (e) {
         messenger.showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
 
-  Widget _proposeButton() => Padding(
+  Widget _proposeButton(S s) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: OutlinedButton.icon(
           onPressed: () async {
@@ -76,12 +78,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
             if (mounted) setState(_load);
           },
           icon: const Icon(Icons.add),
-          label: const Text('Предложить товар или категорию'),
+          label: Text(s.proposeItem),
         ),
       );
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return RefreshIndicator(
       onRefresh: () async { setState(_load); await _future; },
       child: FutureBuilder<List<CatalogItem>>(
@@ -92,15 +95,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
           final items = snap.data ?? [];
           if (items.isEmpty) {
             return ListView(padding: const EdgeInsets.all(16), children: [
-              _proposeButton(),
-              const Padding(padding: EdgeInsets.all(40), child: Center(child: Text('Ассортимент пуст', style: TextStyle(color: AppColors.ink60)))),
+              _proposeButton(s),
+              Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(s.catalogEmpty, style: const TextStyle(color: AppColors.ink60)))),
             ]);
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: items.length + 1,
             itemBuilder: (context, idx) {
-              if (idx == 0) return _proposeButton();
+              if (idx == 0) return _proposeButton(s);
               final i = idx - 1;
               final it = items[i];
               return Card(
@@ -113,7 +116,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(it.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text(it.localName(s), style: const TextStyle(fontWeight: FontWeight.w700)),
                             GestureDetector(
                               onTap: () => _editPrice(it),
                               child: Row(children: [
@@ -140,4 +143,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
 extension on CatalogItem {
   bool get weightedUnit => unit == 'KG' || unit == 'G';
+  /// Название на языке интерфейса (в каталоге есть ru и kk), иначе по-русски.
+  String localName(S s) => names[s.code] as String? ?? name;
 }

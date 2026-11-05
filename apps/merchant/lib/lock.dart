@@ -52,11 +52,11 @@ class AppLock {
   }
 
   /// Запрос биометрии. true — успех.
-  static Future<bool> authenticateBiometric() async {
+  static Future<bool> authenticateBiometric(String reason) async {
     if (kIsWeb) return false;
     try {
       return await _auth.authenticate(
-        localizedReason: 'Подтвердите вход в Kartop',
+        localizedReason: reason,
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
       );
     } catch (_) {

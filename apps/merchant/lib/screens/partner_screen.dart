@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../session.dart';
 import '../theme.dart';
 
@@ -52,15 +53,16 @@ class _PartnerScreenState extends State<PartnerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Стать партнёром')),
+      appBar: AppBar(title: Text(s.becomePartner)),
       body: SafeArea(
-        child: _done ? _success() : _form(),
+        child: _done ? _success(s) : _form(s),
       ),
     );
   }
 
-  Widget _success() => Center(
+  Widget _success(S s) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -68,46 +70,46 @@ class _PartnerScreenState extends State<PartnerScreen> {
             children: [
               const Text('✅', style: TextStyle(fontSize: 56)),
               const SizedBox(height: 12),
-              const Text('Заявка принята!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Text(s.applicationAccepted, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              const Text(
-                'Мы свяжемся с вами по телефону, чтобы подключить магазин к Kartop. Обычно в течение рабочего дня.',
+              Text(
+                s.partnerSuccessText,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.ink60, fontSize: 15),
+                style: const TextStyle(color: AppColors.ink60, fontSize: 15),
               ),
               const SizedBox(height: 24),
-              OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Назад ко входу')),
+              OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.backToLogin)),
             ],
           ),
         ),
       );
 
-  Widget _form() => SingleChildScrollView(
+  Widget _form(S s) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Выведите магазин в онлайн', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            Text(s.partnerTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
-            const Text(
-              'Оставьте контакты — поможем подключить ваш магазин к Kartop. Подключение по приглашению.',
-              style: TextStyle(color: AppColors.ink60, fontSize: 15),
+            Text(
+              s.partnerIntro,
+              style: const TextStyle(color: AppColors.ink60, fontSize: 15),
             ),
             const SizedBox(height: 24),
-            _label('Ваше имя', required: true),
+            _label(s, s.yourName, required: true),
             TextField(controller: _name, textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: 'Как к вам обращаться'),
+              decoration: InputDecoration(hintText: s.yourNameHint),
               onChanged: (_) => setState(() {})),
             const SizedBox(height: 16),
-            _label('Телефон', required: true),
+            _label(s, s.phone, required: true),
             TextField(controller: _phone, keyboardType: TextInputType.phone,
               decoration: const InputDecoration(hintText: '+77011234567'),
               onChanged: (_) => setState(() {})),
             const SizedBox(height: 16),
-            _label('Название компании', required: false),
-            TextField(controller: _company, decoration: const InputDecoration(hintText: 'Напр. «Фрукты у Руслана»')),
+            _label(s, s.companyName, required: false),
+            TextField(controller: _company, decoration: InputDecoration(hintText: s.companyHint)),
             const SizedBox(height: 16),
-            _label('Ссылка на 2ГИС', required: false),
+            _label(s, s.twogisLink, required: false),
             TextField(controller: _twogis, keyboardType: TextInputType.url,
               decoration: const InputDecoration(hintText: '2gis.kz/almaty/firm/…')),
             if (_error != null) ...[
@@ -117,19 +119,19 @@ class _PartnerScreenState extends State<PartnerScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: (_busy || !_valid) ? null : _submit,
-              child: Text(_busy ? 'Отправляем…' : 'Отправить заявку'),
+              child: Text(_busy ? s.sending : s.sendApplication),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Нажимая кнопку, вы соглашаетесь на обработку контактных данных для связи.',
+            Text(
+              s.consent,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.ink40, fontSize: 12),
+              style: const TextStyle(color: AppColors.ink40, fontSize: 12),
             ),
           ],
         ),
       );
 
-  Widget _label(String text, {required bool required}) => Padding(
+  Widget _label(S s, String text, {required bool required}) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: RichText(
           text: TextSpan(
@@ -137,7 +139,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
             children: [
               TextSpan(text: text),
               if (required) const TextSpan(text: ' *', style: TextStyle(color: AppColors.sale)),
-              if (!required) const TextSpan(text: ' — необязательно', style: TextStyle(fontWeight: FontWeight.w400, color: AppColors.ink40)),
+              if (!required) TextSpan(text: s.optionalSuffix, style: const TextStyle(fontWeight: FontWeight.w400, color: AppColors.ink40)),
             ],
           ),
         ),
