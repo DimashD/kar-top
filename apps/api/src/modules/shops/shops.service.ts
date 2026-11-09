@@ -17,7 +17,7 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true },
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
     const { geom, photoAt, ...rest } = store;

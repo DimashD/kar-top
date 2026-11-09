@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { useT } from './LangProvider';
 
@@ -25,6 +25,12 @@ export default function FeedbackButton({ storeSlug }: { storeSlug?: string }) {
   const [err, setErr] = useState<string | null>(null);
 
   function show() { setOpen(true); setSent(false); setErr(null); if (!phone) setPhone(knownPhone()); }
+  // Меню витрины открывает эту же форму событием kartop-feedback.
+  useEffect(() => {
+    const h = () => show();
+    window.addEventListener('kartop-feedback', h);
+    return () => window.removeEventListener('kartop-feedback', h);
+  });
 
   async function send() {
     setBusy(true); setErr(null);
