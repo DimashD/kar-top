@@ -360,7 +360,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
       )}
 
       {weighing ? (
-        <WeightSheet p={weighing} initial={cart[weighing.id]?.qty ?? 0}
+        <WeightSheet p={weighing} look={looks.get(weighing.id)} initial={cart[weighing.id]?.qty ?? 0}
           onClose={() => setWeighing(null)}
           onSave={(g) => { setQty(weighing, g); setWeighing(null); }} />
       ) : null}
@@ -434,13 +434,13 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
   const weighted = isWeighted(p.unit);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F1ECE8' }}>
-      {/* Нажатие на карточку: весовой товар — шторка выбора веса, штучный — ещё одна штука. */}
-      <button type="button" onClick={weighted ? onEdit : (qty ? onInc : onAdd)} aria-label={`${t.addToCart}: ${name}`}
+      {/* Нажатие на товар — карточка: большое фото, вес или количество. */}
+      <button type="button" onClick={onEdit} aria-label={name}
         style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: 0, border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
       {/* Фото магазина; пока его нет — пиктограмма самого товара (или инициалы) на фоне цвета группы. */}
-      <div style={{ width: 64, height: 64, borderRadius: 16, background: look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 88, height: 88, borderRadius: 18, background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {p.photo ? <img src={p.photo} alt={name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : look?.pic ? <span aria-hidden="true" style={{ fontSize: 36, lineHeight: 1 }}>{look.pic}</span>
+          : look?.pic ? <span aria-hidden="true" style={{ fontSize: 44, lineHeight: 1 }}>{look.pic}</span>
           : <span aria-hidden="true" style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -476,13 +476,14 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
 }
 
 /**
- * Шторка выбора веса: лента 0,5 · 1 · 1,5 · 2 · 2,5 · 3 кг… (листается влево-вправо, шаг полкило),
- * точная подстройка «−/+» по 100 г, честная подсказка про взвешивание.
+ * Карточка товара: большое фото и выбор количества. Весовой — лента 0,5 · 1 · 1,5 · 2… кг (шаг полкило),
+ * точная подстройка «−/+» по 100 г, подсказка про взвешивание; штучный — «−/+» по одной.
  */
-function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initial: number; onClose: () => void; onSave: (g: number) => void }) {
+function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct; look?: Look; initial: number; onClose: () => void; onSave: (g: number) => void }) {
   const t = useT();
   const lang = useLang();
-  const [g, setG] = useState(initial > 0 ? initial : 1000);
+  const weighted = isWeighted(p.unit);
+  const [g, setG] = useState(initial > 0 ? initial : weighted ? 1000 : 1);
   // Лента «до бесконечности»: до 30 кг и всегда на 5 кг дальше выбранного веса.
   const maxPreset = Math.max(30000, Math.ceil(g / 500) * 500 + 5000);
   const presets = Array.from({ length: maxPreset / 500 }, (_, i) => (i + 1) * 500);
@@ -490,17 +491,24 @@ function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initi
   // Выбранный (или ближайший) вес — по центру ленты.
   useEffect(() => {
     const near = Math.max(500, Math.round(g / 500) * 500);
+    if (!weighted) return;
     strip.current?.querySelector<HTMLElement>(`[data-g="${near}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [g]);
   const pieces = p.avgPieceG ? Math.max(1, Math.round(g / p.avgPieceG)) : null;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 25, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div role="dialog" aria-label={localized(p.name, lang)} onClick={(e) => e.stopPropagation()}
-        style={{ background: 'var(--card)', width: '100%', maxWidth: 520, borderRadius: '22px 22px 0 0', padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        style={{ background: 'var(--card)', width: '100%', maxWidth: 520, maxHeight: '94vh', overflowY: 'auto', borderRadius: '22px 22px 0 0', padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0', borderRadius: 18, height: p.photo ? 'min(320px, 38vh)' : 140, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 'none' }}>
+          {p.photo ? <img src={p.photo} alt={localized(p.name, lang)} style={{ height: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+            : look?.pic ? <span aria-hidden="true" style={{ fontSize: 72, lineHeight: 1 }}>{look.pic}</span>
+            : <span aria-hidden="true" style={{ fontSize: 40, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
+        </div>
         <div>
           <div style={{ fontSize: 20, fontWeight: 800 }}>{localized(p.name, lang)}</div>
           <div className="muted" style={{ fontSize: 15 }}>{tenge(p.priceTiyn)} {perUnit(p.unit, t)}</div>
         </div>
+        {weighted ? (<>
         <div style={{ fontWeight: 800 }}>{t.howMuch}</div>
         <div ref={strip} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', scrollbarWidth: 'none', margin: '0 -20px', padding: '2px 20px' }}>
           {presets.map((v) => (
@@ -520,12 +528,19 @@ function WeightSheet({ p, initial, onClose, onSave }: { p: CatalogProduct; initi
           <button aria-label={t.add} onClick={() => setG((x) => x + 100)} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>+</button>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-60)', background: '#FCF4E6', borderRadius: 12, padding: '10px 12px' }}>{t.weightNote}</div>
+        </>) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F4F2F0', borderRadius: 14, padding: 6 }}>
+            <button aria-label={t.remove} onClick={() => setG((x) => Math.max(1, x - 1))} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>−</button>
+            <div style={{ fontSize: 22, fontWeight: 900 }}>{qtyLabel(p.unit, g, t)}</div>
+            <button aria-label={t.add} onClick={() => setG((x) => x + 1)} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>+</button>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
           {initial > 0 ? (
             <button className="btn btn-ghost" onClick={() => onSave(0)} style={{ height: 52 }}>{t.remove}</button>
           ) : null}
           <button className="btn btn-primary" onClick={() => onSave(g)} style={{ flex: 1, height: 52, fontSize: 16 }}>
-            <span>{t.add}</span><span style={{ marginLeft: 'auto' }}>≈ {tenge(Math.round((p.priceTiyn * g) / 1000))}</span>
+            <span>{t.add}</span><span style={{ marginLeft: 'auto' }}>{weighted ? `≈ ${tenge(Math.round((p.priceTiyn * g) / 1000))}` : tenge(p.priceTiyn * g)}</span>
           </button>
         </div>
       </div>
