@@ -6,7 +6,7 @@
 const { createSign } = require('node:crypto');
 
 const PACKAGE = process.env.STAGING_PACKAGE || 'kz.kartop.kartop_merchant.staging';
-const DISPLAY = 'Kartop ТЕСТ (staging)';
+const DISPLAY = process.env.DISPLAY_NAME || 'Kartop ТЕСТ (staging)';
 const API = 'https://firebase.googleapis.com/v1beta1';
 
 async function token(sa) {
@@ -67,9 +67,9 @@ async function main() {
   const json = Buffer.from(cfg.configFileContents, 'base64').toString('utf8');
   // google-services.json не секрет (он и так лежит в приложении) — печатаем, чтобы закоммитить.
   console.log(`STAGING_APP_ID=${app.appId}`);
-  console.log('-----BEGIN google-services.json-----');
+  console.log(`-----BEGIN google-services.json ${PACKAGE}-----`);
   console.log(json);
-  console.log('-----END google-services.json-----');
+  console.log(`-----END google-services.json ${PACKAGE}-----`);
 }
 
 main().catch((e) => {

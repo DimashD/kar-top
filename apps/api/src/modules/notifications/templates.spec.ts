@@ -10,7 +10,7 @@ describe('шаблоны уведомлений', () => {
   });
 
   it('статусы сборки/доставки адресованы покупателю', () => {
-    for (const ev of ['order.accepted', 'order.substitution_needed', 'order.ready', 'order.delivering', 'order.delivered']) {
+    for (const ev of ['order.accepted', 'order.picking', 'order.awaiting_customer', 'order.substitution_needed', 'order.ready', 'order.delivering', 'order.delivered']) {
       expect(TEMPLATES[ev].audience).toBe('customer');
     }
   });
@@ -26,7 +26,7 @@ describe('шаблоны уведомлений', () => {
 
   it('критичные события помечены для резервного SMS', () => {
     expect(TEMPLATES['order.accepted'].critical).toBe(true);
-    expect(TEMPLATES['order.substitution_needed'].critical).toBe(true);
+    expect(TEMPLATES['order.awaiting_customer'].critical).toBe(true);
     expect(TEMPLATES['billing.invoice_issued'].critical).toBe(true);
     expect(TEMPLATES['order.ready'].critical).toBeFalsy();
   });
@@ -44,5 +44,15 @@ describe('шаблоны уведомлений', () => {
       expect(['customer', 'merchant', 'both']).toContain(t.audience);
       void ev;
     }
+  });
+});
+
+describe('тексты для самовывоза и доставки', () => {
+  it('готов: самовывоз — «можно забирать», доставка — «передадим курьеру»', () => {
+    expect(TEMPLATES['order.ready'].body({ number: 7, fulfillment: 'PICKUP', finalTiyn: 150000 })).toContain('забирать');
+    expect(TEMPLATES['order.ready'].body({ number: 7, fulfillment: 'DELIVERY', finalTiyn: 150000 })).toContain('курьеру');
+  });
+  it('в пути: самовывоз — ждёт в магазине', () => {
+    expect(TEMPLATES['order.delivering'].body({ number: 7, fulfillment: 'PICKUP' })).toContain('магазине');
   });
 });
