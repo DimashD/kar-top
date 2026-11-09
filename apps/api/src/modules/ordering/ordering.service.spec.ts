@@ -6,7 +6,7 @@ import { allowedPayMethods } from './payment-rules';
 // Лёгкий мок PrismaService — проверяем арифметику суммы и эмиссию outbox без БД.
 function makePrisma(overrides: any = {}) {
   return {
-    store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60 }) },
+    store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY }) },
     $transaction: jest.fn().mockImplementation((ops: any[]) => Promise.resolve(ops)),
     storeProduct: {
       findMany: jest.fn().mockResolvedValue([
@@ -24,6 +24,9 @@ function makePrisma(overrides: any = {}) {
     ...overrides,
   };
 }
+
+// Круглосуточный магазин — тесты не зависят от времени запуска.
+const ALLDAY = Array.from({ length: 7 }, () => ({ open: '00:00', close: '24:00' }));
 
 describe('OrderingService.create', () => {
   it('считает весовой товар как цена×граммы/1000, штучный — цена×кол-во', async () => {
@@ -107,7 +110,7 @@ describe('OrderingService.create — самовывоз', () => {
   });
 
   it('самовывоз выключен в магазине → 400', async () => {
-    const prisma = makePrisma({ store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: false, pickupLeadMinutes: 60 }) } });
+    const prisma = makePrisma({ store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: false, pickupLeadMinutes: 60, hours: ALLDAY }) } });
     const svc = new OrderingService(prisma as any);
     await expect(
       svc.create({ storeSlug: 'ruslan', phone: '+77011112233', payMethod: 'CASH', fulfillment: 'PICKUP', items: [{ storeProductId: 'sp-pcs', qty: 1 }] } as any),
@@ -264,7 +267,7 @@ describe('Оплата по способу получения', () => {
   });
   it('заказ наличными при доставке курьерской службой → 400', async () => {
     const prisma = makePrisma({
-      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, deliveryMode: 'SERVICE' }) },
+      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY, deliveryMode: 'SERVICE' }) },
     });
     const svc = new OrderingService(prisma as any);
     await expect(svc.create({
@@ -294,7 +297,7 @@ describe('Зоны доставки', () => {
   const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
   function prismaWithZone(minOrderTiyn = 0) {
     return makePrisma({
-      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, deliveryMode: 'OWN', deliveryEnabled: true,
+      store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY, deliveryMode: 'OWN', deliveryEnabled: true,
         zones: [{ polygon: square, feeTiyn: 50000, minOrderTiyn, freeFromTiyn: null }] }) },
     });
   }

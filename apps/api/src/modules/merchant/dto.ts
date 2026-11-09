@@ -31,6 +31,8 @@ export class StoreSettingsDto {
   @IsOptional() @IsInt() @Min(0) @Max(1440) courierHandoverMinutes?: number;
   // Средняя продолжительность своей доставки (минуты от оформления до вручения).
   @IsOptional() @IsInt() @Min(0) @Max(1440) ownDeliveryMinutes?: number;
+  // Часы работы: 7 дней, { open, close } или null — выходной (проверяется в сервисе, common/hours).
+  @IsOptional() @IsArray() hours?: unknown[];
 }
 
 export class ZoneDto {

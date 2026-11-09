@@ -32,6 +32,8 @@ export interface Catalog {
     photoVersion?: number | null;
     /** Телефон магазина и средний срок своей доставки (мин) — для страницы «О магазине». */
     phone?: string | null; ownDeliveryMinutes?: number; courierHandoverMinutes?: number;
+    /** Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' или null — выходной. */
+    hours?: ({ open: string; close: string } | null)[];
   };
   categories: CatalogCategory[];
 }

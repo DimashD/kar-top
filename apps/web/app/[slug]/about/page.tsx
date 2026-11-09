@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { fetchCatalog } from '../../../lib/api';
-import { getDict } from '../../../lib/i18n-server';
+import { LOCALES } from '../../../lib/i18n';
+import { getDict, getLang } from '../../../lib/i18n-server';
 import { LangSwitcher } from '../../../components/LangProvider';
 import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
@@ -15,6 +16,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 // «О магазине»: фото, адрес и маршрут, связь, как получить заказ — чтобы покупатель понимал, у кого покупает.
 export default async function AboutStorePage({ params }: { params: { slug: string } }) {
   const t = getDict();
+  const lang = getLang();
   const c = await fetchCatalog(params.slug);
   if (!c) {
     return (
@@ -50,6 +52,21 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           {phone ? <a className="btn btn-ghost" style={btn} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer">💬 {t.storeWhatsapp}</a> : null}
           {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer">🧭 {t.storeRoute}</a> : null}
         </div>
+
+        {s.hours?.length === 7 ? (
+          <div className="card" style={card}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.workHours}</div>
+            {s.hours.every((d) => JSON.stringify(d) === JSON.stringify(s.hours![0])) ? (
+              <div>{t.everyDay}: {s.hours[0] ? `${s.hours[0].open}–${s.hours[0].close}` : t.dayOff}</div>
+            ) : s.hours.map((d, i) => (
+              // 2 ноября 2026 — понедельник: подписи дней недели на языке страницы.
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                <span className="muted">{new Date(2026, 10, 2 + i).toLocaleDateString(LOCALES[lang], { weekday: 'long' })}</span>
+                <span style={{ fontWeight: 600 }}>{d ? `${d.open}–${d.close}` : t.dayOff}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="card" style={card}>
           <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.howToGet}</div>
