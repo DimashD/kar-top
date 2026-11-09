@@ -94,6 +94,10 @@ class Api {
 
   // --- Зоны доставки ---
   Future<Map<String, dynamic>> zones(String storeId) async => await _get('/merchant/stores/$storeId/zones') as Map<String, dynamic>;
+  /// Обратная связь команде Kartop: kind — PROBLEM | IDEA | OTHER.
+  Future<void> sendFeedback(String storeId, String kind, String text) =>
+      _post('/merchant/feedback', {'storeId': storeId, 'kind': kind, 'text': text});
+
   /// Фото магазина (JPEG base64); null — убрать. Возвращает новую версию фото.
   Future<int?> setStorePhoto(String storeId, String? base64Jpeg) async {
     final r = await _put('/merchant/stores/$storeId/photo', {'data': base64Jpeg, 'type': 'image/jpeg'});

@@ -1,5 +1,6 @@
 'use client';
 
+import FeedbackButton from './FeedbackButton';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
@@ -380,6 +381,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
       )}
 
       {done && <OrderPlaced order={done} onClose={() => setDone(null)} />}
+      <FeedbackButton storeSlug={slug} />
     </main>
   );
 }
