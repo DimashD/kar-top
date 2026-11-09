@@ -261,8 +261,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   }
   // Весовой товар — через шторку выбора веса; штучный — сразу +1.
   function add(p: CatalogProduct) {
-    if (isWeighted(p.unit)) setWeighing(p);
-    else setQty(p, (cart[p.id]?.qty ?? 0) + 1);
+    setQty(p, (cart[p.id]?.qty ?? 0) + (isWeighted(p.unit) ? p.stepG || 500 : 1));
   }
   function inc(p: CatalogProduct) { setQty(p, (cart[p.id]?.qty ?? 0) + defaultStep(p)); }
   function dec(p: CatalogProduct) { setQty(p, (cart[p.id]?.qty ?? 0) - defaultStep(p)); }
@@ -321,7 +320,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
             {found ? (
               <section>
                 {found.length ? found.slice(0, 30).map((p) => (
-                  <ProductRow key={p.id} p={p} look={looks.get(p.id)} showCategory qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
+                  <ProductRow key={p.id} p={p} look={looks.get(p.id)} showCategory qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onSet={(q) => setQty(p, q)} onEdit={() => setWeighing(p)} />
                 )) : <p className="muted" style={{ padding: '24px 0', textAlign: 'center' }}>{t.nothingFound}</p>}
               </section>
             ) : (
@@ -341,7 +340,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
                       <div key={gi}>
                         {s.groups.length > 1 || g.title !== s.title ? <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-40)', padding: '12px 0 2px' }}>{g.title}</div> : null}
                         {g.items.map((p) => (
-                          <ProductRow key={p.id} p={p} look={looks.get(p.id)} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onEdit={() => setWeighing(p)} />
+                          <ProductRow key={p.id} p={p} look={looks.get(p.id)} qty={cart[p.id]?.qty ?? 0} onAdd={() => add(p)} onInc={() => inc(p)} onDec={() => dec(p)} onSet={(q) => setQty(p, q)} onEdit={() => setWeighing(p)} />
                         ))}
                       </div>
                     ))}
@@ -430,7 +429,7 @@ function Header({ name, rating, reviewCount, address, slug, photo }: { name: str
 }
 
 /** Строка товара (вариант «список»): фото, название, цена; справа «+» или счётчик. */
-function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }: { p: SearchProduct; look?: Look; showCategory?: boolean; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onEdit: () => void }) {
+function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onSet, onEdit }: { p: SearchProduct; look?: Look; showCategory?: boolean; qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onSet: (qty: number) => void; onEdit: () => void }) {
   const t = useT();
   const lang = useLang();
   const name = localized(p.name, lang);
@@ -464,18 +463,39 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
         // Уже в корзине: тот же счётчик, что в корзине — «− 1 кг +»; у весовых нажатие на вес открывает шторку.
         <div style={{ display: 'flex', alignItems: 'center', background: 'var(--carrot-50)', border: '1px solid var(--carrot)', borderRadius: 12, height: 44 }}>
           <button aria-label={t.remove} onClick={onDec} style={{ width: 38, height: 42, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--carrot-600)' }}>−</button>
-          {weighted ? (
-            <button onClick={onEdit} aria-label={t.howMuch}
-              style={{ minWidth: 52, height: 42, border: 'none', background: 'transparent', font: 'inherit', fontWeight: 800, fontSize: 14, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 4, color: 'var(--ink)' }}>
-              {qtyLabel(p.unit, qty, t)}
-            </button>
-          ) : (
-            <span style={{ minWidth: 40, textAlign: 'center', fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty, t)}</span>
-          )}
+          <QtyInput unit={p.unit} qty={qty} onSet={onSet} />
           <button aria-label={t.add} onClick={onInc} style={{ width: 38, height: 42, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--carrot-600)' }}>+</button>
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Количество числом прямо в строке каталога: весовые — в кг (1,5), штучные — целым числом. 0 — убрать из корзины.
+ * Применяется по Enter или когда поле теряет фокус.
+ */
+function QtyInput({ unit, qty, onSet }: { unit: CatalogProduct['unit']; qty: number; onSet: (qty: number) => void }) {
+  const t = useT();
+  const weighted = isWeighted(unit);
+  const shown = weighted ? String(Math.round(qty / 100) / 10).replace('.', ',') : String(qty);
+  const [v, setV] = useState(shown);
+  useEffect(() => setV(shown), [shown]);
+  const suffix = qtyLabel(unit, weighted ? 1000 : 1, t).replace(/^[\d\s.,]+/, '');
+  function commit() {
+    const n = Number(v.replace(',', '.').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(n) || v.trim() === '') { setV(shown); return; }
+    const next = weighted ? Math.round(n * 10) * 100 : Math.round(n);
+    if (next !== qty) onSet(Math.max(0, next)); else setV(shown);
+  }
+  return (
+    <label style={{ display: 'flex', alignItems: 'baseline', gap: 2, padding: '0 2px' }}>
+      <input value={v} inputMode={weighted ? 'decimal' : 'numeric'} aria-label={t.howMuch}
+        onChange={(e) => setV(e.target.value)} onBlur={commit} onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        style={{ width: weighted ? 40 : 32, border: 'none', background: 'transparent', textAlign: 'right', font: 'inherit', fontWeight: 800, fontSize: 16, color: 'var(--ink)', padding: 0 }} />
+      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-60)' }}>{suffix}</span>
+    </label>
   );
 }
 
