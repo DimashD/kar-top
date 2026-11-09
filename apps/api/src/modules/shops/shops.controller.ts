@@ -1,5 +1,4 @@
-import { Controller, Get, Param, Query, BadRequestException, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Get, Header, Param, Query, BadRequestException, StreamableFile } from '@nestjs/common';
 import { ShopsService } from './shops.service';
 import { Public } from '../../common/auth/public.decorator';
 
@@ -14,9 +13,10 @@ export class ShopsController {
   }
 
   @Get(':slug/photo')
-  async photo(@Param('slug') slug: string, @Res() res: Response) {
+  @Header('cache-control', 'public, max-age=31536000, immutable')
+  async photo(@Param('slug') slug: string) {
     const p = await this.shops.photo(slug);
-    res.set({ 'content-type': p.type, 'cache-control': 'public, max-age=31536000, immutable' }).send(p.data);
+    return new StreamableFile(p.data, { type: p.type });
   }
 
   @Get(':slug/zone-check')

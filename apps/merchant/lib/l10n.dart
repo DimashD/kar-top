@@ -1076,11 +1076,11 @@ class _Uz extends S {
   @override String get pickupReadinessHelper => 'Buyurtmadan necha daqiqa keyin olib ketish mumkin';
   @override String get minutes => 'daq';
   @override String get deliveryAndPickup => 'Yetkazib berish va olib ketish';
-  @override String get storePhoto => 'Do'kon surati';
-  @override String get storePhotoHint => 'Xaridorlar uni vitrinada ko'radi. Kirish yoki peshtaxtani suratga oling — ishonch ortadi.';
-  @override String get photoTake => 'Suratga olish';
-  @override String get photoPick => 'Galereyadan';
-  @override String get photoRemove => 'Suratni olib tashlash';
+  @override String get storePhoto => "Do'kon surati";
+  @override String get storePhotoHint => "Xaridorlar uni vitrinada ko'radi. Kirish yoki peshtaxtani suratga oling — ishonch ortadi.";
+  @override String get photoTake => "Suratga olish";
+  @override String get photoPick => "Galereyadan";
+  @override String get photoRemove => "Suratni olib tashlash";
   @override String get pickupSubtitle => 'Mijoz buyurtmani oʻzi olib ketadi';
   @override String pickupLeadValue(int n) => 'Rasmiylashtirilgandan keyin $n daq';
   @override String get courierHandover => 'Kuryerlik xizmatiga topshirish';
