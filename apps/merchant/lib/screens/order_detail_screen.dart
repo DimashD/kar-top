@@ -601,8 +601,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
             if (o.deliveryFeeTiyn > 0) ...[
-              const SizedBox(height: 6),
-              Text('${s.deliveryFeeLabel}: ${tenge(o.deliveryFeeTiyn)}', style: const TextStyle(fontSize: 13, color: AppColors.ink60)),
+              // Чек: товары отдельно, доставка отдельно; крупная сумма выше — уже с доставкой.
+              const SizedBox(height: 8),
+              Text('${s.goodsSum}: ${tenge((o.finalTiyn ?? o.subtotalTiyn + o.deliveryFeeTiyn) - o.deliveryFeeTiyn)}', style: const TextStyle(fontSize: 14, color: AppColors.ink60)),
+              Text('${s.deliveryFeeLabel}: ${tenge(o.deliveryFeeTiyn)}', style: const TextStyle(fontSize: 14, color: AppColors.ink60)),
             ],
             if (estimate) ...[
               const SizedBox(height: 8),

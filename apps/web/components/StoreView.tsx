@@ -921,15 +921,19 @@ function CheckoutDrawer(props: {
             ) : null}
           </Field>
 
-          {feeTiyn ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, marginTop: 4 }}>
-              <span className="muted">{t.deliveryLine}</span>
-              <span style={{ fontWeight: 700 }}>{tenge(feeTiyn)}</span>
+          {/* Чек: товары, доставка и итог — видно, сколько без доставки и сколько с ней. */}
+          <div style={{ background: '#F7F4F1', borderRadius: 14, padding: '10px 14px', marginTop: 4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '3px 0' }}>
+              <span className="muted">{t.goodsSum}</span><span style={{ fontWeight: 700 }}>≈ {tenge(subtotal)}</span>
             </div>
-          ) : null}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, marginTop: 4 }}>
-            <span className="muted">{t.estimate}</span>
-            <span className="price">{tenge(subtotal + feeTiyn)}</span>
+            {delivering ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '3px 0' }}>
+                <span className="muted">{t.deliveryLine}</span><span style={{ fontWeight: 700 }}>{feeTiyn ? tenge(feeTiyn) : zone?.inZone ? t.deliveryFree : '—'}</span>
+              </div>
+            ) : null}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--line)', marginTop: 6, paddingTop: 8 }}>
+              <span style={{ fontWeight: 800 }}>{t.totalSum}</span><span className="price">≈ {tenge(subtotal + feeTiyn)}</span>
+            </div>
           </div>
           <p className="muted" style={{ fontSize: 13, margin: 0 }}>
             {t.estimateNote}
