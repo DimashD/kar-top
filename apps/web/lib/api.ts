@@ -28,6 +28,8 @@ export interface Catalog {
     deliveryMode: string; deliveryEnabled?: boolean; pickupEnabled: boolean;
     /** Точка магазина — карта выбора адреса открывается рядом с ним. */
     location?: { lat: number; lng: number } | null; pickupLeadMinutes: number; reviewCount?: number;
+    /** Версия фото магазина (null — фото нет): /shops/<slug>/photo?v=<версия>. */
+    photoVersion?: number | null;
   };
   categories: CatalogCategory[];
 }

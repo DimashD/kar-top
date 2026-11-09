@@ -94,6 +94,12 @@ class Api {
 
   // --- Зоны доставки ---
   Future<Map<String, dynamic>> zones(String storeId) async => await _get('/merchant/stores/$storeId/zones') as Map<String, dynamic>;
+  /// Фото магазина (JPEG base64); null — убрать. Возвращает новую версию фото.
+  Future<int?> setStorePhoto(String storeId, String? base64Jpeg) async {
+    final r = await _put('/merchant/stores/$storeId/photo', {'data': base64Jpeg, 'type': 'image/jpeg'});
+    return ((r as Map<String, dynamic>)['photoVersion'] as num?)?.toInt();
+  }
+
   Future<void> saveZones(String storeId, Map<String, dynamic> body) => _put('/merchant/stores/$storeId/zones', body);
 
   // --- Push ---

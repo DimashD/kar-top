@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
 import '../lock.dart';
+import '../config.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/share_store.dart';
 import 'delivery_zones_screen.dart';
@@ -36,6 +39,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  bool _photoBusy = false;
+
+  /// Снять/выбрать фото, ужать до 1280 px и загрузить. source == null — убрать фото.
+  Future<void> _setPhoto(ImageSource? source) async {
+    final session = context.read<Session>();
+    String? data;
+    if (source != null) {
+      final img = await ImagePicker().pickImage(source: source, maxWidth: 1280, maxHeight: 1280, imageQuality: 80);
+      if (img == null) return;
+      data = base64Encode(await img.readAsBytes());
+    }
+    setState(() => _photoBusy = true);
+    try {
+      final v = await session.api.setStorePhoto(session.store!.id, data);
+      setState(() => _s?.photoVersion = v);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
+  }
+
+  Widget _photoCard(S s, StoreSettings st, String slug) {
+    final v = st.photoVersion;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (v != null)
+            Image.network('$kApiBase/shops/$slug/photo?v=$v', height: 180, fit: BoxFit.cover),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(s.storePhotoHint, style: const TextStyle(color: AppColors.ink60)),
+                const SizedBox(height: 10),
+                if (_photoBusy)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    FilledButton.icon(onPressed: () => _setPhoto(ImageSource.camera), icon: const Icon(Icons.photo_camera), label: Text(s.photoTake)),
+                    OutlinedButton.icon(onPressed: () => _setPhoto(ImageSource.gallery), icon: const Icon(Icons.photo_library), label: Text(s.photoPick)),
+                    if (v != null) TextButton(onPressed: () => _setPhoto(null), child: Text(s.photoRemove)),
+                  ]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _toggleLock(bool on) async {
@@ -128,6 +185,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         if (store != null) ...[
           StoreLinkCard(store: store),
+          const SizedBox(height: 20),
+          Text(s.storePhoto, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 8),
+          _photoCard(s, st, store.slug),
           const SizedBox(height: 20),
         ],
         Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),

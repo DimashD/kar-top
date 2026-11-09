@@ -277,7 +277,8 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   return (
     <main style={{ paddingBottom: count ? 88 : 24 }}>
-      <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} slug={slug} />
+      <StorePhoto slug={slug} version={catalog.store.photoVersion} name={catalog.store.name} />
+      <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} slug={slug} photo={shopPhotoUrl(slug, catalog.store.photoVersion)} />
 
       <div className="container" style={{ paddingTop: 14, maxWidth: 760 }}>
         {/* Каталог / Списком */}
@@ -383,11 +384,35 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   );
 }
 
-function Header({ name, rating, reviewCount, address, slug }: { name: string; rating: number; reviewCount?: number; address: string | null; slug: string }) {
+const shopPhotoUrl = (slug: string, v?: number | null) => (v ? `${CLIENT_API}/shops/${encodeURIComponent(slug)}/photo?v=${v}` : null);
+
+/** Фото магазина над витриной — покупатель видит, у кого покупает. Нажатие — во весь экран. */
+function StorePhoto({ slug, version, name }: { slug: string; version?: number | null; name: string }) {
+  const [big, setBig] = useState(false);
+  const src = shopPhotoUrl(slug, version);
+  if (!src) return null;
+  return (
+    <>
+      <button type="button" onClick={() => setBig(true)} aria-label={name}
+        style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'var(--line)', cursor: 'zoom-in' }}>
+        <img src={src} alt={name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 180, objectFit: 'cover', margin: '0 auto' }} />
+      </button>
+      {big ? (
+        <div role="dialog" onClick={() => setBig(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, cursor: 'zoom-out' }}>
+          <img src={src} alt={name} style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function Header({ name, rating, reviewCount, address, slug, photo }: { name: string; rating: number; reviewCount?: number; address: string | null; slug: string; photo?: string | null }) {
   const t = useT();
   return (
     <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
       <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
+        {photo ? <img src={photo} alt="" style={{ width: 40, height: 40, borderRadius: 12, objectFit: 'cover', flex: 'none' }} /> : null}
         <Link href={`/${slug}`} style={{ minWidth: 0, flex: 1, color: 'var(--ink)', textDecoration: 'none' }}>
           <div style={{ fontWeight: 800, fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div className="muted" style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

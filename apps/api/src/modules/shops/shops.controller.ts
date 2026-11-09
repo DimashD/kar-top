@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Param, Query, BadRequestException, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { ShopsService } from './shops.service';
 import { Public } from '../../common/auth/public.decorator';
 
@@ -10,6 +11,12 @@ export class ShopsController {
   @Get(':slug/catalog')
   catalog(@Param('slug') slug: string) {
     return this.shops.catalog(slug);
+  }
+
+  @Get(':slug/photo')
+  async photo(@Param('slug') slug: string, @Res() res: Response) {
+    const p = await this.shops.photo(slug);
+    res.set({ 'content-type': p.type, 'cache-control': 'public, max-age=31536000, immutable' }).send(p.data);
   }
 
   @Get(':slug/zone-check')

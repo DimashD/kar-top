@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoreAccess } from '../../common/auth/store-access.service';
-import { AddProductDto, UpdateProductDto, StoreSettingsDto, ZonesDto } from './dto';
+import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, ZonesDto } from './dto';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { circlePolygon, ZoneShape } from '../../common/zones';
 
@@ -30,10 +30,27 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
-    return s;
+    const { photoAt, ...rest } = s;
+    return { ...rest, photoVersion: photoAt ? photoAt.getTime() : null };
+  }
+
+  /** Фото магазина: JPEG/PNG/WebP в base64, до 2 МБ. null — убрать фото. Только OWNER/MANAGER. */
+  async setPhoto(storeId: string, userId: string, dto: StorePhotoDto) {
+    await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    let photo: Buffer | null = null;
+    if (dto.data) {
+      photo = Buffer.from(dto.data, 'base64');
+      if (photo.length > 2 * 1024 * 1024) throw new BadRequestException('Фото больше 2 МБ');
+    }
+    const s = await this.prisma.store.update({
+      where: { id: storeId },
+      data: { photo, photoType: photo ? dto.type ?? 'image/jpeg' : null, photoAt: photo ? new Date() : null },
+      select: { photoAt: true },
+    });
+    return { photoVersion: s.photoAt ? s.photoAt.getTime() : null };
   }
 
   /** Изменить настройки доставки/самовывоза. Только OWNER/MANAGER. */

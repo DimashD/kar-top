@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { MerchantService } from './merchant.service';
-import { AddProductDto, UpdateProductDto, StoreSettingsDto, CatalogRequestDto, ZonesDto } from './dto';
+import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, CatalogRequestDto, ZonesDto } from './dto';
 import { CurrentUser, RequestUser } from '../../common/auth/current-user.decorator';
 
 // Управление ассортиментом из приложения магазина. Глобальный JwtAuthGuard + проверка членства в сервисе.
@@ -31,6 +31,11 @@ export class MerchantController {
   @Put('stores/:id/zones')
   saveZones(@Param('id') id: string, @Body() dto: ZonesDto, @CurrentUser() user: RequestUser) {
     return this.merchant.saveZones(id, user.userId, dto);
+  }
+
+  @Put('stores/:id/photo')
+  setPhoto(@Param('id') id: string, @Body() dto: StorePhotoDto, @CurrentUser() user: RequestUser) {
+    return this.merchant.setPhoto(id, user.userId, dto);
   }
 
   @Patch('stores/:id/settings')

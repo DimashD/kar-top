@@ -24,6 +24,8 @@ class StoreSettings {
   int courierHandoverMinutes;
   int ownDeliveryMinutes;
   String deliveryMode;
+  /// Версия фото магазина (null — фото нет).
+  int? photoVersion;
   StoreSettings({
     required this.pickupEnabled,
     required this.pickupLeadMinutes,
@@ -31,6 +33,7 @@ class StoreSettings {
     required this.courierHandoverMinutes,
     required this.ownDeliveryMinutes,
     required this.deliveryMode,
+    this.photoVersion,
   });
   factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
         pickupEnabled: j['pickupEnabled'] as bool? ?? true,
@@ -39,6 +42,7 @@ class StoreSettings {
         courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
+        photoVersion: (j['photoVersion'] as num?)?.toInt(),
       );
 }
 
