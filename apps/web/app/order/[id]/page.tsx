@@ -118,7 +118,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         {/* Способ получения */}
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <Row label={t.fulfillment} value={o.fulfillment === 'PICKUP' ? t.pickup : t.delivery} />
-          {/* Выбранное окно получения (слоты по часу). Страница рендерится на сервере — время по Алматы. */}
+          {/* Выбранное окно получения (слоты по 2 часа). Страница рендерится на сервере — время по Алматы. */}
           {o.pickupAt ? <Row label={o.fulfillment === 'PICKUP' ? t.pickupTimeLabel : t.deliverWhen} value={slotLabel(o.pickupAt, LOCALES[lang])} /> : null}
           {o.fulfillment === 'PICKUP' ? (
             <>
@@ -194,7 +194,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
 function slotLabel(iso: string, locale: string): string {
   const tz = { timeZone: 'Asia/Almaty' } as const;
   const from = new Date(iso);
-  const to = new Date(from.getTime() + 60 * 60000);
+  const to = new Date(from.getTime() + 120 * 60000);
   return `${from.toLocaleString(locale, { ...tz, day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}–${to.toLocaleTimeString(locale, { ...tz, hour: '2-digit', minute: '2-digit' })}`;
 }
 
