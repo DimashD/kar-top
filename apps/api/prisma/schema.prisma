@@ -363,3 +363,40 @@ model CatalogRequest {
   @@index([status, createdAt])
   @@index([storeId])
 }
+
+// Отзывы о работе сервиса: покупатели (сайт/приложение) и магазины (приложение магазина).
+// Предложения новых товаров магазинами — отдельно, CatalogRequest.
+enum FeedbackSource {
+  CUSTOMER
+  MERCHANT
+}
+
+enum FeedbackKind {
+  IDEA
+  PROBLEM
+  COMPLAINT
+  PRAISE
+  OTHER
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+}
+
+model Feedback {
+  id        String         @id @default(uuid())
+  source    FeedbackSource
+  kind      FeedbackKind
+  text      String
+  phone     String?        // как связаться (покупатель может оставить номер)
+  userId    String?        // автор, если вошёл (магазин — всегда)
+  storeId   String?        // магазин, о котором/от которого отзыв
+  storeSlug String?
+  page      String?        // страница, откуда написали
+  status    FeedbackStatus @default(NEW)
+  note      String?        // заметка команды
+  createdAt DateTime       @default(now())
+  @@index([status, createdAt])
+}

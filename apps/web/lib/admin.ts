@@ -114,6 +114,7 @@ export interface AdminStore {
   id: string; slug: string; name: string; status: StoreStatus;
   phone: string | null; address: string | null; deliveryMode: string;
   createdAt: string; productCount: number; orderCount: number;
+  photoVersion: number | null;
   owner: { phone: string; name: string | null } | null;
 }
 
@@ -213,4 +214,41 @@ export async function downloadCsv(path: string, filename: string): Promise<void>
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+// --- Отзывы о сервисе (покупатели и магазины) ---
+export type FeedbackStatus = 'NEW' | 'IN_PROGRESS' | 'DONE';
+export type FeedbackKind = 'IDEA' | 'PROBLEM' | 'COMPLAINT' | 'PRAISE' | 'OTHER';
+export interface Feedback {
+  id: string;
+  source: 'CUSTOMER' | 'MERCHANT';
+  kind: FeedbackKind;
+  text: string;
+  phone: string | null;
+  storeSlug: string | null;
+  page: string | null;
+  status: FeedbackStatus;
+  createdAt: string;
+}
+
+export function listFeedback(status?: string, source?: string): Promise<Feedback[]> {
+  const q = new URLSearchParams();
+  if (status && status !== 'ALL') q.set('status', status);
+  if (source && source !== 'ALL') q.set('source', source);
+  return adminFetch<Feedback[]>(`/admin/feedback?${q}`);
+}
+
+export function setFeedbackStatus(id: string, status: FeedbackStatus): Promise<Feedback> {
+  return adminFetch<Feedback>(`/admin/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+}
+
+/** Фото магазина: файл ужимается в браузере до 1280 px JPEG и уходит base64. */
+export async function uploadStorePhoto(storeId: string, file: File): Promise<{ photoVersion: number | null }> {
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, 1280 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+  const data = c.toDataURL('image/jpeg', 0.82).split(',')[1];
+  return adminFetch(`/admin/stores/${storeId}/photo`, { method: 'PUT', body: JSON.stringify({ data, type: 'image/jpeg' }) });
 }

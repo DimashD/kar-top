@@ -11,6 +11,7 @@ import '../config.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/share_store.dart';
 import 'delivery_zones_screen.dart';
+import 'catalog_request_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -93,6 +94,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// «Написать в Kartop»: не работает / идея / другое — сообщение попадает в админку («Обратная связь»).
+  Future<void> _writeUs(S s) async {
+    final session = context.read<Session>();
+    final ctrl = TextEditingController();
+    var kind = 'PROBLEM';
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, set) => Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(s.writeUs, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 4),
+              Text(s.writeUsHint, style: const TextStyle(color: AppColors.ink60)),
+              const SizedBox(height: 12),
+              Wrap(spacing: 8, children: [
+                for (final k in [('PROBLEM', s.fbProblem), ('IDEA', s.fbIdea), ('OTHER', s.fbOther)])
+                  ChoiceChip(label: Text(k.$2), selected: kind == k.$1, onSelected: (_) => set(() => kind = k.$1)),
+              ]),
+              const SizedBox(height: 12),
+              TextField(controller: ctrl, maxLines: 5, maxLength: 2000, decoration: InputDecoration(hintText: s.fbPlaceholder, border: const OutlineInputBorder())),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.fbSend)),
+            ],
+          ),
+        ),
+      ),
+    );
+    final text = ctrl.text.trim();
+    if (ok != true || text.length < 3) return;
+    try {
+      await session.api.sendFeedback(session.store!.id, kind, text);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.fbThanks)));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _toggleLock(bool on) async {
@@ -189,6 +231,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(s.storePhoto, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 8),
           _photoCard(s, st, store.slug),
+          const SizedBox(height: 20),
+          Card(
+            child: Column(children: [
+              ListTile(leading: const Icon(Icons.support_agent), title: Text(s.writeUs), subtitle: Text(s.writeUsHint), onTap: () => _writeUs(s)),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.add_box_outlined),
+                title: Text(s.suggestProduct),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CatalogRequestScreen())),
+              ),
+            ]),
+          ),
           const SizedBox(height: 20),
         ],
         Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),

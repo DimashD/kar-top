@@ -65,7 +65,7 @@ export class AdminStoresService {
       take: limit,
       select: {
         id: true, slug: true, name: true, status: true, phone: true,
-        address: true, deliveryMode: true, createdAt: true,
+        address: true, deliveryMode: true, createdAt: true, photoAt: true,
         _count: { select: { products: true, orders: true } },
         members: { where: { role: 'OWNER' }, select: { user: { select: { phone: true, name: true } } } },
       },
@@ -74,8 +74,21 @@ export class AdminStoresService {
       id: s.id, slug: s.slug, name: s.name, status: s.status, phone: s.phone,
       address: s.address, deliveryMode: s.deliveryMode, createdAt: s.createdAt,
       productCount: s._count.products, orderCount: s._count.orders,
+      photoVersion: s.photoAt ? s.photoAt.getTime() : null,
       owner: s.members[0]?.user ?? null,
     }));
+  }
+
+  /** Фото магазина из админки (сотрудник платформы загружает за магазин). data null — убрать. */
+  async setPhoto(id: string, data?: string | null, type?: string) {
+    const photo = data ? Buffer.from(data, 'base64') : null;
+    if (photo && photo.length > 2 * 1024 * 1024) throw new BadRequestException('Фото больше 2 МБ');
+    const s = await this.prisma.store.update({
+      where: { id },
+      data: { photo, photoType: photo ? type ?? 'image/jpeg' : null, photoAt: photo ? new Date() : null },
+      select: { photoAt: true },
+    });
+    return { photoVersion: s.photoAt ? s.photoAt.getTime() : null };
   }
 
   private async setStatus(id: string, status: StoreStatus) {

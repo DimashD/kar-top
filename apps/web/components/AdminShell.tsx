@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/orders', label: 'Заказы' },
   { href: '/admin/analytics', label: 'Аналитика' },
   { href: '/admin/partners', label: 'Заявки' },
+  { href: '/admin/feedback', label: 'Обратная связь' },
   { href: '/admin/staff', label: 'Сотрудники' },
 ];
 

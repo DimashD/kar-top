@@ -6,6 +6,7 @@ import { getDict, getLang } from '../../../lib/i18n-server';
 import { LangSwitcher } from '../../../components/LangProvider';
 import ReviewForm from '../../../components/ReviewForm';
 import AppBanner from '../../../components/AppBanner';
+import FeedbackButton from '../../../components/FeedbackButton';
 
 export const dynamic = 'force-dynamic';
 export function generateMetadata() {
@@ -178,6 +179,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         <p style={{ textAlign: 'center', marginTop: 20 }}>
           <Link className="btn btn-ghost" href={`/${o.store.slug}`}>{t.backToStore}</Link>
         </p>
+        <FeedbackButton storeSlug={o.store.slug} />
       </div>
     </main>
   );
