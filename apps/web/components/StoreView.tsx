@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
 import { tenge, perUnit, isWeighted, qtyLabel, grams } from '../lib/format';
 import { formatKzPhone, isValidKzPhone, kzPhoneE164 } from '../lib/phone';
-import { Lang, localized } from '../lib/i18n';
+import { Lang, LOCALES, localized } from '../lib/i18n';
 import { findProducts, ListMatch, parseList, qtyFor, SearchProduct } from '../lib/smart-list';
 import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
@@ -888,8 +888,8 @@ function CheckoutDrawer(props: {
               )}
             </Field>
           ) : (
-            <Field label={t.pickupTime(store.pickupLeadMinutes)}>
-              <input type="datetime-local" value={pickupAt} min={earliest} onChange={(e) => setPickupAt(e.target.value)} style={inputStyle(pickupOk)} />
+            <Field label={t.pickupWhen}>
+              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} />
               <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
                 {store.address ? t.pickupFrom(store.address) : t.pickupAddressLater}
               </div>
@@ -943,6 +943,56 @@ function CheckoutDrawer(props: {
             {busy ? t.placing : t.placeOrder}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Часы выдачи для выбора времени (часы работы магазинов пока не заведены).
+const PICKUP_OPEN_H = 8;
+const PICKUP_CLOSE_H = 22;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const localStamp = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+/**
+ * Время самовывоза: день кнопками («Сегодня», «Завтра», третий день) и время сеткой по 30 минут.
+ * «Как можно скорее» (value '') — магазин соберёт за свой лид-тайм. Время раньше earliest не предлагаем.
+ */
+function PickupTimePicker({ earliest, value, onChange }: { earliest: string; value: string; onChange: (v: string) => void }) {
+  const t = useT();
+  const lang = useLang();
+  const first = new Date(earliest);
+  const days = [0, 1, 2].map((i) => { const d = new Date(first); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; });
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [day, setDay] = useState(() => (value ? Math.max(0, days.findIndex((d) => value.startsWith(localStamp(d).slice(0, 10)))) : 0));
+  const slots: Date[] = [];
+  const start = new Date(days[day]); start.setHours(PICKUP_OPEN_H, 0, 0, 0);
+  for (let d = start; d.getHours() < PICKUP_CLOSE_H; d = new Date(d.getTime() + 30 * 60000)) if (d >= first) slots.push(d);
+  const dayLabel = (d: Date) => {
+    const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+    return diff === 0 ? t.today : diff === 1 ? t.tomorrow : d.toLocaleDateString(LOCALES[lang], { weekday: 'short', day: 'numeric' });
+  };
+  const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  const chip = (on: boolean): React.CSSProperties => ({
+    height: 44, borderRadius: 12, font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+    border: on ? '2px solid var(--carrot)' : '1px solid var(--line)', background: on ? 'var(--carrot-50)' : 'var(--card)', color: 'var(--ink)',
+  });
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <button type="button" onClick={() => onChange('')} style={{ ...chip(!value), height: 'auto', padding: '10px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 20 }}>⚡</span>
+        <span><span style={{ display: 'block' }}>{t.asap}</span><span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>{t.readyBy(hhmm(first))}</span></span>
+      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {days.map((d, i) => (
+          <button key={i} type="button" onClick={() => setDay(i)} style={{ ...chip(day === i && !!value), flex: 1, fontSize: 14, ...(day === i && !value ? { border: '2px solid var(--ink-40)' } : {}) }}>{dayLabel(d)}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8, maxHeight: 200, overflowY: 'auto' }}>
+        {slots.map((d) => {
+          const v = localStamp(d);
+          return <button key={v} type="button" onClick={() => onChange(v)} style={chip(value === v)}>{hhmm(d)}</button>;
+        })}
       </div>
     </div>
   );
