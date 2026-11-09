@@ -778,6 +778,7 @@ function CheckoutDrawer(props: {
     : 0;
   const [mapOpen, setMapOpen] = useState(false);
   const [pickupAt, setPickupAt] = useState('');
+  useEffect(() => setPickupAt(''), [mode]);
   const [payChoice, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
   // Курьерская служба денег не берёт — при её доставке только перевод Kaspi (то же правило на сервере).
   const serviceDelivery = mode === 'DELIVERY' && store.deliveryMode === 'SERVICE';
@@ -785,16 +786,19 @@ function CheckoutDrawer(props: {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Самое раннее время самовывоза = сейчас + лид-тайм магазина (для <input type=datetime-local>, локальное).
+  // Самое раннее время получения по настройкам магазина: самовывоз — время сборки,
+  // доставка — средний срок своей доставки или передачи курьеру. Локальное 'YYYY-MM-DDTHH:MM'.
+  const leadMin = mode === 'PICKUP' ? store.pickupLeadMinutes ?? 60
+    : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes ?? 30 : store.ownDeliveryMinutes ?? 60;
   const earliest = useMemo(() => {
-    const d = new Date(Date.now() + (store.pickupLeadMinutes ?? 60) * 60000);
+    const d = new Date(Date.now() + leadMin * 60000);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, [store.pickupLeadMinutes]);
+  }, [leadMin]);
 
 
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
-  const pickupOk = mode === 'DELIVERY' || !pickupAt || pickupAt >= earliest;
+  const pickupOk = !pickupAt || pickupAt >= earliest;
   const canSubmit = lines.length > 0 && addrOk && pickupOk && !outOfZone && !belowMin && !busy;
 
   async function submit() {
@@ -813,7 +817,7 @@ function CheckoutDrawer(props: {
       // Номер заказа сервер берёт из подтверждённого аккаунта (токен).
       const body: any = { storeSlug: slug, payMethod: pay, fulfillment: mode, items };
       if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
-      else if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
+      if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
@@ -865,7 +869,7 @@ function CheckoutDrawer(props: {
             </div>
           ) : null}
 
-          {mode === 'DELIVERY' ? (
+          {mode === 'DELIVERY' ? (<>
             <Field label={t.deliveryAddress}>
               <AddressInput value={line} onChange={setLine} placeholder={t.addressPlaceholder} style={inputStyle(true)} near={store.location ?? null}
                 onPick={(address, pt) => { setLine(address); setGeo(pt); }} />
@@ -887,9 +891,12 @@ function CheckoutDrawer(props: {
                 <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t.locationHint}</div>
               )}
             </Field>
-          ) : (
+            <Field label={t.deliverWhen}>
+              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} />
+            </Field>
+          </>) : (
             <Field label={t.pickupWhen}>
-              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} />
+              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} asapNote={t.readyBy} />
               <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
                 {store.address ? t.pickupFrom(store.address) : t.pickupAddressLater}
               </div>
@@ -958,7 +965,7 @@ const localStamp = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${
  * Время самовывоза: день кнопками («Сегодня», «Завтра», третий день) и время сеткой по 30 минут.
  * «Как можно скорее» (value '') — магазин соберёт за свой лид-тайм. Время раньше earliest не предлагаем.
  */
-function PickupTimePicker({ earliest, value, onChange }: { earliest: string; value: string; onChange: (v: string) => void }) {
+function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: string; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
   const t = useT();
   const lang = useLang();
   const first = new Date(earliest);
@@ -981,7 +988,7 @@ function PickupTimePicker({ earliest, value, onChange }: { earliest: string; val
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <button type="button" onClick={() => onChange('')} style={{ ...chip(!value), height: 'auto', padding: '10px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 20 }}>⚡</span>
-        <span><span style={{ display: 'block' }}>{t.asap}</span><span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>{t.readyBy(hhmm(first))}</span></span>
+        <span><span style={{ display: 'block' }}>{t.asap}</span><span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>{asapNote(hhmm(first))}</span></span>
       </button>
       <div style={{ display: 'flex', gap: 8 }}>
         {days.map((d, i) => (

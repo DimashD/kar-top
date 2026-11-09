@@ -27,7 +27,7 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, zones: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, zones: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
@@ -39,17 +39,19 @@ export class OrderingService {
     if (!allowedPayMethods(fulfillment, store.deliveryMode ?? 'OWN').includes(dto.payMethod)) {
       throw new BadRequestException('Доставку выполняет курьерская служба — оплата только переводом Kaspi заранее');
     }
+    if (fulfillment === 'PICKUP' && !store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
+    // Желаемое время получения — не раньше, чем магазин успевает по своим настройкам.
+    const leadMin = fulfillment === 'PICKUP' ? store.pickupLeadMinutes
+      : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes;
     let pickupAt: Date | null = null;
-    if (fulfillment === 'PICKUP') {
-      if (!store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
+    if (dto.pickupAt) {
+      pickupAt = new Date(dto.pickupAt);
+      if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время');
       // Небольшой допуск (1 мин): UI считает «раньше всего» в минутах, учитываем дрейф секунд.
-      const earliest = Date.now() + store.pickupLeadMinutes * 60_000 - 60_000;
-      if (dto.pickupAt) {
-        pickupAt = new Date(dto.pickupAt);
-        if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время самовывоза');
-        if (pickupAt.getTime() < earliest) {
-          throw new BadRequestException(`Самовывоз возможен не ранее чем через ${store.pickupLeadMinutes} мин после оформления`);
-        }
+      if (pickupAt.getTime() < Date.now() + leadMin * 60_000 - 60_000) {
+        throw new BadRequestException(fulfillment === 'PICKUP'
+          ? `Самовывоз возможен не ранее чем через ${leadMin} мин после оформления`
+          : `Доставка возможна не ранее чем через ${leadMin} мин после оформления`);
       }
     }
 

@@ -31,7 +31,7 @@ export interface Catalog {
     /** Версия фото магазина (null — фото нет): /shops/<slug>/photo?v=<версия>. */
     photoVersion?: number | null;
     /** Телефон магазина и средний срок своей доставки (мин) — для страницы «О магазине». */
-    phone?: string | null; ownDeliveryMinutes?: number;
+    phone?: string | null; ownDeliveryMinutes?: number; courierHandoverMinutes?: number;
   };
   categories: CatalogCategory[];
 }
@@ -40,7 +40,8 @@ export interface Catalog {
 export async function fetchCatalog(slug: string): Promise<Catalog | null> {
   try {
     const r = await fetch(`${SERVER_API}/shops/${encodeURIComponent(slug)}/catalog`, {
-      next: { revalidate: 60 },
+      // Настройки магазина (сроки, способы получения) должны применяться почти сразу.
+      next: { revalidate: 10 },
     });
     if (!r.ok) return null;
     return (await r.json()) as Catalog;

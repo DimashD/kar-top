@@ -151,6 +151,7 @@ abstract class S {
   String get whatsapp;
   String get cannotOpen;
   String pickupAt(String time);
+  String deliverAt(String time);
   String get orderItems;
   String get needsWeighing;
   String get outOfStock;
@@ -390,6 +391,7 @@ class _Ru extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Не удалось открыть приложение';
   @override String pickupAt(String time) => 'Самовывоз: $time';
+  @override String deliverAt(String time) => 'Привезти к: $time';
   @override String get orderItems => 'Состав заказа';
   @override String get needsWeighing => 'нужно взвесить';
   @override String get outOfStock => 'Нет в наличии';
@@ -619,6 +621,7 @@ class _Kk extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Қосымшаны ашу мүмкін болмады';
   @override String pickupAt(String time) => 'Алып кету: $time';
+  @override String deliverAt(String time) => 'Жеткізу уақыты: $time';
   @override String get orderItems => 'Тапсырыс құрамы';
   @override String get needsWeighing => 'өлшеу керек';
   @override String get outOfStock => 'Қолда жоқ';
@@ -848,6 +851,7 @@ class _Tg extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Барномаро кушодан нашуд';
   @override String pickupAt(String time) => 'Худ бурдан: $time';
+  @override String deliverAt(String time) => 'Расонидан то: $time';
   @override String get orderItems => 'Таркиби фармоиш';
   @override String get needsWeighing => 'бояд баркашид';
   @override String get outOfStock => 'Дар мавҷудият нест';
@@ -1077,6 +1081,7 @@ class _Uz extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Ilovani ochib boʻlmadi';
   @override String pickupAt(String time) => 'Olib ketish: $time';
+  @override String deliverAt(String time) => 'Yetkazish vaqti: $time';
   @override String get orderItems => 'Buyurtma tarkibi';
   @override String get needsWeighing => 'tortish kerak';
   @override String get outOfStock => 'Mavjud emas';

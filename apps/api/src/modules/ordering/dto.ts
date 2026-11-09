@@ -31,6 +31,7 @@ export class CreateOrderDto {
   @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
   @IsIn(['CASH', 'CARD_COURIER', 'KASPI_TRANSFER']) payMethod!: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
   @IsOptional() @IsIn(['DELIVERY', 'PICKUP']) fulfillment?: 'DELIVERY' | 'PICKUP';
-  // Желаемое время самовывоза (ISO). Должно быть не раньше, чем оформление + pickupLeadMinutes магазина.
+  // Желаемое время получения (ISO): самовывоз — не раньше оформление + pickupLeadMinutes;
+  // доставка — не раньше оформление + срок доставки магазина (своя: ownDeliveryMinutes, служба: courierHandoverMinutes).
   @IsOptional() @IsString() pickupAt?: string;
 }
