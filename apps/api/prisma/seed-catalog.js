@@ -7,6 +7,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 // Казахские и английские названия: русское → [kk, en].
 const I18N = require('./catalog-i18n.json');
+// Фото товаров: «Категория/Товар» → /p/<№>.jpg?v=<хэш> (файлы — apps/web/public/p, сгенерированы по docs/catalog-photos.csv).
+const PHOTOS = require('./product-photos.json');
 const nameOf = (ru, dict, override) => {
   const tr = override || dict[ru];
   return tr ? { ru, kk: tr[0], en: tr[1] } : { ru };
@@ -306,6 +308,19 @@ async function findProduct(categoryId, ru) {
         pCreated++;
       }
     }
+    let photos = 0;
+    for (const [key, url] of Object.entries(PHOTOS)) {
+      const i = key.indexOf('/');
+      const cat = await findCategory(key.slice(0, i));
+      const p = cat && (await prisma.masterProduct.findFirst({
+        where: { categoryId: cat.id, name: { path: ['ru'], equals: key.slice(i + 1) } }, select: { id: true, media: true },
+      }));
+      if (p && p.media?.url !== url) {
+        await prisma.masterProduct.update({ where: { id: p.id }, data: { media: { url } } });
+        photos++;
+      }
+    }
+    if (photos) console.log(`Фото обновлено у товаров: ${photos}.`);
     console.log(`Готово. Категорий создано: ${cCreated}. Товаров создано: ${pCreated}, пропущено (уже были): ${pSkipped}.`);
   } catch (e) {
     console.error('Ошибка:', e.message);
