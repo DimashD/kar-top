@@ -168,6 +168,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         <div className="card" style={{ padding: 20 }}>
           <Row label={t.itemsCount} value={String(o.itemCount)} />
           {o.missingCount > 0 ? <Row label={t.missing} value={String(o.missingCount)} /> : null}
+          {o.deliveryFeeTiyn ? <Row label={t.deliveryLine} value={tenge(o.deliveryFeeTiyn)} /> : null}
           <Row label={o.finalTiyn != null ? t.totalByWeight : t.estimate} value={tenge(o.finalTiyn ?? o.estimatedTiyn)} strong />
           <Row label={t.payment} value={payLabel(o.payMethod, t)} />
           {o.store.kaspiPhone ? (

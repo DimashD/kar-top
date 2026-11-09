@@ -118,6 +118,8 @@ class OrderDetail {
   final String status;
   final int subtotalTiyn;
   final int? finalTiyn;
+  /// Платная доставка — уже входит в finalTiyn; к subtotalTiyn прибавляем.
+  final int deliveryFeeTiyn;
   final String payMethod;
   final String fulfillment;
   final DateTime? pickupAt;
@@ -136,6 +138,7 @@ class OrderDetail {
     required this.status,
     required this.subtotalTiyn,
     required this.finalTiyn,
+    this.deliveryFeeTiyn = 0,
     required this.payMethod,
     required this.fulfillment,
     required this.pickupAt,
@@ -162,6 +165,7 @@ class OrderDetail {
       status: j['status'] as String,
       subtotalTiyn: (j['subtotalTiyn'] as num?)?.toInt() ?? 0,
       finalTiyn: (j['finalTiyn'] as num?)?.toInt(),
+      deliveryFeeTiyn: (j['deliveryFeeTiyn'] as num?)?.toInt() ?? 0,
       payMethod: j['payMethod'] as String? ?? 'CASH',
       fulfillment: j['fulfillment'] as String? ?? 'DELIVERY',
       pickupAt: j['pickupAt'] != null ? DateTime.parse(j['pickupAt'] as String) : null,

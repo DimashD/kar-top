@@ -63,6 +63,8 @@ export interface OrderTrack {
   fulfillment: 'DELIVERY' | 'PICKUP';
   pickupAt: string | null;
   estimatedTiyn: number;
+  /** Платная доставка — уже входит в estimatedTiyn и finalTiyn. */
+  deliveryFeeTiyn?: number;
   finalTiyn: number | null;
   itemCount: number;
   missingCount: number;

@@ -586,7 +586,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     children: [
                       Text(s.total, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink40)),
                       const SizedBox(height: 2),
-                      Text(tenge(o.finalTiyn ?? o.subtotalTiyn), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                      Text(tenge(o.finalTiyn ?? o.subtotalTiyn + o.deliveryFeeTiyn), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.ink)),
                     ],
                   ),
                 ),
@@ -600,6 +600,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ],
             ),
+            if (o.deliveryFeeTiyn > 0) ...[
+              const SizedBox(height: 6),
+              Text('${s.deliveryFeeLabel}: ${tenge(o.deliveryFeeTiyn)}', style: const TextStyle(fontSize: 13, color: AppColors.ink60)),
+            ],
             if (estimate) ...[
               const SizedBox(height: 8),
               Text(s.estimateNote, style: const TextStyle(fontSize: 13, color: AppColors.ink60)),
