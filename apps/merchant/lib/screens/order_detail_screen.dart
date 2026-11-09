@@ -304,7 +304,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(pickup ? s.pickup : s.delivery, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                      if (pickup && o.pickupAt != null)
+                      if (o.pickupAt != null)
                         Text(dateTime(s, o.pickupAt!), style: const TextStyle(color: AppColors.ink60)),
                       if (!pickup && o.district != null)
                         Text(o.district!, style: const TextStyle(color: AppColors.ink60)),
@@ -429,9 +429,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(height: 14),
                 InkWell(onTap: () => _route(o), child: _infoRow(Icons.place_outlined, o.addressLine!)),
               ],
-              if (o.fulfillment == 'PICKUP' && o.pickupAt != null) ...[
+              if (o.pickupAt != null) ...[
                 const SizedBox(height: 14),
-                _infoRow(Icons.schedule, s.pickupAt(dateTime(s, o.pickupAt!))),
+                _infoRow(Icons.schedule, o.fulfillment == 'PICKUP' ? s.pickupAt(dateTime(s, o.pickupAt!)) : s.deliverAt(dateTime(s, o.pickupAt!))),
               ],
               if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
                 const SizedBox(height: 12),

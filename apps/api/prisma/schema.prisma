@@ -256,7 +256,7 @@ model Order {
   deliveryCode  String?
   // Способ получения: доставка или самовывоз. pickupAt — выбранное время самовывоза.
   fulfillment   Fulfillment @default(DELIVERY)
-  pickupAt      DateTime?
+  pickupAt      DateTime? // желаемое время получения: самовывоз — когда заберёт, доставка — к какому времени привезти
   // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
   address       Json?
   payMethod     PayMethod @default(CASH)
