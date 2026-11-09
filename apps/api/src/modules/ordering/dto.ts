@@ -4,7 +4,8 @@ import { Type } from 'class-transformer';
 export class OrderItemDto {
   @IsString() storeProductId!: string;
   // Для весовых — граммы, для штучных — qty. Указывается одно из двух.
-  @IsOptional() @IsInt() @Min(1) qtyG?: number;
+  // Весовой товар — не больше 20 кг в одной позиции.
+  @IsOptional() @IsInt() @Min(1) @Max(20000, { message: 'Не больше 20 кг одного товара' }) qtyG?: number;
   @IsOptional() @IsInt() @Min(1) qty?: number;
 }
 
