@@ -5,6 +5,14 @@
 //   docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T api node prisma/seed-catalog.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+// Казахские и английские названия: русское → [kk, en].
+const I18N = require('./catalog-i18n.json');
+const nameOf = (ru, dict, override) => {
+  const tr = override || dict[ru];
+  return tr ? { ru, kk: tr[0], en: tr[1] } : { ru };
+};
+// Одинаковые русские названия в разных категориях («Форель» — груша и рыба).
+const OVERRIDES = { 'Рыба и морепродукты/Форель': ['Бахтах', 'Trout'] };
 
 // u — единица по умолчанию для категории. Товар: строка (берёт u) или {n, u, step, avg}.
 const DATA = [
@@ -170,7 +178,7 @@ async function findProduct(categoryId, ru) {
       let cat = await findCategory(g.cat);
       if (!cat) {
         cat = await prisma.category.create({
-          data: { name: { ru: g.cat }, perishable: !!g.perishable, coldChain: !!g.coldChain, sort: i, parentId: group ? group.id : null },
+          data: { name: nameOf(g.cat, I18N.categories), perishable: !!g.perishable, coldChain: !!g.coldChain, sort: i, parentId: group ? group.id : null },
           select: { id: true },
         });
         cCreated++;
@@ -184,7 +192,7 @@ async function findProduct(categoryId, ru) {
         await prisma.masterProduct.create({
           data: {
             categoryId: cat.id,
-            name: { ru: it.n },
+            name: nameOf(it.n, I18N.products, OVERRIDES[`${g.cat}/${it.n}`]),
             unit,
             stepG: unit === 'KG' || unit === 'G' ? (it.step || g.step || 500) : null,
             avgPieceG: unit === 'PCS' ? (it.avg || null) : null,
