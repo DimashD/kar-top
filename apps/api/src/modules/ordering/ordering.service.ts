@@ -42,8 +42,8 @@ export class OrderingService {
     }
     if (fulfillment === 'PICKUP' && !store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
     // Желаемое время получения — не раньше, чем магазин успевает по своим настройкам.
-    const leadMin = fulfillment === 'PICKUP' ? store.pickupLeadMinutes
-      : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes;
+    const leadMin = (fulfillment === 'PICKUP' ? store.pickupLeadMinutes
+      : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes) ?? 60;
     let pickupAt: Date | null = null;
     if (dto.pickupAt) {
       pickupAt = new Date(dto.pickupAt);
