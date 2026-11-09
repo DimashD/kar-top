@@ -28,11 +28,13 @@ describe('шаблоны уведомлений', () => {
     expect(TEMPLATES['order.accepted'].critical).toBe(true);
     expect(TEMPLATES['order.awaiting_customer'].critical).toBe(true);
     expect(TEMPLATES['billing.invoice_issued'].critical).toBe(true);
-    expect(TEMPLATES['order.ready'].critical).toBeFalsy();
+    // «Собран / можно забирать» — тоже важно: покупатель без приложения узнаёт по SMS.
+    expect(TEMPLATES['order.ready'].critical).toBe(true);
+    expect(TEMPLATES['order.picking'].critical).toBeFalsy();
   });
 
   it('тело счёта конвертирует тиыны в тенге', () => {
-    expect(TEMPLATES['billing.invoice_issued'].body({ amountTiyn: 1490000, period: '2026-11' })).toContain('14900');
+    expect(TEMPLATES['billing.invoice_issued'].body({ amountTiyn: 1490000, period: '2026-11' }).replace(/\s/g, '')).toContain('14900₸');
   });
 
   it('у всех шаблонов есть заголовок и тело-функция', () => {
