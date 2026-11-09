@@ -961,9 +961,12 @@ const PICKUP_CLOSE_H = 22;
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const localStamp = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
+/** Длина слота получения, мин. */
+const SLOT_MIN = 60;
+
 /**
- * Время самовывоза: день кнопками («Сегодня», «Завтра», третий день) и время сеткой по 30 минут.
- * «Как можно скорее» (value '') — магазин соберёт за свой лид-тайм. Время раньше earliest не предлагаем.
+ * Время получения слотами: «Как можно скорее», затем день кнопками и часовые окна «18:00–19:00».
+ * Значение — начало окна (локальное 'YYYY-MM-DDTHH:MM'); окна, которые начинаются раньше earliest, не предлагаем.
  */
 function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: string; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
   const t = useT();
@@ -973,34 +976,47 @@ function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: s
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const [day, setDay] = useState(() => (value ? Math.max(0, days.findIndex((d) => value.startsWith(localStamp(d).slice(0, 10)))) : 0));
   const slots: Date[] = [];
-  const start = new Date(days[day]); start.setHours(PICKUP_OPEN_H, 0, 0, 0);
-  for (let d = start; d.getHours() < PICKUP_CLOSE_H; d = new Date(d.getTime() + 30 * 60000)) if (d >= first) slots.push(d);
+  for (let h = PICKUP_OPEN_H; h + SLOT_MIN / 60 <= PICKUP_CLOSE_H; h += SLOT_MIN / 60) {
+    const d = new Date(days[day]); d.setHours(h, 0, 0, 0);
+    if (d >= first) slots.push(d);
+  }
   const dayLabel = (d: Date) => {
     const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
     return diff === 0 ? t.today : diff === 1 ? t.tomorrow : d.toLocaleDateString(LOCALES[lang], { weekday: 'short', day: 'numeric' });
   };
   const hhmm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-  const chip = (on: boolean): React.CSSProperties => ({
-    height: 44, borderRadius: 12, font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-    border: on ? '2px solid var(--carrot)' : '1px solid var(--line)', background: on ? 'var(--carrot-50)' : 'var(--card)', color: 'var(--ink)',
+  const on = (sel: boolean): React.CSSProperties => ({
+    borderRadius: 14, font: 'inherit', cursor: 'pointer', color: 'var(--ink)',
+    border: sel ? '2px solid var(--carrot)' : '1px solid var(--line)', background: sel ? 'var(--carrot-50)' : 'var(--card)',
   });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <button type="button" onClick={() => onChange('')} style={{ ...chip(!value), height: 'auto', padding: '10px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <button type="button" onClick={() => onChange('')} style={{ ...on(!value), padding: '12px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 20 }}>⚡</span>
-        <span><span style={{ display: 'block' }}>{t.asap}</span><span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>{asapNote(hhmm(first))}</span></span>
+        <span><span style={{ display: 'block', fontWeight: 800 }}>{t.asap}</span><span className="muted" style={{ fontSize: 13 }}>{asapNote(hhmm(first))}</span></span>
       </button>
-      <div style={{ display: 'flex', gap: 8 }}>
+      {/* Дни — вкладками, слоты выбранного дня — окнами по часу. */}
+      <div style={{ display: 'flex', background: '#F4F2F0', borderRadius: 12, padding: 4, gap: 4 }}>
         {days.map((d, i) => (
-          <button key={i} type="button" onClick={() => setDay(i)} style={{ ...chip(day === i && !!value), flex: 1, fontSize: 14, ...(day === i && !value ? { border: '2px solid var(--ink-40)' } : {}) }}>{dayLabel(d)}</button>
+          <button key={i} type="button" onClick={() => setDay(i)}
+            style={{ flex: 1, height: 38, border: 'none', borderRadius: 9, font: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+              background: day === i ? 'var(--card)' : 'transparent', boxShadow: day === i ? '0 1px 3px rgba(0,0,0,.08)' : 'none', color: 'var(--ink)' }}>
+            {dayLabel(d)}
+          </button>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 8, maxHeight: 200, overflowY: 'auto' }}>
-        {slots.map((d) => {
-          const v = localStamp(d);
-          return <button key={v} type="button" onClick={() => onChange(v)} style={chip(value === v)}>{hhmm(d)}</button>;
-        })}
-      </div>
+      {slots.length ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, maxHeight: 232, overflowY: 'auto' }}>
+          {slots.map((d) => {
+            const v = localStamp(d);
+            return (
+              <button key={v} type="button" onClick={() => onChange(v)} style={{ ...on(value === v), height: 48, fontWeight: 800, fontSize: 15 }}>
+                {hhmm(d)} – {hhmm(new Date(d.getTime() + SLOT_MIN * 60000))}
+              </button>
+            );
+          })}
+        </div>
+      ) : <div className="muted" style={{ fontSize: 14, padding: '6px 2px' }}>—</div>}
     </div>
   );
 }

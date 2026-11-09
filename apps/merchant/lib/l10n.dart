@@ -391,7 +391,7 @@ class _Ru extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Не удалось открыть приложение';
   @override String pickupAt(String time) => 'Самовывоз: $time';
-  @override String deliverAt(String time) => 'Привезти к: $time';
+  @override String deliverAt(String time) => 'Привезти: $time';
   @override String get orderItems => 'Состав заказа';
   @override String get needsWeighing => 'нужно взвесить';
   @override String get outOfStock => 'Нет в наличии';
@@ -851,7 +851,7 @@ class _Tg extends S {
   @override String get whatsapp => 'WhatsApp';
   @override String get cannotOpen => 'Барномаро кушодан нашуд';
   @override String pickupAt(String time) => 'Худ бурдан: $time';
-  @override String deliverAt(String time) => 'Расонидан то: $time';
+  @override String deliverAt(String time) => 'Вақти расонидан: $time';
   @override String get orderItems => 'Таркиби фармоиш';
   @override String get needsWeighing => 'бояд баркашид';
   @override String get outOfStock => 'Дар мавҷудият нест';

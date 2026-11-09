@@ -118,9 +118,10 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         {/* Способ получения */}
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <Row label={t.fulfillment} value={o.fulfillment === 'PICKUP' ? t.pickup : t.delivery} />
+          {/* Выбранное окно получения (слоты по часу). Страница рендерится на сервере — время по Алматы. */}
+          {o.pickupAt ? <Row label={o.fulfillment === 'PICKUP' ? t.pickupTimeLabel : t.deliverWhen} value={slotLabel(o.pickupAt, LOCALES[lang])} /> : null}
           {o.fulfillment === 'PICKUP' ? (
             <>
-              {o.pickupAt ? <Row label={t.pickupTimeLabel} value={new Date(o.pickupAt).toLocaleString(LOCALES[lang], { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} /> : null}
               {o.store.address ? <Row label={t.storeAddress} value={o.store.address} /> : null}
             </>
           ) : null}
@@ -188,6 +189,13 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
       </div>
     </main>
   );
+}
+
+function slotLabel(iso: string, locale: string): string {
+  const tz = { timeZone: 'Asia/Almaty' } as const;
+  const from = new Date(iso);
+  const to = new Date(from.getTime() + 60 * 60000);
+  return `${from.toLocaleString(locale, { ...tz, day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}–${to.toLocaleTimeString(locale, { ...tz, hour: '2-digit', minute: '2-digit' })}`;
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {

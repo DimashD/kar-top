@@ -49,3 +49,6 @@ String payLabel(S s, String p) {
 String statusLabel(S s, String status) => s.statuses[status] ?? status;
 
 String dateTime(S s, DateTime d) => DateFormat('d MMM, HH:mm', s.dateLocale).format(d.toLocal());
+
+/// Окно получения, выбранное покупателем: «11 нояб., 18:00–19:00» (слоты по часу).
+String timeSlot(S s, DateTime d) => '${dateTime(s, d)}–${DateFormat('HH:mm').format(d.toLocal().add(const Duration(hours: 1)))}';
