@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:app_links/app_links.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -57,7 +59,7 @@ class _ShopScreenState extends State<ShopScreen> {
       ..addJavaScriptChannel('KartopApp', onMessageReceived: (m) => _onWebMessage(m.message))
       ..setNavigationDelegate(NavigationDelegate(
         onProgress: (p) => setState(() => _progress = p),
-        onPageFinished: (url) => _rememberShop(Uri.parse(url)),
+        onPageFinished: (url) { _rememberShop(Uri.parse(url)); _sendPushToken(); },
         onWebResourceError: (e) {
           if (e.isForMainFrame ?? false) setState(() => _failed = true);
         },
@@ -80,6 +82,52 @@ class _ShopScreenState extends State<ShopScreen> {
       );
     }
     _start();
+    _initPush();
+  }
+
+  String? _pushToken;
+
+  /// Пуши о заказе: токен отдаём странице (она регистрирует его на вошедшего покупателя),
+  /// нажатие на уведомление открывает заказ (data.url).
+  Future<void> _initPush() async {
+    try {
+      await Firebase.initializeApp();
+      final fm = FirebaseMessaging.instance;
+      await fm.requestPermission(alert: true, badge: true, sound: true);
+      _pushToken = await fm.getToken();
+      fm.onTokenRefresh.listen((t) { _pushToken = t; _sendPushToken(); });
+      _sendPushToken();
+      final first = await fm.getInitialMessage();
+      if (first != null) _openFromPush(first);
+      FirebaseMessaging.onMessageOpenedApp.listen(_openFromPush);
+      // Приложение открыто — показываем уведомление внизу экрана с кнопкой «Открыть».
+      FirebaseMessaging.onMessage.listen((m) {
+        final n = m.notification;
+        if (n == null || !mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text([n.title, n.body].whereType<String>().join('\n')),
+          duration: const Duration(seconds: 6),
+          action: m.data['url'] == null ? null : SnackBarAction(label: 'Открыть', onPressed: () => _openFromPush(m)),
+        ));
+      });
+    } catch (_) {
+      // Нет Firebase на этой сборке — работаем без пушей.
+    }
+  }
+
+  void _openFromPush(RemoteMessage m) {
+    final url = m.data['url'];
+    final uri = url is String ? Uri.tryParse(url) : null;
+    if (uri != null && isOwnPage(uri)) _open(uri);
+  }
+
+  Future<void> _sendPushToken() async {
+    final t = _pushToken;
+    if (t == null) return;
+    try {
+      await _web.runJavaScript(
+          'window.kartopPushToken=${jsonEncode(t)};window.dispatchEvent(new Event("kartop-push-token"));');
+    } catch (_) {/* страница ещё грузится — отправим в onPageFinished */}
   }
 
   Future<void> _start() async {
