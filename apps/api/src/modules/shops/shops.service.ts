@@ -8,13 +8,21 @@ export class ShopsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Публичный каталог витрины: магазин + его товары, сгруппированные по категориям. */
+  async photo(slug: string) {
+    const s = await this.prisma.store.findFirst({ where: { slug, status: 'ACTIVE' }, select: { photo: true, photoType: true } });
+    if (!s?.photo) throw new NotFoundException('Фото нет');
+    return { data: Buffer.from(s.photo), type: s.photoType ?? 'image/jpeg' };
+  }
+
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true },
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
-    const { geom, ...storeInfo } = store;
+    const { geom, photoAt, ...rest } = store;
+    // Фото: /api/shops/<slug>/photo?v=<версия> — версия сбрасывает кэш после замены.
+    const storeInfo = { ...rest, photoVersion: photoAt ? photoAt.getTime() : null };
     const coords = (geom as any)?.coordinates as [number, number] | undefined; // GeoJSON: [lng, lat]
     const location = coords ? { lat: coords[1], lng: coords[0] } : null;
 

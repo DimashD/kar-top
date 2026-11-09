@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, BadRequestException, StreamableFile } from '@nestjs/common';
 import { ShopsService } from './shops.service';
 import { Public } from '../../common/auth/public.decorator';
 
@@ -10,6 +10,13 @@ export class ShopsController {
   @Get(':slug/catalog')
   catalog(@Param('slug') slug: string) {
     return this.shops.catalog(slug);
+  }
+
+  @Get(':slug/photo')
+  @Header('cache-control', 'public, max-age=31536000, immutable')
+  async photo(@Param('slug') slug: string) {
+    const p = await this.shops.photo(slug);
+    return new StreamableFile(p.data, { type: p.type });
   }
 
   @Get(':slug/zone-check')

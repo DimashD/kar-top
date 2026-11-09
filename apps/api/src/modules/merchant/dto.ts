@@ -15,6 +15,12 @@ export class UpdateProductDto {
   @IsOptional() @IsBoolean() inStock?: boolean;
 }
 
+/** Фото магазина: base64 без префикса data:; data null/пусто — убрать фото. */
+export class StorePhotoDto {
+  @IsOptional() @IsString() data?: string | null;
+  @IsOptional() @IsIn(['image/jpeg', 'image/png', 'image/webp']) type?: string;
+}
+
 export class StoreSettingsDto {
   @IsOptional() @IsBoolean() pickupEnabled?: boolean;
   @IsOptional() @IsBoolean() deliveryEnabled?: boolean;

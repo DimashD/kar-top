@@ -198,6 +198,10 @@ model Store {
   rating    Float    @default(0)
   reviewCount Int    @default(0)
   settings  Json?
+  // Фото магазина (витрина/вход) — доверие покупателя. JPEG до ~1 МБ прямо в БД; photoAt — версия для кэша.
+  photo     Bytes?
+  photoType String?
+  photoAt   DateTime?
   createdAt DateTime @default(now())
   members   StoreMember[]
   products  StoreProduct[]
