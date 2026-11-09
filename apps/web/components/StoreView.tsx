@@ -65,6 +65,24 @@ function saveSession(s: Session | null) {
 function sessionFrom(data: { accessToken: string; refreshToken: string }, phone: string): Session {
   return { access: data.accessToken, refresh: data.refreshToken, phone, accessExp: Date.now() + 14 * 60_000 };
 }
+/**
+ * Пуши в приложении покупателя: приложение кладёт FCM-токен в window.kartopPushToken
+ * (и шлёт событие kartop-push-token), а мы регистрируем его на вошедшего покупателя — один раз на пару токен+номер.
+ */
+async function registerAppPush() {
+  const push = (window as any).kartopPushToken as string | undefined;
+  const s = readSession();
+  if (!push || !s) return;
+  const mark = `${push}|${s.phone}`;
+  try { if (localStorage.getItem('kartop:push') === mark) return; } catch { /* ок */ }
+  const token = await accessToken();
+  if (!token) return;
+  const r = await fetch(`${CLIENT_API}/devices/push-token`, {
+    method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ platform: 'android', token: push }),
+  }).catch(() => null);
+  if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
+}
 /** Действующий access-токен: из памяти или продлённый по refresh. null — нужно подтвердить номер. */
 async function accessToken(force = false): Promise<string | null> {
   const s = readSession();
@@ -129,6 +147,7 @@ function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; on
       if (!r.ok || !data.accessToken) throw new Error();
       const s = sessionFrom(data, kzPhoneE164(phone));
       saveSession(s);
+      registerAppPush();
       onDone(s);
     } catch {
       setErr(t.wrongCode); setCode('');
@@ -203,6 +222,12 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   const [weighing, setWeighing] = useState<CatalogProduct | null>(null);
   const [last, setLast] = useState<LastOrder | null>(null);
   useEffect(() => { setLast(readLast(slug)); }, [slug]);
+  // В приложении: регистрируем токен пушей, как только он есть и покупатель вошёл.
+  useEffect(() => {
+    registerAppPush();
+    window.addEventListener('kartop-push-token', registerAppPush);
+    return () => window.removeEventListener('kartop-push-token', registerAppPush);
+  }, []);
 
   // Товары с подкатегорией: поиск «яблоки» находит сорта «Фуджи», «Апорт».
   const all: SearchProduct[] = useMemo(() => catalog.categories.flatMap((c) => c.items.map((p) => ({ ...p, category: c.category }))), [catalog]);
