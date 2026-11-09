@@ -14,7 +14,7 @@ export class ReviewsService {
     }
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, storeId: true, customerId: true, status: true },
+      select: { id: true, storeId: true, customerId: true, status: true, number: true },
     });
     if (!order) throw new NotFoundException('Заказ не найден');
     if (!REVIEWABLE.includes(order.status)) {
@@ -28,6 +28,10 @@ export class ReviewsService {
       select: { id: true, rating: true, comment: true, createdAt: true },
     });
     await this.recalcStoreRating(order.storeId);
+    // Магазину — пуш о новом отзыве.
+    await this.prisma.outboxEvent.create({
+      data: { type: 'order.reviewed', aggregateType: 'order', aggregateId: orderId, payload: { number: order.number, rating, comment: review.comment } },
+    });
     return review;
   }
 

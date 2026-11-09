@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TEMPLATES, Audience } from './templates';
 import { PushRegistry, Platform } from './push-provider';
+import { SmsChannel } from '../identity/channels/sms.channel';
+
+type Recipient = { userId: string; role: 'customer' | 'merchant' };
 
 @Injectable()
 export class NotificationDispatcher {
@@ -10,6 +13,7 @@ export class NotificationDispatcher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushRegistry,
+    private readonly sms: SmsChannel,
   ) {}
 
   /** Обрабатывает пачку необработанных outbox-событий. Вызывается планировщиком/воркером. */
@@ -35,25 +39,34 @@ export class NotificationDispatcher {
   private async handle(ev: { type: string; aggregateType: string; aggregateId: string; payload: any }): Promise<number> {
     const tpl = TEMPLATES[ev.type];
     if (!tpl) return 0;
-    const userIds = await this.recipients(tpl.audience, ev.aggregateType, ev.aggregateId);
-    const msg = { title: tpl.title, body: tpl.body(ev.payload ?? {}), data: { type: ev.type, id: ev.aggregateId } };
+    const recipients = await this.recipients(tpl.audience, ev.aggregateType, ev.aggregateId);
+    const body = tpl.body(ev.payload ?? {});
+    // Нажатие на пуш: покупатель — страница заказа (в приложении покупателя), магазин — карточка заказа.
+    const web = (process.env.WEB_BASE_URL || 'https://kar-top.kz').replace(/\/$/, '');
+    const url = ev.aggregateType === 'order' ? `${web}/order/${ev.aggregateId}` : '';
 
     let sent = 0;
-    for (const userId of userIds) {
-      const tokens = await this.prisma.pushToken.findMany({ where: { userId }, select: { platform: true, token: true } });
-      if (tokens.length === 0 && tpl.critical) {
-        this.log.log(`[fallback-sms] нет push у ${userId} — критичное «${tpl.title}» ушло бы по SMS`);
-      }
+    for (const r of recipients) {
+      const msg = { title: tpl.title, body, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
+      const tokens = await this.prisma.pushToken.findMany({ where: { userId: r.userId }, select: { platform: true, token: true } });
+      let delivered = 0;
       for (const t of tokens) {
         const provider = this.push.get(t.platform as Platform);
-        if (provider && (await provider.send(t.token, msg))) sent++;
+        if (provider && (await provider.send(t.token, msg))) delivered++;
+      }
+      sent += delivered;
+      // Покупатель без приложения (заказал на сайте): критичное — коротким SMS, если включено.
+      if (!delivered && tpl.critical && r.role === 'customer' && process.env.NOTIFY_SMS_FALLBACK === '1') {
+        const user = await this.prisma.user.findUnique({ where: { id: r.userId }, select: { phone: true } });
+        if (user?.phone) await this.sms.sendText(user.phone, `Kartop: ${body}`);
       }
     }
     return sent;
   }
 
-  private async recipients(audience: Audience, aggregateType: string, aggregateId: string): Promise<string[]> {
-    const ids = new Set<string>();
+  private async recipients(audience: Audience, aggregateType: string, aggregateId: string): Promise<Recipient[]> {
+    const out = new Map<string, Recipient>();
+    const ids = { add: (userId: string, role: Recipient['role']) => { if (!out.has(userId)) out.set(userId, { userId, role }); } };
     if (aggregateType === 'order') {
       const order = await this.prisma.order.findUnique({
         where: { id: aggregateId },
@@ -61,18 +74,18 @@ export class NotificationDispatcher {
       });
       if (!order) return [];
       if (audience === 'customer' || audience === 'both') {
-        if (order.customerId) ids.add(order.customerId);
+        if (order.customerId) ids.add(order.customerId, 'customer');
       }
       if (audience === 'merchant' || audience === 'both') {
-        order.store.members.forEach((m) => ids.add(m.userId));
+        order.store.members.forEach((m) => ids.add(m.userId, 'merchant'));
       }
     } else if (aggregateType === 'subscription') {
       const sub = await this.prisma.subscription.findUnique({
         where: { id: aggregateId },
         select: { store: { select: { members: { select: { userId: true } } } } },
       });
-      sub?.store.members.forEach((m) => ids.add(m.userId));
+      sub?.store.members.forEach((m) => ids.add(m.userId, 'merchant'));
     }
-    return [...ids];
+    return [...out.values()];
   }
 }
