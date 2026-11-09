@@ -12,6 +12,7 @@ import PhoneInput from './PhoneInput';
 import { LangSwitcher, useLang, useT } from './LangProvider';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import MapPicker from './MapPicker';
+import AddressInput from './AddressInput';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -383,6 +384,9 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
   const weighted = isWeighted(p.unit);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #F1ECE8' }}>
+      {/* Нажатие на карточку: весовой товар — шторка выбора веса, штучный — ещё одна штука. */}
+      <button type="button" onClick={weighted ? onEdit : (qty ? onInc : onAdd)} aria-label={`${t.addToCart}: ${name}`}
+        style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: 0, border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
       {/* Фото магазина; пока его нет — пиктограмма самого товара (или инициалы) на фоне цвета группы. */}
       <div style={{ width: 64, height: 64, borderRadius: 16, background: look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {p.photo ? <img src={p.photo} alt={name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -398,6 +402,7 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onEdit }:
           {sale ? <span className="price-old" style={{ fontSize: 12 }}>{tenge(p.oldPriceTiyn!)}</span> : null}
         </div>
       </div>
+      </button>
       {qty === 0 ? (
         <button aria-label={t.addToCart} onClick={onAdd}
           style={{ width: 44, height: 44, borderRadius: 12, border: 'none', background: '#F4F2F0', fontSize: 24, color: 'var(--ink)', cursor: 'pointer' }}>+</button>
@@ -768,7 +773,8 @@ function CheckoutDrawer(props: {
 
           {mode === 'DELIVERY' ? (
             <Field label={t.deliveryAddress}>
-              <input value={line} onChange={(e) => setLine(e.target.value)} placeholder={t.addressPlaceholder} style={inputStyle(true)} />
+              <AddressInput value={line} onChange={setLine} placeholder={t.addressPlaceholder} style={inputStyle(true)} near={store.location ?? null}
+                onPick={(address, pt) => { setLine(address); setGeo(pt); }} />
               <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
                 style={{ marginTop: 8, width: '100%', justifyContent: 'center', ...(geo ? { borderColor: 'var(--leaf)', color: 'var(--leaf)' } : {}) }}>
                 {geo ? t.changePoint : t.addLocation}
