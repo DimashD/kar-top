@@ -161,13 +161,13 @@ export class OrderingService {
       take: limit,
       select: {
         id: true, number: true, status: true, createdAt: true,
-        subtotalTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, pickupAt: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, pickupAt: true,
         _count: { select: { items: true } },
       },
     });
     return orders.map((o) => ({
       id: o.id, number: o.number, status: o.status, createdAt: o.createdAt,
-      amountTiyn: o.finalTiyn ?? o.subtotalTiyn, payMethod: o.payMethod,
+      amountTiyn: o.finalTiyn ?? o.subtotalTiyn + o.deliveryFeeTiyn, payMethod: o.payMethod,
       fulfillment: o.fulfillment, pickupAt: o.pickupAt, itemCount: o._count.items,
     }));
   }
@@ -207,6 +207,7 @@ export class OrderingService {
       number: o.number,
       status: o.status,
       subtotalTiyn: o.subtotalTiyn,
+      deliveryFeeTiyn: o.deliveryFeeTiyn,
       finalTiyn: o.finalTiyn,
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
