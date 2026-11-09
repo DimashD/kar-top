@@ -305,7 +305,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     children: [
                       Text(pickup ? s.pickup : s.delivery, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                       if (o.pickupAt != null)
-                        Text(dateTime(s, o.pickupAt!), style: const TextStyle(color: AppColors.ink60)),
+                        Text(timeSlot(s, o.pickupAt!), style: const TextStyle(color: AppColors.ink60)),
                       if (!pickup && o.district != null)
                         Text(o.district!, style: const TextStyle(color: AppColors.ink60)),
                     ],
@@ -431,7 +431,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
               if (o.pickupAt != null) ...[
                 const SizedBox(height: 14),
-                _infoRow(Icons.schedule, o.fulfillment == 'PICKUP' ? s.pickupAt(dateTime(s, o.pickupAt!)) : s.deliverAt(dateTime(s, o.pickupAt!))),
+                _infoRow(Icons.schedule, o.fulfillment == 'PICKUP' ? s.pickupAt(timeSlot(s, o.pickupAt!)) : s.deliverAt(timeSlot(s, o.pickupAt!))),
               ],
               if (o.fulfillment == 'DELIVERY' && o.hasLocation) ...[
                 const SizedBox(height: 12),
