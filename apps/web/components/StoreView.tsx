@@ -961,11 +961,11 @@ const PICKUP_CLOSE_H = 22;
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const localStamp = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
-/** Длина слота получения, мин. */
-const SLOT_MIN = 60;
+/** Длина слота получения, мин (окна по 2 часа: 8–10, 10–12 … 20–22). */
+const SLOT_MIN = 120;
 
 /**
- * Время получения слотами: «Как можно скорее», затем день кнопками и часовые окна «18:00–19:00».
+ * Время получения слотами: «Как можно скорее», затем день кнопками и окна по 2 часа «18:00–20:00».
  * Значение — начало окна (локальное 'YYYY-MM-DDTHH:MM'); окна, которые начинаются раньше earliest, не предлагаем.
  */
 function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: string; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
