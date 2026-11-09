@@ -75,6 +75,15 @@ function priceFor(name, unit) {
       console.log(`Магазин /${SLUG} уже есть — дополняю товары`);
     }
 
+    // Фото демо-магазина (prisma/demo-store.jpg) — если своего ещё нет.
+    if (!store.photoAt) {
+      const file = require('path').join(__dirname, 'demo-store.jpg');
+      if (require('fs').existsSync(file)) {
+        await prisma.store.update({ where: { id: store.id }, data: { photo: require('fs').readFileSync(file), photoType: 'image/jpeg', photoAt: new Date() } });
+        console.log('Фото магазина загружено');
+      }
+    }
+
     const categories = await prisma.category.findMany({ select: { id: true }, orderBy: { sort: 'asc' } });
     if (!categories.length) {
       console.error('Мастер-каталог пуст — сначала запустите seed-catalog.js');

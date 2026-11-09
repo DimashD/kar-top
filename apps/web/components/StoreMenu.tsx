@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import { useT } from './LangProvider';
 
-/** Меню витрины (☰): о магазине, товары, связь с Kartop, приложение, документы, подключение магазина. */
-export default function StoreMenu({ slug }: { slug: string }) {
+/** Меню сервиса Kartop (☰) — общее для всех страниц: главная, связь с Kartop, приложение, для магазинов, документы. */
+export default function StoreMenu() {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [inApp, setInApp] = useState(false);
@@ -32,8 +32,7 @@ export default function StoreMenu({ slug }: { slug: string }) {
               <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)', flex: 1 }}>Kartop</span>
               <button type="button" aria-label={t.close} onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer', color: 'var(--ink-60)' }}>✕</button>
             </div>
-            <Link href={`/${slug}/about`} style={item}>🏪 {t.aboutStore}</Link>
-            <Link href={`/${slug}`} style={item} onClick={() => setOpen(false)}>🛒 {t.toProducts}</Link>
+            <Link href="/" style={item}>🏠 {t.toHome}</Link>
             <button type="button" style={item} onClick={() => { setOpen(false); window.dispatchEvent(new Event('kartop-feedback')); }}>💬 {t.feedbackTitle}</button>
             {!inApp ? <a href={ANDROID_URL} target="_blank" rel="noreferrer" style={item}>📲 {t.downloadApp}</a> : null}
             <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0' }} />

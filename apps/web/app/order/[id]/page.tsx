@@ -7,6 +7,7 @@ import { LangSwitcher } from '../../../components/LangProvider';
 import ReviewForm from '../../../components/ReviewForm';
 import AppBanner from '../../../components/AppBanner';
 import FeedbackButton from '../../../components/FeedbackButton';
+import StoreMenu from '../../../components/StoreMenu';
 
 export const dynamic = 'force-dynamic';
 export function generateMetadata() {
@@ -54,6 +55,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
     <main style={{ paddingBottom: 32 }}>
       <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <StoreMenu />
           <Link href={`/${o.store.slug}`} style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
           <div style={{ flex: 1 }}>

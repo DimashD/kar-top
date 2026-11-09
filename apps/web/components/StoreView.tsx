@@ -415,7 +415,7 @@ function Header({ name, rating, reviewCount, address, slug, photo }: { name: str
   return (
     <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
       <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
-        <StoreMenu slug={slug} />
+        <StoreMenu />
         {photo ? <img src={photo} alt="" style={{ width: 40, height: 40, borderRadius: 12, objectFit: 'cover', flex: 'none' }} /> : null}
         <Link href={`/${slug}/about`} style={{ minWidth: 0, flex: 1, color: 'var(--ink)', textDecoration: 'none' }}>
           <div style={{ fontWeight: 800, fontSize: 17, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>

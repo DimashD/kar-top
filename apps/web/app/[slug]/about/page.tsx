@@ -1,33 +1,21 @@
 import Link from 'next/link';
-import { fetchCatalog, SERVER_API } from '../../../lib/api';
-import { LOCALES } from '../../../lib/i18n';
-import { getDict, getLang } from '../../../lib/i18n-server';
+import { fetchCatalog } from '../../../lib/api';
+import { getDict } from '../../../lib/i18n-server';
 import { LangSwitcher } from '../../../components/LangProvider';
+import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
 
 export const dynamic = 'force-dynamic';
-
-type Review = { id: string; rating: number; comment: string | null; createdAt: string };
-
-async function fetchReviews(slug: string): Promise<Review[]> {
-  try {
-    const r = await fetch(`${SERVER_API}/shops/${encodeURIComponent(slug)}/reviews?limit=20`, { next: { revalidate: 60 } });
-    return r.ok ? ((await r.json()).reviews as Review[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const c = await fetchCatalog(params.slug);
   return { title: c ? `${c.store.name} — ${getDict().aboutStore}` : getDict().storeNotFoundTitle };
 }
 
-// «О магазине»: фото, адрес и маршрут, связь, как получить заказ, отзывы — чтобы покупатель понимал, у кого покупает.
+// «О магазине»: фото, адрес и маршрут, связь, как получить заказ — чтобы покупатель понимал, у кого покупает.
 export default async function AboutStorePage({ params }: { params: { slug: string } }) {
   const t = getDict();
-  const lang = getLang();
-  const [c, reviews] = await Promise.all([fetchCatalog(params.slug), fetchReviews(params.slug)]);
+  const c = await fetchCatalog(params.slug);
   if (!c) {
     return (
       <main className="container" style={{ padding: '80px 20px', textAlign: 'center' }}>
@@ -46,6 +34,7 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
+          <StoreMenu />
           <Link href={`/${s.slug}`} style={{ flex: 1, fontWeight: 800, color: 'var(--ink)', textDecoration: 'none' }}>← {t.toProducts}</Link>
           <LangSwitcher />
         </div>
@@ -68,17 +57,6 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           {s.deliveryEnabled !== false ? (
             <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'OWN' ? t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60) : t.courierDeliveryNote}</div>
           ) : null}
-        </div>
-
-        <div className="card" style={card}>
-          <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.reviewsTitle}</div>
-          {reviews.length === 0 ? <div className="muted">{t.noReviews}</div> : reviews.map((r) => (
-            <div key={r.id} style={{ padding: '10px 0', borderTop: '1px solid var(--line)' }}>
-              <div style={{ color: 'var(--carrot)' }}>{'★'.repeat(r.rating)}<span style={{ color: 'var(--line)' }}>{'★'.repeat(5 - r.rating)}</span>
-                <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>{new Date(r.createdAt).toLocaleDateString(LOCALES[lang])}</span></div>
-              {r.comment ? <div style={{ marginTop: 2 }}>{r.comment}</div> : null}
-            </div>
-          ))}
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>
