@@ -72,6 +72,7 @@ abstract class S {
   Map<String, String> get roles;
   Map<String, String> get storeStatuses;
   String get total;
+  String get goodsSum;
   String get estimateNote;
   String get weigh;
   String get customer;
@@ -318,6 +319,7 @@ class _Ru extends S {
   @override Map<String, String> get roles => const {'OWNER': 'Владелец', 'MANAGER': 'Менеджер', 'PICKER': 'Сборщик', 'COURIER': 'Курьер'};
   @override Map<String, String> get storeStatuses => const {'PENDING': 'На модерации', 'SUSPENDED': 'Приостановлен', 'BLOCKED': 'Заблокирован'};
   @override String get total => 'Итого';
+  @override String get goodsSum => 'Товары';
   @override String get estimateNote => 'Оценочно — точная сумма после взвешивания';
   @override String get weigh => 'Взвесить';
   @override String get customer => 'Клиент';
@@ -546,6 +548,7 @@ class _Kk extends S {
   @override Map<String, String> get roles => const {'OWNER': 'Иесі', 'MANAGER': 'Менеджер', 'PICKER': 'Жинаушы', 'COURIER': 'Курьер'};
   @override Map<String, String> get storeStatuses => const {'PENDING': 'Модерацияда', 'SUSPENDED': 'Тоқтатылған', 'BLOCKED': 'Бұғатталған'};
   @override String get total => 'Барлығы';
+  @override String get goodsSum => 'Тауарлар';
   @override String get estimateNote => 'Шамамен — нақты сома өлшегеннен кейін';
   @override String get weigh => 'Өлшеу';
   @override String get customer => 'Клиент';
@@ -774,6 +777,7 @@ class _Tg extends S {
   @override Map<String, String> get roles => const {'OWNER': 'Соҳиб', 'MANAGER': 'Менеҷер', 'PICKER': 'Ҷамъкунанда', 'COURIER': 'Курьер'};
   @override Map<String, String> get storeStatuses => const {'PENDING': 'Дар баррасӣ', 'SUSPENDED': 'Боздошта шудааст', 'BLOCKED': 'Басташуда'};
   @override String get total => 'Ҳамагӣ';
+  @override String get goodsSum => 'Молҳо';
   @override String get estimateNote => 'Тахминан — маблағи дақиқ пас аз баркашӣ';
   @override String get weigh => 'Баркашидан';
   @override String get customer => 'Мизоҷ';
@@ -1002,6 +1006,7 @@ class _Uz extends S {
   @override Map<String, String> get roles => const {'OWNER': 'Egasi', 'MANAGER': 'Menejer', 'PICKER': 'Yigʻuvchi', 'COURIER': 'Kuryer'};
   @override Map<String, String> get storeStatuses => const {'PENDING': 'Moderatsiyada', 'SUSPENDED': 'Toʻxtatilgan', 'BLOCKED': 'Bloklangan'};
   @override String get total => 'Jami';
+  @override String get goodsSum => 'Mahsulotlar';
   @override String get estimateNote => 'Taxminan — aniq summa tortilgandan keyin';
   @override String get weigh => 'Tortish';
   @override String get customer => 'Mijoz';
