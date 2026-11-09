@@ -13,13 +13,15 @@ name: Server ops
 #                            (копирует FIREBASE_SERVICE_ACCOUNT из .env.prod в .env.staging, тот же проект).
 #   firebase-customer-app  — регистрирует в том же проекте Firebase приложение покупателя kz.kartop.app и его
 #                            тестовую сборку kz.kartop.app.staging, печатает их google-services.json (для apps/customer).
+#   apply-provider-keys    — переносит ключи SMS/Telegram/WhatsApp/почты из секретов репозитория в .env.prod
+#                            (только заданные) и перезапускает api. Список секретов — docs/30-notifications-and-codes.md.
 on:
   workflow_dispatch:
     inputs:
       task:
         description: 'Операция'
         type: choice
-        options: [install-ssh-key, disable-password-login, firebase-staging-app, firebase-customer-app]
+        options: [install-ssh-key, disable-password-login, firebase-staging-app, firebase-customer-app, apply-provider-keys]
 
 permissions:
   contents: read
@@ -192,3 +194,49 @@ jobs:
               docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml exec -T \
                 -e STAGING_PACKAGE="$pkg" -e DISPLAY_NAME="$name" api node - < deploy/ops/firebase-staging-app.js
             done
+
+  apply-provider-keys:
+    if: inputs.task == 'apply-provider-keys'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write provider keys to .env.prod and restart api
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          K_SMSC_LOGIN: ${{ secrets.SMSC_LOGIN }}
+          K_SMSC_PASSWORD: ${{ secrets.SMSC_PASSWORD }}
+          K_SMS_SENDER_NAME: ${{ secrets.SMS_SENDER_NAME }}
+          K_TELEGRAM_GATEWAY_TOKEN: ${{ secrets.TELEGRAM_GATEWAY_TOKEN }}
+          K_WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          K_WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          K_SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          K_SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          K_SMTP_USER: ${{ secrets.SMTP_USER }}
+          K_SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          K_EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          K_NOTIFY_SMS_FALLBACK: ${{ secrets.NOTIFY_SMS_FALLBACK }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 10m
+          envs: K_SMSC_LOGIN,K_SMSC_PASSWORD,K_SMS_SENDER_NAME,K_TELEGRAM_GATEWAY_TOKEN,K_WHATSAPP_TOKEN,K_WHATSAPP_PHONE_NUMBER_ID,K_SMTP_HOST,K_SMTP_PORT,K_SMTP_USER,K_SMTP_PASS,K_EMAIL_FROM,K_NOTIFY_SMS_FALLBACK
+          script: |
+            set -e
+            cd /opt/kar-top
+            cp .env.prod ".env.prod.bak-$(date +%Y%m%d%H%M%S)"
+            changed=""
+            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN WHATSAPP_TOKEN WHATSAPP_PHONE_NUMBER_ID SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS EMAIL_FROM NOTIFY_SMS_FALLBACK; do
+              v="$(printenv "K_$k" || true)"
+              [ -z "$v" ] && continue
+              esc=$(printf '%s' "$v" | sed "s/'/'\\\\''/g")
+              grep -v "^$k=" .env.prod > .env.prod.tmp || true
+              printf "%s='%s'\n" "$k" "$esc" >> .env.prod.tmp
+              mv .env.prod.tmp .env.prod
+              changed="$changed $k"
+            done
+            chmod 600 .env.prod
+            echo "Обновлены ключи:${changed:- нет (секреты не заданы)}"
+            . ./.deployed; export API_IMAGE WEB_IMAGE APP_VERSION
+            docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml up -d --no-build api
+            echo "api перезапущен"

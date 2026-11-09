@@ -35,6 +35,8 @@ services:
       # Фиксированный код входа для тестировщиков (работает ТОЛЬКО при APP_ENV=staging).
       TEST_OTP_CODE: ${TEST_OTP_CODE:-111111}
       # Интеграции в тесте по умолчанию выключены (SMS/Kaspi — заглушки). Включать только sandbox-ключи.
+      # Коды на тесте фиксированные (TEST_OTP_CODE) — SMS/WhatsApp не тратим; пуши — как на проде.
+      WEB_BASE_URL: https://${STAGING_DOMAIN:-test.kar-top.kz}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER:-}
