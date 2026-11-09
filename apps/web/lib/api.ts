@@ -30,6 +30,8 @@ export interface Catalog {
     location?: { lat: number; lng: number } | null; pickupLeadMinutes: number; reviewCount?: number;
     /** Версия фото магазина (null — фото нет): /shops/<slug>/photo?v=<версия>. */
     photoVersion?: number | null;
+    /** Телефон магазина и средний срок своей доставки (мин) — для страницы «О магазине». */
+    phone?: string | null; ownDeliveryMinutes?: number;
   };
   categories: CatalogCategory[];
 }
