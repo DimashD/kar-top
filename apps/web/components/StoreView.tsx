@@ -19,6 +19,11 @@ import AddressInput from './AddressInput';
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
 // Шаг «−/+»: весовые — 100 г (как в шторке веса и корзине), штучные — 1.
+/** Весовой товар — не больше 20 кг в одной позиции (так же проверяет сервер). */
+export const MAX_WEIGHT_G = 20000;
+function capQty(p: CatalogProduct, qty: number): number {
+  return isWeighted(p.unit) ? Math.min(qty, MAX_WEIGHT_G) : qty;
+}
 function defaultStep(p: CatalogProduct): number {
   return isWeighted(p.unit) ? 100 : 1;
 }
@@ -255,7 +260,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
     setCart((c) => {
       const next = { ...c };
       if (qty <= 0) delete next[p.id];
-      else next[p.id] = { product: p, qty };
+      else next[p.id] = { product: p, qty: capQty(p, qty) };
       return next;
     });
   }
@@ -268,7 +273,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   function addMany(items: { product: CatalogProduct; qty: number }[]) {
     setCart((c) => {
       const next = { ...c };
-      for (const it of items) next[it.product.id] = { product: it.product, qty: (next[it.product.id]?.qty ?? 0) + it.qty };
+      for (const it of items) next[it.product.id] = { product: it.product, qty: capQty(it.product, (next[it.product.id]?.qty ?? 0) + it.qty) };
       return next;
     });
   }
@@ -485,7 +490,7 @@ function QtyInput({ unit, qty, onSet }: { unit: CatalogProduct['unit']; qty: num
   function commit() {
     const n = Number(v.replace(',', '.').replace(/[^\d.]/g, ''));
     if (!Number.isFinite(n) || v.trim() === '') { setV(shown); return; }
-    const next = weighted ? Math.round(n * 10) * 100 : Math.round(n);
+    const next = weighted ? Math.min(MAX_WEIGHT_G, Math.round(n * 10) * 100) : Math.round(n);
     if (next !== qty) onSet(Math.max(0, next)); else setV(shown);
   }
   return (
@@ -508,8 +513,8 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
   const lang = useLang();
   const weighted = isWeighted(p.unit);
   const [g, setG] = useState(initial > 0 ? initial : weighted ? 1000 : 1);
-  // Лента «до бесконечности»: до 30 кг и всегда на 5 кг дальше выбранного веса.
-  const maxPreset = Math.max(30000, Math.ceil(g / 500) * 500 + 5000);
+  // Лента 0,5 … 20 кг (больше одного товара в позиции не берём).
+  const maxPreset = MAX_WEIGHT_G;
   const presets = Array.from({ length: maxPreset / 500 }, (_, i) => (i + 1) * 500);
   const strip = useRef<HTMLDivElement>(null);
   // Выбранный (или ближайший) вес — по центру ленты.
@@ -549,7 +554,7 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
             <div style={{ fontSize: 22, fontWeight: 900 }}>{grams(g, t)}</div>
             <div className="muted" style={{ fontSize: 12 }}>{t.step100}{pieces ? ` · ${t.aboutPieces(String(pieces))}` : ''}</div>
           </div>
-          <button aria-label={t.add} onClick={() => setG((x) => x + 100)} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>+</button>
+          <button aria-label={t.add} disabled={g >= MAX_WEIGHT_G} onClick={() => setG((x) => Math.min(MAX_WEIGHT_G, x + 100))} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>+</button>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-60)', background: '#FCF4E6', borderRadius: 12, padding: '10px 12px' }}>{t.weightNote}</div>
         </>) : (
