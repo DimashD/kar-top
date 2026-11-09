@@ -26,6 +26,8 @@ class StoreSettings {
   String deliveryMode;
   /// Версия фото магазина (null — фото нет).
   int? photoVersion;
+  /// Часы работы: 7 дней (пн первый), {'open': 'HH:MM', 'close': 'HH:MM'} или null — выходной.
+  List<Map<String, String>?> hours;
   StoreSettings({
     required this.pickupEnabled,
     required this.pickupLeadMinutes,
@@ -34,6 +36,7 @@ class StoreSettings {
     required this.ownDeliveryMinutes,
     required this.deliveryMode,
     this.photoVersion,
+    this.hours = const [],
   });
   factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
         pickupEnabled: j['pickupEnabled'] as bool? ?? true,
@@ -43,6 +46,9 @@ class StoreSettings {
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
         photoVersion: (j['photoVersion'] as num?)?.toInt(),
+        hours: ((j['hours'] as List?) ?? const [])
+            .map((d) => d == null ? null : {'open': '${d['open']}', 'close': '${d['close']}'})
+            .toList(),
       );
 }
 

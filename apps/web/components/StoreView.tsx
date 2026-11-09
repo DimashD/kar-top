@@ -892,11 +892,11 @@ function CheckoutDrawer(props: {
               )}
             </Field>
             <Field label={t.deliverWhen}>
-              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} />
+              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} />
             </Field>
           </>) : (
             <Field label={t.pickupWhen}>
-              <PickupTimePicker earliest={earliest} value={pickupAt} onChange={setPickupAt} asapNote={t.readyBy} />
+              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.readyBy} />
               <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
                 {store.address ? t.pickupFrom(store.address) : t.pickupAddressLater}
               </div>
@@ -955,31 +955,54 @@ function CheckoutDrawer(props: {
   );
 }
 
-// Часы выдачи для выбора времени (часы работы магазинов пока не заведены).
-const PICKUP_OPEN_H = 8;
-const PICKUP_CLOSE_H = 22;
+type WeekHours = NonNullable<Catalog['store']['hours']>;
+const DEFAULT_WEEK: WeekHours = Array.from({ length: 7 }, () => ({ open: '08:00', close: '22:00' }));
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const localStamp = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-
-/** Длина слота получения, мин (окна по 2 часа: 8–10, 10–12 … 20–22). */
+const toMin = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
+/** Часы работы на дату (пн — 0). */
+const dayHours = (week: WeekHours, d: Date) => week[(d.getDay() + 6) % 7];
+/** Магазин работает в этот момент (время покупателя — в Казахстане совпадает с магазином). */
+function openAt(week: WeekHours, d: Date): boolean {
+  const h = dayHours(week, d);
+  const m = d.getHours() * 60 + d.getMinutes();
+  return !!h && m >= toMin(h.open) && m < toMin(h.close);
+}
+/** Длина слота получения, мин (окна по 2 часа от открытия магазина). */
 const SLOT_MIN = 120;
 
 /**
- * Время получения слотами: «Как можно скорее», затем день кнопками и окна по 2 часа «18:00–20:00».
- * Значение — начало окна (локальное 'YYYY-MM-DDTHH:MM'); окна, которые начинаются раньше earliest, не предлагаем.
+ * Время получения слотами по часам работы магазина: «Как можно скорее» (если магазин успевает в рабочее время),
+ * затем ближайшие 3 рабочих дня и окна по 2 часа от открытия до закрытия. Значение — начало окна ('YYYY-MM-DDTHH:MM').
  */
-function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: string; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
+function PickupTimePicker({ earliest, hours, value, onChange, asapNote }: { earliest: string; hours?: WeekHours; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
   const t = useT();
   const lang = useLang();
+  const week = hours?.length === 7 ? hours : DEFAULT_WEEK;
   const first = new Date(earliest);
-  const days = [0, 1, 2].map((i) => { const d = new Date(first); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; });
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const [day, setDay] = useState(() => (value ? Math.max(0, days.findIndex((d) => value.startsWith(localStamp(d).slice(0, 10)))) : 0));
-  const slots: Date[] = [];
-  for (let h = PICKUP_OPEN_H; h + SLOT_MIN / 60 <= PICKUP_CLOSE_H; h += SLOT_MIN / 60) {
-    const d = new Date(days[day]); d.setHours(h, 0, 0, 0);
-    if (d >= first) slots.push(d);
+  const asapOk = openAt(week, first);
+  const slotsOf = (day: Date): { from: Date; to: Date }[] => {
+    const h = dayHours(week, day);
+    if (!h) return [];
+    const out: { from: Date; to: Date }[] = [];
+    for (let m = toMin(h.open); m < toMin(h.close); m += SLOT_MIN) {
+      const from = new Date(day); from.setHours(0, m, 0, 0);
+      const to = new Date(day); to.setHours(0, Math.min(m + SLOT_MIN, toMin(h.close)), 0, 0);
+      if (from >= first) out.push({ from, to });
+    }
+    return out;
+  };
+  // Ближайшие 3 дня, в которые есть свободные окна (выходные и прошедшее время пропускаем).
+  const days: { date: Date; slots: { from: Date; to: Date }[] }[] = [];
+  for (let i = 0; i < 14 && days.length < 3; i++) {
+    const d = new Date(first); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i);
+    const slots = slotsOf(d);
+    if (slots.length) days.push({ date: d, slots });
   }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const [day, setDay] = useState(() => (value ? Math.max(0, days.findIndex((d) => value.startsWith(localStamp(d.date).slice(0, 10)))) : 0));
+  // Магазин сейчас не успевает — «как можно скорее» недоступно, сразу предлагаем первое окно.
+  useEffect(() => { if (!asapOk && !value && days[0]) onChange(localStamp(days[0].slots[0].from)); });
   const dayLabel = (d: Date) => {
     const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
     return diff === 0 ? t.today : diff === 1 ? t.tomorrow : d.toLocaleDateString(LOCALES[lang], { weekday: 'short', day: 'numeric' });
@@ -989,29 +1012,32 @@ function PickupTimePicker({ earliest, value, onChange, asapNote }: { earliest: s
     borderRadius: 14, font: 'inherit', cursor: 'pointer', color: 'var(--ink)',
     border: sel ? '2px solid var(--carrot)' : '1px solid var(--line)', background: sel ? 'var(--carrot-50)' : 'var(--card)',
   });
+  const cur = days[Math.min(day, days.length - 1)];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <button type="button" onClick={() => onChange('')} style={{ ...on(!value), padding: '12px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 20 }}>⚡</span>
-        <span><span style={{ display: 'block', fontWeight: 800 }}>{t.asap}</span><span className="muted" style={{ fontSize: 13 }}>{asapNote(hhmm(first))}</span></span>
-      </button>
-      {/* Дни — вкладками, слоты выбранного дня — окнами по часу. */}
+      {asapOk ? (
+        <button type="button" onClick={() => onChange('')} style={{ ...on(!value), padding: '12px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>⚡</span>
+          <span><span style={{ display: 'block', fontWeight: 800 }}>{t.asap}</span><span className="muted" style={{ fontSize: 13 }}>{asapNote(hhmm(first))}</span></span>
+        </button>
+      ) : null}
+      {/* Дни — вкладками, окна выбранного дня — по 2 часа. */}
       <div style={{ display: 'flex', background: '#F4F2F0', borderRadius: 12, padding: 4, gap: 4 }}>
         {days.map((d, i) => (
           <button key={i} type="button" onClick={() => setDay(i)}
             style={{ flex: 1, height: 38, border: 'none', borderRadius: 9, font: 'inherit', fontWeight: 700, fontSize: 14, cursor: 'pointer',
               background: day === i ? 'var(--card)' : 'transparent', boxShadow: day === i ? '0 1px 3px rgba(0,0,0,.08)' : 'none', color: 'var(--ink)' }}>
-            {dayLabel(d)}
+            {dayLabel(d.date)}
           </button>
         ))}
       </div>
-      {slots.length ? (
+      {cur ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, maxHeight: 232, overflowY: 'auto' }}>
-          {slots.map((d) => {
-            const v = localStamp(d);
+          {cur.slots.map(({ from, to }) => {
+            const v = localStamp(from);
             return (
               <button key={v} type="button" onClick={() => onChange(v)} style={{ ...on(value === v), height: 48, fontWeight: 800, fontSize: 15 }}>
-                {hhmm(d)} – {hhmm(new Date(d.getTime() + SLOT_MIN * 60000))}
+                {hhmm(from)} – {hhmm(to)}
               </button>
             );
           })}

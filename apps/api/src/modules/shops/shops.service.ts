@@ -1,3 +1,4 @@
+import { hoursOf } from '../../common/hours';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
@@ -17,12 +18,12 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true },
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
-    const { geom, photoAt, ...rest } = store;
+    const { geom, photoAt, hours, ...rest } = store;
     // Фото: /api/shops/<slug>/photo?v=<версия> — версия сбрасывает кэш после замены.
-    const storeInfo = { ...rest, photoVersion: photoAt ? photoAt.getTime() : null };
+    const storeInfo = { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null };
     const coords = (geom as any)?.coordinates as [number, number] | undefined; // GeoJSON: [lng, lat]
     const location = coords ? { lat: coords[1], lng: coords[0] } : null;
 

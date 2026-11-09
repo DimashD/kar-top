@@ -5,6 +5,7 @@ import { StoreAccess } from '../../common/auth/store-access.service';
 import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, ZonesDto } from './dto';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { circlePolygon, ZoneShape } from '../../common/zones';
+import { hoursOf, parseHours, WeekHours } from '../../common/hours';
 
 // Роли, которым разрешено управлять ассортиментом.
 const CATALOG_ROLES: Role[] = [Role.OWNER, Role.MANAGER];
@@ -30,11 +31,11 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
-    const { photoAt, ...rest } = s;
-    return { ...rest, photoVersion: photoAt ? photoAt.getTime() : null };
+    const { photoAt, hours, ...rest } = s;
+    return { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null };
   }
 
   /** Фото магазина: JPEG/PNG/WebP в base64, до 2 МБ. null — убрать фото. Только OWNER/MANAGER. */
@@ -63,9 +64,14 @@ export class MerchantService {
       const delivery = dto.deliveryEnabled ?? cur?.deliveryEnabled;
       if (!pickup && !delivery) throw new BadRequestException('Оставьте включённым хотя бы один способ: доставку или самовывоз');
     }
-    const s = await this.prisma.store.update({
+    let hours: WeekHours | undefined;
+    if (dto.hours !== undefined) {
+      try { hours = parseHours(dto.hours); } catch (e) { throw new BadRequestException((e as Error).message); }
+    }
+    await this.prisma.store.update({
       where: { id: storeId },
       data: {
+        ...(hours ? { hours } : {}),
         ...(dto.pickupEnabled != null ? { pickupEnabled: dto.pickupEnabled } : {}),
         ...(dto.deliveryEnabled != null ? { deliveryEnabled: dto.deliveryEnabled } : {}),
         ...(dto.pickupLeadMinutes != null ? { pickupLeadMinutes: dto.pickupLeadMinutes } : {}),
@@ -73,9 +79,9 @@ export class MerchantService {
         ...(dto.courierHandoverMinutes != null ? { courierHandoverMinutes: dto.courierHandoverMinutes } : {}),
         ...(dto.ownDeliveryMinutes != null ? { ownDeliveryMinutes: dto.ownDeliveryMinutes } : {}),
       },
-      select: { id: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true },
     });
-    return s;
+    // Тот же ответ, что и при чтении (с фото и часами) — приложение заменяет им свои настройки.
+    return this.getSettings(storeId, userId);
   }
 
   /** Точка магазина и зоны доставки — для экрана «Зона доставки». */

@@ -137,6 +137,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  /// Часы работы: по дню — выходной или «открытие–закрытие»; время выбирается системными часами.
+  Widget _hoursCard(S s, StoreSettings st) {
+    final week = st.hours.length == 7 ? st.hours : List<Map<String, String>?>.generate(7, (_) => {'open': '08:00', 'close': '22:00'});
+    Future<void> save(List<Map<String, String>?> next) => _save({'hours': next});
+    Future<void> pick(int day, String field) async {
+      final cur = week[day]![field]!;
+      final t = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(hour: int.parse(cur.substring(0, 2)) % 24, minute: int.parse(cur.substring(3))),
+        builder: (ctx, child) => MediaQuery(data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true), child: child!),
+      );
+      if (t == null) return;
+      final v = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      // 00:00 как закрытие — «до полуночи».
+      final value = field == 'close' && v == '00:00' ? '24:00' : v;
+      final next = [...week];
+      next[day] = {...next[day]!, field: value};
+      await save(next);
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.workHoursHint, style: const TextStyle(color: AppColors.ink60)),
+            const SizedBox(height: 4),
+            for (var i = 0; i < 7; i++)
+              Row(children: [
+                SizedBox(width: 36, child: Text(s.weekdays[i], style: const TextStyle(fontWeight: FontWeight.w800))),
+                Switch(
+                  value: week[i] != null,
+                  onChanged: (on) {
+                    final next = [...week];
+                    next[i] = on ? {'open': '08:00', 'close': '22:00'} : null;
+                    save(next);
+                  },
+                ),
+                if (week[i] == null)
+                  Text(s.dayOff, style: const TextStyle(color: AppColors.ink40))
+                else ...[
+                  TextButton(onPressed: () => pick(i, 'open'), child: Text(week[i]!['open']!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                  const Text('—'),
+                  TextButton(onPressed: () => pick(i, 'close'), child: Text(week[i]!['close']!, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                ],
+              ]),
+            TextButton.icon(
+              onPressed: week[0] == null ? null : () => save(List.generate(7, (_) => {...week[0]!})),
+              icon: const Icon(Icons.copy_all, size: 18),
+              label: Text(s.sameForAll),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _toggleLock(bool on) async {
     if (!on) {
       await AppLock.disable();
@@ -245,6 +303,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 20),
         ],
+        Text(s.workHours, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        const SizedBox(height: 8),
+        _hoursCard(s, st),
+        const SizedBox(height: 20),
         Text(s.deliveryAndPickup, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 8),
         // Самовывоз

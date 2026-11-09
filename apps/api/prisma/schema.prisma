@@ -195,6 +195,8 @@ model Store {
   courierHandoverMinutes Int @default(30)
   // Своя доставка магазина: средняя продолжительность от оформления до вручения (минуты).
   ownDeliveryMinutes Int @default(60)
+  // Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' по Алматы или null — выходной. Пусто — 08:00–22:00.
+  hours Json?
   rating    Float    @default(0)
   reviewCount Int    @default(0)
   settings  Json?

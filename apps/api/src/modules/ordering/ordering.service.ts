@@ -6,6 +6,7 @@ import { piiVisibleToMerchant, canTransition } from './order-state';
 import { weightRange } from './weight-tolerance';
 import { allowedPayMethods } from './payment-rules';
 import { deliveryFee, findZone } from '../../common/zones';
+import { hoursOf, isOpenAt } from '../../common/hours';
 
 @Injectable()
 export class OrderingService {
@@ -27,7 +28,7 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, zones: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
@@ -53,6 +54,9 @@ export class OrderingService {
           ? `Самовывоз возможен не ранее чем через ${leadMin} мин после оформления`
           : `Доставка возможна не ранее чем через ${leadMin} мин после оформления`);
       }
+      if (!isOpenAt(hoursOf(store.hours), pickupAt)) throw new BadRequestException('Магазин в это время не работает — выберите другое время');
+    } else if (!isOpenAt(hoursOf(store.hours), new Date(Date.now() + leadMin * 60_000))) {
+      throw new BadRequestException('Магазин сейчас не успеет в рабочее время — выберите время получения');
     }
 
     const ids = dto.items.map((i) => i.storeProductId);
