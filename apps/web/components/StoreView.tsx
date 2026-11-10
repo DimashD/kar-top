@@ -114,7 +114,7 @@ export async function accessToken(force = false): Promise<string | null> {
  * Подтверждение номера — шторка после «Оформить заказ»: номер → код из SMS (6 цифр, автоподстановка,
  * отправка сама при последней цифре, повтор через 60 с). После кода заказ оформляется сразу.
  */
-export function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void }) {
+export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void; hint?: string }) {
   const t = useT();
   const [phone, setPhone] = useState(initialPhone);
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -172,7 +172,7 @@ export function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: str
         <div style={{ fontSize: 21, fontWeight: 800 }}>{step === 'phone' ? t.confirmPhoneTitle : t.enterCode}</div>
         {step === 'phone' ? (
           <>
-            <div className="muted" style={{ fontSize: 15 }}>{t.confirmPhoneHint}</div>
+            <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={send} style={{ height: 54, fontSize: 16 }}>
               {busy ? t.sendingCode : t.getCode}
