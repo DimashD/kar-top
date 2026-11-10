@@ -38,7 +38,24 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
       - run: flutter pub get
-      # Без key.properties сборка подписывается debug-ключом — для тестового .apk это нормально.
+      # Тестовую сборку подписываем тем же постоянным ключом, что и боевую: иначе отпечаток подписи
+      # каждый раз новый и Android не подтверждает ссылки (assetlinks.json) — они открываются в браузере.
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
+          echo "Отпечаток подписи (для assetlinks.json):"
+          keytool -list -v -keystore android/kartop.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | grep 'SHA256:'
       - run: >-
           flutter build apk --release --flavor staging
           --build-number=${{ github.run_number }}

@@ -34,3 +34,6 @@ artifacts/
 
 # Ключи сервис-аккаунтов Firebase — только в секретах GitHub
 *firebase-adminsdk*.json
+
+# Скачанные тестовые сборки
+build-apk/
