@@ -6,6 +6,9 @@ import { SmsChannel } from '../identity/channels/sms.channel';
 
 type Recipient = { userId: string; role: 'customer' | 'merchant' };
 
+/** Событие старше этого не отправляем (мс). */
+const STALE_MS = 60 * 60_000;
+
 @Injectable()
 export class NotificationDispatcher {
   private readonly log = new Logger(NotificationDispatcher.name);
@@ -25,6 +28,11 @@ export class NotificationDispatcher {
     });
     let sent = 0;
     for (const ev of events) {
+      // Устаревшее событие (старше часа — например, после простоя) закрываем без отправки: пуш о давнем заказе только запутает.
+      if (Date.now() - ev.createdAt.getTime() > STALE_MS) {
+        await this.prisma.outboxEvent.update({ where: { id: ev.id }, data: { processedAt: new Date() } });
+        continue;
+      }
       try {
         sent += await this.handle(ev);
         await this.prisma.outboxEvent.update({ where: { id: ev.id }, data: { processedAt: new Date(), attempts: { increment: 1 } } });

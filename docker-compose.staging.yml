@@ -43,6 +43,8 @@ services:
       KASPI_MERCHANT_ID: ${KASPI_MERCHANT_ID:-}
       KASPI_API_KEY: ${KASPI_API_KEY:-}
       FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      # Фоновые задачи: отправка уведомлений из очереди (каждые 5 с) и ежемесячные счета.
+      SCHEDULER_ENABLED: "1"
     command: sh -c "npx prisma migrate deploy && node dist/main.js"
     depends_on: [db, redis]
     networks: [default, edge]
