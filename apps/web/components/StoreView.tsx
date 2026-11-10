@@ -12,7 +12,7 @@ import { Lang, LOCALES, localized } from '../lib/i18n';
 import { findProducts, ListMatch, parseList, qtyFor, SearchProduct } from '../lib/smart-list';
 import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
-import { LangSwitcher, useLang, useT } from './LangProvider';
+import { useLang, useT } from './LangProvider';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import MapPicker from './MapPicker';
 import AddressInput from './AddressInput';
@@ -81,13 +81,13 @@ async function registerAppPush() {
   const push = (window as any).kartopPushToken as string | undefined;
   const s = readSession();
   if (!push || !s) return;
-  const mark = `${push}|${s.phone}`;
+  const mark = `${push}|${s.phone}|customer`;
   try { if (localStorage.getItem('kartop:push') === mark) return; } catch { /* ок */ }
   const token = await accessToken();
   if (!token) return;
   const r = await fetch(`${CLIENT_API}/devices/push-token`, {
     method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ platform: 'android', token: push }),
+    body: JSON.stringify({ platform: 'android', token: push, app: 'customer' }),
   }).catch(() => null);
   if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
 }
@@ -114,7 +114,7 @@ export async function accessToken(force = false): Promise<string | null> {
  * Подтверждение номера — шторка после «Оформить заказ»: номер → код из SMS (6 цифр, автоподстановка,
  * отправка сама при последней цифре, повтор через 60 с). После кода заказ оформляется сразу.
  */
-export function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void }) {
+export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void; hint?: string }) {
   const t = useT();
   const [phone, setPhone] = useState(initialPhone);
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -172,7 +172,7 @@ export function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: str
         <div style={{ fontSize: 21, fontWeight: 800 }}>{step === 'phone' ? t.confirmPhoneTitle : t.enterCode}</div>
         {step === 'phone' ? (
           <>
-            <div className="muted" style={{ fontSize: 15 }}>{t.confirmPhoneHint}</div>
+            <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={send} style={{ height: 54, fontSize: 16 }}>
               {busy ? t.sendingCode : t.getCode}
@@ -239,6 +239,23 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   // Товары с подкатегорией: поиск «яблоки» находит сорта «Фуджи», «Апорт».
   const all: SearchProduct[] = useMemo(() => catalog.categories.flatMap((c) => c.items.map((p) => ({ ...p, category: c.category }))), [catalog]);
+  // Корзина переживает переходы и перезагрузку (храним id → количество; товары берём из свежего каталога).
+  const cartKey = `kartop:cart:${slug}`;
+  const restored = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(cartKey) ?? '{}') as Record<string, number>;
+      const byId = new Map(all.map((p) => [p.id, p]));
+      const next: Record<string, Line> = {};
+      for (const [id, qty] of Object.entries(saved)) { const p = byId.get(id); if (p && qty > 0) next[id] = { product: p, qty }; }
+      if (Object.keys(next).length) setCart(next);
+    } catch { /* нет хранилища — корзина только на время страницы */ }
+    restored.current = true;
+  }, [cartKey, all]);
+  useEffect(() => {
+    if (!restored.current) return;
+    try { localStorage.setItem(cartKey, JSON.stringify(Object.fromEntries(Object.entries(cart).map(([id, l]) => [id, l.qty])))); } catch { /* ок */ }
+  }, [cart, cartKey]);
   const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
   // Пиктограмма и фон каждого товара — по его названию, подкатегории и группе (русские названия каталога).
   const looks = useMemo(() => {
@@ -430,7 +447,6 @@ function Header({ name, rating, reviewCount, address, slug, photo }: { name: str
             ★ {rating.toFixed(1)}{reviewCount ? ` · ${t.reviewsShort(reviewCount)}` : ''}{address ? ` · ${address}` : ''}
           </div>
         </Link>
-        <LangSwitcher />
       </div>
     </header>
   );
@@ -845,7 +861,7 @@ function CheckoutDrawer(props: {
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg)', width: '100%', maxWidth: 'var(--maxw)', borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflow: 'auto' }}>
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg)' }}>
           <h2 style={{ fontSize: 20 }}>{t.cart}</h2>

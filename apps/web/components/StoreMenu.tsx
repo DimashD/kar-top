@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
-import { useT } from './LangProvider';
+import { LangSwitcher, useT } from './LangProvider';
 
 /** Меню сервиса Kartop (☰) — общее для всех страниц: главная, связь с Kartop, приложение, для магазинов, документы. */
 export default function StoreMenu() {
@@ -42,6 +42,10 @@ export default function StoreMenu() {
             <Link href="/orders" style={item}>🧾 {t.myOrders}</Link>
             <button type="button" style={item} onClick={() => { setOpen(false); window.dispatchEvent(new Event('kartop-feedback')); }}>💬 {t.feedbackTitle}</button>
             {!inApp ? <a href={ANDROID_URL} target="_blank" rel="noreferrer" style={item}>📲 {t.downloadApp}</a> : null}
+            <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="muted" style={{ fontSize: 14 }}>🌐</span>
+              <LangSwitcher />
+            </div>
             <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0' }} />
             <Link href="/partner" style={small}>{t.connectShop}</Link>
             <Link href="/terms" style={small}>{t.termsOfUse}</Link>

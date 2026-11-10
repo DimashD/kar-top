@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLang, useT } from './LangProvider';
 
 // Карта — Leaflet с CDN и тайлы OpenStreetMap: без новых зависимостей в сборке.
@@ -87,8 +88,9 @@ export default function MapPicker({ initial, fallback, onPick, onClose }: {
     onPick(point, address);
   }
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+  // Окно карты — прямо в <body>: внутри корзины его перекрывали нижнее меню и тестовая полоса.
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'var(--bg)', display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div style={{ flex: 1, fontWeight: 800 }}>{t.mapHint}</div>
         <button className="btn btn-ghost" onClick={onClose} style={{ padding: '8px 12px' }}>{t.close}</button>
@@ -103,11 +105,12 @@ export default function MapPicker({ initial, fallback, onPick, onClose }: {
         </svg>
         {!ready && !err ? <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="muted">…</div> : null}
       </div>
-      <div style={{ padding: '12px 16px 18px', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '12px 16px calc(18px + env(safe-area-inset-bottom))', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {err ? <div style={{ color: 'var(--sale)', fontSize: 13 }}>{err}</div> : null}
         <button className="btn btn-ghost btn-block" onClick={locate} disabled={busy || !ready} style={{ height: 46, justifyContent: 'center' }}>📍 {t.myLocation}</button>
         <button className="btn btn-primary btn-block" onClick={pick} disabled={busy || !ready} style={{ height: 52, fontSize: 16 }}>{busy ? t.locating : t.deliverHere}</button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

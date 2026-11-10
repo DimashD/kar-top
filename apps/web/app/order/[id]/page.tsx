@@ -3,7 +3,6 @@ import { fetchTrack, OrderStatus } from '../../../lib/api';
 import { grams, tenge } from '../../../lib/format';
 import { Dict, LOCALES, localized } from '../../../lib/i18n';
 import { getDict, getLang } from '../../../lib/i18n-server';
-import { LangSwitcher } from '../../../components/LangProvider';
 import ReviewForm from '../../../components/ReviewForm';
 import AppBanner from '../../../components/AppBanner';
 import FeedbackButton from '../../../components/FeedbackButton';
@@ -64,7 +63,6 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
             <div style={{ fontWeight: 800, fontSize: 17 }}>{t.orderNo(o.number)}</div>
             <div className="muted" style={{ fontSize: 13 }}>{o.store.name}</div>
           </div>
-          <LangSwitcher />
         </div>
       </header>
 

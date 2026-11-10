@@ -6,7 +6,7 @@ import { CLIENT_API } from '../lib/api';
 import { tenge } from '../lib/format';
 import { LOCALES } from '../lib/i18n';
 import { formatKzPhone } from '../lib/phone';
-import { LangSwitcher, useLang, useT } from './LangProvider';
+import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
@@ -72,7 +72,6 @@ export default function MyOrders() {
         <div className="container" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <StoreMenu />
           <h1 style={{ fontSize: 20, margin: 0, flex: 1 }}>{t.myOrders}</h1>
-          <LangSwitcher />
         </div>
       </header>
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gap: 12 }}>
@@ -99,7 +98,7 @@ export default function MyOrders() {
       </div>
       {auth ? (
         <AuthSheet initialPhone={readSession()?.phone ? formatKzPhone(readSession()!.phone) : '+7'}
-          onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
+          hint={t.loginToSeeOrders} onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
       ) : null}
       <BottomNav />
     </main>

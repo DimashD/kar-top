@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { LOCALES } from '../lib/i18n';
 import { formatKzPhone } from '../lib/phone';
-import { LangSwitcher, useLang, useT } from './LangProvider';
+import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
@@ -24,9 +24,9 @@ export default function Notifications() {
     const token = await accessToken();
     if (!token) { setNeedLogin(true); setItems([]); return; }
     setNeedLogin(false);
-    const r = await fetch(`${CLIENT_API}/me/notifications`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+    const r = await fetch(`${CLIENT_API}/me/notifications?app=customer`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
     setItems(r?.ok ? (await r.json()).items : []);
-    fetch(`${CLIENT_API}/me/notifications/read`, { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
+    fetch(`${CLIENT_API}/me/notifications/read?app=customer`, { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -36,7 +36,6 @@ export default function Notifications() {
         <div className="container" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <StoreMenu />
           <h1 style={{ fontSize: 20, margin: 0, flex: 1 }}>{t.navNotifications}</h1>
-          <LangSwitcher />
         </div>
       </header>
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gap: 10 }}>
@@ -67,7 +66,7 @@ export default function Notifications() {
       </div>
       {auth ? (
         <AuthSheet initialPhone={readSession()?.phone ? formatKzPhone(readSession()!.phone) : '+7'}
-          onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
+          hint={t.loginToSeeOrders} onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
       ) : null}
       <BottomNav />
     </main>

@@ -1,0 +1,2 @@
+ALTER TABLE "PushToken" ADD COLUMN "app" TEXT NOT NULL DEFAULT 'merchant';
+ALTER TABLE "Notification" ADD COLUMN "app" TEXT NOT NULL DEFAULT 'merchant';

@@ -26,7 +26,7 @@ export default function BottomNav() {
   return (
     <>
       <div style={{ height: BOTTOM_NAV_H }} />
-      <nav style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 15, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div style={{ display: 'flex', maxWidth: 560, margin: '0 auto', height: BOTTOM_NAV_H }}>
           {tab('/', '🏪', t.navStores, !path.startsWith('/orders') && !path.startsWith('/order/') && !path.startsWith('/notifications'))}
           {tab('/orders', '🧾', t.navOrders, path.startsWith('/orders') || path.startsWith('/order/'))}
@@ -52,7 +52,7 @@ function useUnread(): number {
       if (!readSession() || document.visibilityState !== 'visible') return;
       const token = await accessToken();
       if (!token) return;
-      const r = await fetch(`${CLIENT_API}/me/notifications`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+      const r = await fetch(`${CLIENT_API}/me/notifications?app=customer`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
       if (alive && r?.ok) setN((await r.json()).unread ?? 0);
     };
     load();

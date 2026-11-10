@@ -103,6 +103,9 @@ class _DeliveryZonesScreenState extends State<DeliveryZonesScreen> {
         'zones': _zones.map((z) => z.toJson()).toList(),
       });
       messenger.showSnackBar(SnackBar(content: Text(s.savedLabel)));
+      // Сохранили — возвращаемся в настройки.
+      if (mounted) Navigator.of(context).pop(true);
+      return;
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
