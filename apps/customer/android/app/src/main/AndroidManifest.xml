@@ -25,8 +25,9 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Ссылки магазинов (kar-top.kz/<магазин>) и заказов открываются в приложении. -->
-            <intent-filter>
+            <!-- Ссылки магазинов (kar-top.kz/<магазин>) и заказов открываются в приложении.
+                 autoVerify: Android сверяет подпись приложения с https://<домен>/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
