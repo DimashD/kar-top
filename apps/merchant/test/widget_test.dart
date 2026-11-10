@@ -21,7 +21,8 @@ void main() {
   testWidgets('экран входа отображается', (WidgetTester tester) async {
     await tester.pumpWidget(_app(Lang()));
     expect(find.text('Kartop'), findsOneWidget);
-    expect(find.text('Получить код'), findsOneWidget);
+    // Первый экран — вход по паролю; ссылка на вход по коду (первый вход / забыли пароль).
+    expect(find.text(S.forCode('ru').signInWithCode), findsOneWidget);
   });
 
   testWidgets('переключение языка меняет тексты', (WidgetTester tester) async {
@@ -30,13 +31,13 @@ void main() {
     await tester.pumpWidget(_app(lang));
     await lang.set('kk');
     await tester.pump();
-    expect(find.text('Код алу'), findsOneWidget);
+    expect(find.text(S.forCode('kk').signInWithCode), findsOneWidget);
     await lang.set('uz');
     await tester.pump();
-    expect(find.text('Kod olish'), findsOneWidget);
+    expect(find.text(S.forCode('uz').signInWithCode), findsOneWidget);
     await lang.set('tg');
     await tester.pump();
-    expect(find.text('Гирифтани код'), findsOneWidget);
+    expect(find.text(S.forCode('tg').signInWithCode), findsOneWidget);
   });
 
   test('у каждого языка заданы все статусы заказа', () {

@@ -100,6 +100,18 @@ class Api {
     return (r['accessToken'] as String, r['refreshToken'] as String?);
   }
 
+  /// Вход по номеру и паролю: (access, refresh).
+  Future<(String, String?)> loginPassword(String phone, String password) async {
+    final r = await _post('/auth/password/login', {'phone': phone, 'password': password}) as Map<String, dynamic>;
+    return (r['accessToken'] as String, r['refreshToken'] as String?);
+  }
+
+  /// Придумать/сменить пароль (уже вошли).
+  Future<void> setPassword(String password) => _post('/me/password', {'password': password});
+
+  /// Есть ли у пользователя пароль.
+  Future<bool> hasPassword() async => ((await _get('/me')) as Map<String, dynamic>)['hasPassword'] == true;
+
   // --- Stores ---
   Future<List<StoreSummary>> myStores() async {
     final r = await _get('/merchant/stores') as List;

@@ -42,6 +42,18 @@ export class OtpService {
     return digits;
   }
 
+  /** Счётчик попыток (вход по паролю): false — лимит исчерпан. */
+  async attempt(key: string, max: number, ttlSec: number): Promise<boolean> {
+    const k = `rl:${key}`;
+    const n = await this.redis.incr(k);
+    if (n === 1) await this.redis.expire(k, ttlSec);
+    return n <= max;
+  }
+
+  async resetAttempts(key: string) {
+    await this.redis.del(`rl:${key}`);
+  }
+
   private async rateLimit(phone: string) {
     const k15 = `otp:rl:15m:${phone}`;
     const kDay = `otp:rl:day:${phone}`;
@@ -59,7 +71,7 @@ export class OtpService {
    * `email` можно передать для привязки email↔телефон; тогда код пойдёт на почту (дёшево).
    * Приоритет каналов (docs/20 §3): email → Telegram → WhatsApp → SMS.
    */
-  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<void> {
+  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<OtpChannelName | 'test' | null> {
     const phone = this.normalize(rawPhone);
     const fixed = this.testOtpCode();
     // Лимит защищает от SMS-pumping; в тестовой среде с фиксированным кодом SMS не отправляются — лимит не нужен.
@@ -76,7 +88,7 @@ export class OtpService {
     if (fixed) {
       // Тестовая среда: никуда не отправляем (не тратим SMS), код фиксированный.
       this.log.log('OTP (staging): используется фиксированный тестовый код');
-      return;
+      return 'test';
     }
 
     // Только УЖЕ ПОДТВЕРЖДЁННЫЙ (спаренный) email — код пойдёт на почту. Непроверенный email не используется.
@@ -84,20 +96,21 @@ export class OtpService {
 
     // Порядок каналов: email (если есть) → предпочитаемый (telegram) → whatsapp → sms.
     const order: OtpChannelName[] = [...new Set(
-      [emailTarget ? 'email' : null, preferred, 'whatsapp', 'sms'].filter(Boolean) as OtpChannelName[],
+      [emailTarget ? 'email' : null, preferred, 'sms', 'whatsapp'].filter(Boolean) as OtpChannelName[],
     )];
     for (const name of order) {
       const to = name === 'email' ? emailTarget! : rawPhone;
       try {
         if (await this.channels[name].send(to, code)) {
           this.log.log(`OTP отправлен каналом ${name}`);
-          return;
+          return name;
         }
       } catch (e) {
         this.log.warn(`Канал ${name} упал: ${(e as Error).message}`);
       }
     }
     this.log.error('Ни один канал не доставил код');
+    return null;
   }
 
   /**
