@@ -16,6 +16,12 @@ export class OrderingController {
     return this.ordering.createForUser(dto, user.userId);
   }
 
+  // «Мои заказы» покупателя (по access-токену): свежие сверху.
+  @Get('me/orders')
+  myOrders(@CurrentUser() user: RequestUser) {
+    return this.ordering.myOrders(user.userId);
+  }
+
   // Публичный трекинг заказа покупателем (по id-ссылке). Показывает код получения до закрытия.
   @Public()
   @Get('orders/:id/track')

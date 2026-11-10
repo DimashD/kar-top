@@ -2,6 +2,7 @@
 
 import FeedbackButton from './FeedbackButton';
 import StoreMenu from './StoreMenu';
+import BottomNav, { BOTTOM_NAV_H } from './BottomNav';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Catalog, CatalogProduct, CLIENT_API } from '../lib/api';
@@ -55,9 +56,9 @@ type Look = { pic: string | null; tint: string; initials: string };
 
 // Вход покупателя по SMS: access-токен (15 мин) + refresh (30 дней, с ротацией).
 // Код спрашиваем только при первом заказе с устройства; дальше продлеваем вход без SMS.
-type Session = { access: string; refresh: string; phone: string; accessExp: number };
+export type Session = { access: string; refresh: string; phone: string; accessExp: number };
 const SESSION_KEY = 'kartop:session';
-function readSession(): Session | null {
+export function readSession(): Session | null {
   try {
     return JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null') as Session | null;
   } catch {
@@ -91,7 +92,7 @@ async function registerAppPush() {
   if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
 }
 /** Действующий access-токен: из памяти или продлённый по refresh. null — нужно подтвердить номер. */
-async function accessToken(force = false): Promise<string | null> {
+export async function accessToken(force = false): Promise<string | null> {
   const s = readSession();
   if (!s) return null;
   if (!force && s.accessExp > Date.now()) return s.access;
@@ -113,7 +114,7 @@ async function accessToken(force = false): Promise<string | null> {
  * Подтверждение номера — шторка после «Оформить заказ»: номер → код из SMS (6 цифр, автоподстановка,
  * отправка сама при последней цифре, повтор через 60 с). После кода заказ оформляется сразу.
  */
-function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void }) {
+export function AuthSheet({ initialPhone, onClose, onDone }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void }) {
   const t = useT();
   const [phone, setPhone] = useState(initialPhone);
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -359,7 +360,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
       {count > 0 && !open && (
         <button className="btn btn-primary" onClick={() => setOpen(true)}
-          style={{ position: 'fixed', left: 16, right: 16, bottom: 16, maxWidth: 'calc(var(--maxw) - 40px)', margin: '0 auto', height: 56, boxShadow: 'var(--shadow)', fontSize: 16 }}>
+          style={{ position: 'fixed', left: 16, right: 16, bottom: `calc(${BOTTOM_NAV_H + 12}px + env(safe-area-inset-bottom))`, zIndex: 21, maxWidth: 'calc(var(--maxw) - 40px)', margin: '0 auto', height: 56, boxShadow: 'var(--shadow)', fontSize: 16 }}>
           <span>{t.cartButton(count)}</span>
           <span style={{ marginLeft: 'auto' }}>{tenge(subtotal)}</span>
         </button>
@@ -387,6 +388,8 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
       {done && <OrderPlaced order={done} onClose={() => setDone(null)} />}
       <FeedbackButton storeSlug={slug} />
+      <div style={{ height: count > 0 ? 72 : 0 }} />
+      <BottomNav />
     </main>
   );
 }
