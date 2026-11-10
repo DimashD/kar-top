@@ -75,7 +75,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   /// Порядок в списке: новые всегда сверху, затем ждём клиента, в работе, готовы/в пути, выданы, отменены.
-  /// Внутри группы: новые и в работе — сначала самые старые (дольше всех ждут), остальные — сначала свежие.
+  /// Внутри группы — сначала самые свежие.
   static int _rank(String s) {
     if (s == 'PLACED') return 0;
     if (s == 'AWAITING_CUSTOMER') return 1;
@@ -88,8 +88,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
   static int _compare(OrderSummary a, OrderSummary b) {
     final r = _rank(a.status).compareTo(_rank(b.status));
     if (r != 0) return r;
-    final oldestFirst = _rank(a.status) <= 2;
-    return oldestFirst ? a.createdAt.compareTo(b.createdAt) : b.createdAt.compareTo(a.createdAt);
+    // Внутри группы статусов — свежие заказы сверху.
+    return b.createdAt.compareTo(a.createdAt);
   }
 
   @override

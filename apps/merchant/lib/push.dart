@@ -32,7 +32,9 @@ class PushService {
   Future<void> init() async {
     if (kIsWeb || _ready) return;
     try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      // Android: настройки из google-services.json своей сборки (у тестовой и боевой — разные приложения Firebase);
+      // iOS — из firebase_options.dart.
+      await Firebase.initializeApp(options: defaultTargetPlatform == TargetPlatform.iOS ? DefaultFirebaseOptions.currentPlatform : null);
       FirebaseMessaging.onBackgroundMessage(_bgHandler);
       await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
 
