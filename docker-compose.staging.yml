@@ -34,6 +34,12 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       # Фиксированный код входа для тестировщиков (работает ТОЛЬКО при APP_ENV=staging).
       TEST_OTP_CODE: ${TEST_OTP_CODE:-111111}
+      # Номера, которым и на тесте приходит настоящий код (через запятую): проверка Telegram/SMS/WhatsApp.
+      OTP_REAL_PHONES: ${OTP_REAL_PHONES:-}
+      TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
+      SMSC_LOGIN: ${SMSC_LOGIN:-}
+      SMSC_PASSWORD: ${SMSC_PASSWORD:-}
+      SMS_SENDER_NAME: ${SMS_SENDER_NAME:-}
       # Интеграции в тесте по умолчанию выключены (SMS/Kaspi — заглушки). Включать только sandbox-ключи.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-465}

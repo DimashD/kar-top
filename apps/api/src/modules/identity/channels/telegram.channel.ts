@@ -24,10 +24,14 @@ export class TelegramChannel implements OtpChannel {
     try {
       const res = await axios.post(
         'https://gatewayapi.telegram.org/sendVerificationMessage',
-        { phone_number: phone.replace(/\s/g, ''), code },
+        // ttl — сколько секунд код показывается действительным в Telegram (совпадает со сроком кода у нас).
+        { phone_number: phone.replace(/[^\d+]/g, ''), code, ttl: 300 },
         { headers: { Authorization: `Bearer ${token}` }, timeout: 8000 },
       );
-      return res.data?.ok === true;
+      if (res.data?.ok === true) return true;
+      // Например PHONE_NUMBER_NOT_FOUND — у номера нет Telegram: дальше пойдёт SMS.
+      this.log.warn(`Telegram Gateway: ${res.data?.error ?? 'не доставлено'}`);
+      return false;
     } catch (e) {
       this.log.warn(`Telegram Gateway недоступен: ${(e as Error).message}`);
       return false;
