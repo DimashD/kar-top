@@ -117,7 +117,9 @@ up_with "$NEW_API" "$NEW_WEB" "$NEW_VERSION"
 
 if wait_healthy "$NEW_VERSION"; then
   printf 'API_IMAGE=%s\nWEB_IMAGE=%s\nAPP_VERSION=%s\n' "$NEW_API" "$NEW_WEB" "$NEW_VERSION" > "$STATE_FILE"
-  docker image prune -af --filter "until=240h" >/dev/null 2>&1 || true
+  # Выкладок много (тест — десятки в день): неиспользуемые образы старше суток удаляем, иначе кончается диск.
+  docker image prune -af --filter "until=24h" >/dev/null 2>&1 || true
+  docker builder prune -af >/dev/null 2>&1 || true
   echo "Deploy OK: $ENV_NAME $NEW_VERSION"
   exit 0
 fi
