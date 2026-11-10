@@ -93,3 +93,21 @@ export async function fetchTrack(orderId: string): Promise<OrderTrack | null> {
     return null;
   }
 }
+
+/** Магазин в списке на главной. */
+export interface StoreCard {
+  slug: string; name: string; address: string | null; rating: number; reviewCount: number;
+  photoVersion: number | null; location: { lat: number; lng: number } | null;
+  deliveryEnabled: boolean; pickupEnabled: boolean;
+  hours: ({ open: string; close: string } | null)[];
+}
+
+/** SSR: активные магазины для главной. */
+export async function fetchStores(): Promise<StoreCard[]> {
+  try {
+    const r = await fetch(`${SERVER_API}/shops`, { next: { revalidate: 60 } });
+    return r.ok ? ((await r.json()) as StoreCard[]) : [];
+  } catch {
+    return [];
+  }
+}

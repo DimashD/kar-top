@@ -8,6 +8,20 @@ import { findZone } from '../../common/zones';
 export class ShopsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Активные магазины для главной: карточка, точка на карте и часы работы (чтобы показать «открыто/закрыто»). */
+  async list() {
+    const stores = await this.prisma.store.findMany({
+      where: { status: 'ACTIVE' },
+      orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
+      take: 500,
+      select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true },
+    });
+    return stores.map(({ geom, photoAt, hours, ...s }) => {
+      const c = (geom as any)?.coordinates as [number, number] | undefined;
+      return { ...s, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, location: c ? { lat: c[1], lng: c[0] } : null };
+    });
+  }
+
   /** Публичный каталог витрины: магазин + его товары, сгруппированные по категориям. */
   async photo(slug: string) {
     const s = await this.prisma.store.findFirst({ where: { slug, status: 'ACTIVE' }, select: { photo: true, photoType: true } });

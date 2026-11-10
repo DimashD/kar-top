@@ -7,6 +7,11 @@ import { Public } from '../../common/auth/public.decorator';
 export class ShopsController {
   constructor(private readonly shops: ShopsService) {}
 
+  @Get()
+  list() {
+    return this.shops.list();
+  }
+
   @Get(':slug/catalog')
   catalog(@Param('slug') slug: string) {
     return this.shops.catalog(slug);
