@@ -55,7 +55,12 @@ export class NotificationDispatcher {
 
     let sent = 0;
     for (const r of recipients) {
-      const msg = { title: tpl.title, body, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
+      // Сначала — в центр уведомлений (виден в приложении даже без пуша), счётчик непрочитанных — на иконку.
+      await this.prisma.notification.create({
+        data: { userId: r.userId, type: ev.type, refId: ev.aggregateId, title: tpl.title, body, url: r.role === 'customer' && url ? url : null },
+      });
+      const badge = await this.prisma.notification.count({ where: { userId: r.userId, readAt: null } });
+      const msg = { title: tpl.title, body, badge, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
       const tokens = await this.prisma.pushToken.findMany({ where: { userId: r.userId }, select: { platform: true, token: true } });
       let delivered = 0;
       for (const t of tokens) {

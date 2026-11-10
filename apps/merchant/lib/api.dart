@@ -73,6 +73,15 @@ class Api {
       StoreSettings.fromJson(await _patch('/merchant/stores/$storeId/settings', body) as Map<String, dynamic>);
 
   // --- Orders ---
+  /// Центр уведомлений: последние 50 и число непрочитанных.
+  Future<(int, List<AppNotification>)> notifications() async {
+    final r = await _get('/me/notifications') as Map<String, dynamic>;
+    final items = (r['items'] as List).map((e) => AppNotification.fromJson(e as Map<String, dynamic>)).toList();
+    return ((r['unread'] as num?)?.toInt() ?? 0, items);
+  }
+
+  Future<void> readNotifications() => _post('/me/notifications/read');
+
   Future<List<OrderSummary>> orders(String storeId, {String? status}) async {
     final q = status != null ? '?status=$status' : '';
     final r = await _get('/merchant/stores/$storeId/orders$q') as List;

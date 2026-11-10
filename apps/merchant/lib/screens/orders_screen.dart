@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
 import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
+import '../push.dart';
 import '../theme.dart';
 import 'order_detail_screen.dart';
 
@@ -44,10 +46,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
         _Filter.cancelled => s.filterCancelled,
       };
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _load();
+    // Пришёл пуш — сразу обновляем список; плюс тихое обновление раз в 30 с.
+    pushTick.addListener(_silentReload);
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _silentReload());
+  }
+
+  @override
+  void dispose() {
+    pushTick.removeListener(_silentReload);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _silentReload() {
+    if (mounted) setState(_load);
   }
 
   void _load() {
@@ -74,23 +92,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return AppColors.ink40;
   }
 
-  /// Порядок в списке: новые всегда сверху, затем ждём клиента, в работе, готовы/в пути, выданы, отменены.
-  /// Внутри группы — сначала самые свежие.
-  static int _rank(String s) {
-    if (s == 'PLACED') return 0;
-    if (s == 'AWAITING_CUSTOMER') return 1;
-    if (_inWork.contains(s)) return 2;
-    if (_ready.contains(s)) return 3;
-    if (_done.contains(s)) return 4;
-    return 5;
-  }
-
-  static int _compare(OrderSummary a, OrderSummary b) {
-    final r = _rank(a.status).compareTo(_rank(b.status));
-    if (r != 0) return r;
-    // Внутри группы статусов — свежие заказы сверху.
-    return b.createdAt.compareTo(a.createdAt);
-  }
+  /// Порядок в списке: строго по времени — свежие заказы сверху (статус видно по цветной метке и фильтрам).
+  static int _compare(OrderSummary a, OrderSummary b) => b.createdAt.compareTo(a.createdAt);
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +103,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       child: FutureBuilder<List<OrderSummary>>(
         future: _future,
         builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) {
+          if (snap.connectionState != ConnectionState.done && !snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {

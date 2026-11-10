@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { IsIn, IsString } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationDispatcher } from './dispatcher.service';
@@ -26,6 +26,23 @@ export class NotificationsController {
       create: { userId: user.userId, platform: dto.platform, token: dto.token },
     });
     return { registered: true };
+  }
+
+  /** Центр уведомлений: последние 50 и число непрочитанных. */
+  @Get('me/notifications')
+  async mine(@CurrentUser() user: RequestUser) {
+    const [items, unread] = await Promise.all([
+      this.prisma.notification.findMany({ where: { userId: user.userId }, orderBy: { createdAt: 'desc' }, take: 50 }),
+      this.prisma.notification.count({ where: { userId: user.userId, readAt: null } }),
+    ]);
+    return { unread, items };
+  }
+
+  /** Отметить все уведомления прочитанными (открыли центр уведомлений). */
+  @Post('me/notifications/read')
+  async readAll(@CurrentUser() user: RequestUser) {
+    await this.prisma.notification.updateMany({ where: { userId: user.userId, readAt: null }, data: { readAt: new Date() } });
+    return { unread: 0 };
   }
 
   /** Прогон диспетчера outbox (позже — из планировщика/воркера каждые N секунд). */

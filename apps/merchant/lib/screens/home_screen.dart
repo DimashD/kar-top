@@ -7,6 +7,7 @@ import '../widgets/share_store.dart';
 import 'orders_screen.dart';
 import 'catalog_screen.dart';
 import 'settings_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(store?.name ?? s.store),
         actions: [
+          const NotificationBell(),
           if (store != null)
             IconButton(
               onPressed: () => shareStore(context, store),
