@@ -36,8 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _busy = true; _error = null; });
     final session = context.read<Session>();
     try {
-      final token = await session.api.verifyOtp(kzPhoneE164(_phone.text), _code.text.trim());
-      await session.setToken(token);
+      final (token, refresh) = await session.api.verifyOtp(kzPhoneE164(_phone.text), _code.text.trim());
+      await session.setToken(token, refresh);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

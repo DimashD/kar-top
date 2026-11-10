@@ -11,9 +11,16 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// HTTP-клиент к API Kartop. Хранит access-токен, подставляет заголовок авторизации.
+/// HTTP-клиент к API Kartop. Хранит access-токен (живёт 15 мин) и refresh-токен (30 дней):
+/// на ответ 401 сам продлевает вход и повторяет запрос; не вышло — [onAuthLost] (экран входа).
 class Api {
   String? token;
+  String? refreshToken;
+  /// Новые токены после продления — сессия сохраняет их.
+  Future<void> Function(String access, String refresh)? onTokens;
+  /// Продлить вход не удалось (refresh истёк/отозван) — сессия выходит на экран входа.
+  Future<void> Function()? onAuthLost;
+  Future<bool>? _refreshing;
 
   Map<String, String> get _headers => {
         'content-type': 'application/json',
@@ -31,13 +38,45 @@ class Api {
     throw ApiException(msg, r.statusCode);
   }
 
-  Future<dynamic> _get(String path) async => _decode(await http.get(_u(path), headers: _headers));
-  Future<dynamic> _post(String path, [Map<String, dynamic>? body]) async =>
-      _decode(await http.post(_u(path), headers: _headers, body: jsonEncode(body ?? {})));
-  Future<dynamic> _put(String path, Map<String, dynamic> body) async =>
-      _decode(await http.put(_u(path), headers: _headers, body: jsonEncode(body)));
-  Future<dynamic> _patch(String path, Map<String, dynamic> body) async =>
-      _decode(await http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
+  /// Запрос с авто-продлением входа: 401 → refresh → повтор один раз.
+  Future<dynamic> _send(String path, Future<http.Response> Function() call) async {
+    var r = await call();
+    if (r.statusCode == 401 && refreshToken != null && !path.startsWith('/auth/')) {
+      if (await _refresh()) {
+        r = await call();
+      } else {
+        await onAuthLost?.call();
+      }
+    }
+    return _decode(r);
+  }
+
+  /// Продление входа; параллельные запросы ждут одно и то же продление.
+  Future<bool> _refresh() {
+    return _refreshing ??= () async {
+      try {
+        final r = await http.post(_u('/auth/otp/refresh'), headers: {'content-type': 'application/json'}, body: jsonEncode({'refreshToken': refreshToken}));
+        if (r.statusCode < 200 || r.statusCode >= 300) return false;
+        final j = jsonDecode(r.body) as Map<String, dynamic>;
+        token = j['accessToken'] as String;
+        refreshToken = j['refreshToken'] as String? ?? refreshToken;
+        await onTokens?.call(token!, refreshToken!);
+        return true;
+      } catch (_) {
+        return false;
+      } finally {
+        _refreshing = null;
+      }
+    }();
+  }
+
+  Future<dynamic> _get(String path) => _send(path, () => http.get(_u(path), headers: _headers));
+  Future<dynamic> _post(String path, [Map<String, dynamic>? body]) =>
+      _send(path, () => http.post(_u(path), headers: _headers, body: jsonEncode(body ?? {})));
+  Future<dynamic> _put(String path, Map<String, dynamic> body) =>
+      _send(path, () => http.put(_u(path), headers: _headers, body: jsonEncode(body)));
+  Future<dynamic> _patch(String path, Map<String, dynamic> body) =>
+      _send(path, () => http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
 
   // --- Auth ---
   Future<void> requestOtp(String phone) => _post('/auth/otp/request', {'phone': phone, 'channel': kOtpChannel});
@@ -55,9 +94,10 @@ class Api {
   /// Привязка email (телефон уже подтверждён): шаг 1 — код на почту, шаг 2 — подтверждение.
   Future<void> requestEmailCode(String email) => _post('/auth/email/request', {'email': email});
   Future<void> verifyEmailCode(String code) => _post('/auth/email/verify', {'code': code});
-  Future<String> verifyOtp(String phone, String code) async {
-    final r = await _post('/auth/otp/verify', {'phone': phone, 'code': code});
-    return (r as Map<String, dynamic>)['accessToken'] as String;
+  /// Вход по коду: (access-токен, refresh-токен).
+  Future<(String, String?)> verifyOtp(String phone, String code) async {
+    final r = await _post('/auth/otp/verify', {'phone': phone, 'code': code}) as Map<String, dynamic>;
+    return (r['accessToken'] as String, r['refreshToken'] as String?);
   }
 
   // --- Stores ---
