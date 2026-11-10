@@ -73,7 +73,7 @@ export class OtpService {
    */
   async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<OtpChannelName | 'test' | null> {
     const phone = this.normalize(rawPhone);
-    const fixed = this.testOtpCode();
+    const fixed = this.testOtpCode(phone);
     // Лимит защищает от SMS-pumping; в тестовой среде с фиксированным кодом SMS не отправляются — лимит не нужен.
     if (!fixed) await this.rateLimit(phone);
 
@@ -117,8 +117,11 @@ export class OtpService {
    * Фиксированный OTP-код — ТОЛЬКО в тестовой среде (APP_ENV=staging + TEST_OTP_CODE из 6 цифр).
    * На проде (APP_ENV=production или не задан) всегда null, даже если TEST_OTP_CODE задан по ошибке.
    */
-  private testOtpCode(): string | null {
+  private testOtpCode(phone?: string): string | null {
     if (this.config.get<string>('APP_ENV') !== 'staging') return null;
+    // OTP_REAL_PHONES — номера, которым и на тесте шлём настоящий код (проверка Telegram/SMS/WhatsApp).
+    const real = (this.config.get<string>('OTP_REAL_PHONES') || '').split(',').map((p) => p.replace(/\D/g, '')).filter(Boolean);
+    if (phone && real.includes(phone.replace(/\D/g, ''))) return null;
     const code = this.config.get<string>('TEST_OTP_CODE');
     return code && /^\d{6}$/.test(code) ? code : null;
   }
