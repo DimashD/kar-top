@@ -24,9 +24,9 @@ export default function Notifications() {
     const token = await accessToken();
     if (!token) { setNeedLogin(true); setItems([]); return; }
     setNeedLogin(false);
-    const r = await fetch(`${CLIENT_API}/me/notifications`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+    const r = await fetch(`${CLIENT_API}/me/notifications?app=customer`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
     setItems(r?.ok ? (await r.json()).items : []);
-    fetch(`${CLIENT_API}/me/notifications/read`, { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
+    fetch(`${CLIENT_API}/me/notifications/read?app=customer`, { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
   }, []);
   useEffect(() => { load(); }, [load]);
 

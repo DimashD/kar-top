@@ -52,7 +52,7 @@ function useUnread(): number {
       if (!readSession() || document.visibilityState !== 'visible') return;
       const token = await accessToken();
       if (!token) return;
-      const r = await fetch(`${CLIENT_API}/me/notifications`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+      const r = await fetch(`${CLIENT_API}/me/notifications?app=customer`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
       if (alive && r?.ok) setN((await r.json()).unread ?? 0);
     };
     load();

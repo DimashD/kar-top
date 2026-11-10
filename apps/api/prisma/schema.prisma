@@ -123,6 +123,8 @@ model PushToken {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   platform  String   // android | ios | web
+  // Приложение: merchant (приложение магазина) | customer (приложение покупателя) — у одного номера могут быть оба.
+  app       String   @default("merchant")
   token     String   @unique
   createdAt DateTime @default(now())
   @@index([userId])
@@ -412,6 +414,8 @@ model Notification {
   title     String
   body      String
   url       String?   // куда вести покупателя (страница заказа)
+  // Кому: merchant — в приложении магазина, customer — покупателю (сайт/приложение покупателя).
+  app       String    @default("merchant")
   readAt    DateTime?
   createdAt DateTime  @default(now())
   @@index([userId, createdAt])

@@ -56,12 +56,14 @@ export class NotificationDispatcher {
     let sent = 0;
     for (const r of recipients) {
       // Сначала — в центр уведомлений (виден в приложении даже без пуша), счётчик непрочитанных — на иконку.
+      const app = r.role === 'customer' ? 'customer' : 'merchant';
       await this.prisma.notification.create({
-        data: { userId: r.userId, type: ev.type, refId: ev.aggregateId, title: tpl.title, body, url: r.role === 'customer' && url ? url : null },
+        data: { userId: r.userId, app, type: ev.type, refId: ev.aggregateId, title: tpl.title, body, url: r.role === 'customer' && url ? url : null },
       });
-      const badge = await this.prisma.notification.count({ where: { userId: r.userId, readAt: null } });
+      const badge = await this.prisma.notification.count({ where: { userId: r.userId, app, readAt: null } });
       const msg = { title: tpl.title, body, badge, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
-      const tokens = await this.prisma.pushToken.findMany({ where: { userId: r.userId }, select: { platform: true, token: true } });
+      // Только в нужное приложение: уведомления покупателя — в приложение покупателя, магазина — в приложение магазина.
+      const tokens = await this.prisma.pushToken.findMany({ where: { userId: r.userId, app }, select: { platform: true, token: true } });
       let delivered = 0;
       for (const t of tokens) {
         const provider = this.push.get(t.platform as Platform);
@@ -79,7 +81,8 @@ export class NotificationDispatcher {
 
   private async recipients(audience: Audience, aggregateType: string, aggregateId: string): Promise<Recipient[]> {
     const out = new Map<string, Recipient>();
-    const ids = { add: (userId: string, role: Recipient['role']) => { if (!out.has(userId)) out.set(userId, { userId, role }); } };
+    // Один номер может быть и покупателем, и сотрудником магазина — это два разных получателя (разные приложения).
+    const ids = { add: (userId: string, role: Recipient['role']) => { out.set(`${userId}:${role}`, { userId, role }); } };
     if (aggregateType === 'order') {
       const order = await this.prisma.order.findUnique({
         where: { id: aggregateId },

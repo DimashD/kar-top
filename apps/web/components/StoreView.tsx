@@ -81,13 +81,13 @@ async function registerAppPush() {
   const push = (window as any).kartopPushToken as string | undefined;
   const s = readSession();
   if (!push || !s) return;
-  const mark = `${push}|${s.phone}`;
+  const mark = `${push}|${s.phone}|customer`;
   try { if (localStorage.getItem('kartop:push') === mark) return; } catch { /* ок */ }
   const token = await accessToken();
   if (!token) return;
   const r = await fetch(`${CLIENT_API}/devices/push-token`, {
     method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ platform: 'android', token: push }),
+    body: JSON.stringify({ platform: 'android', token: push, app: 'customer' }),
   }).catch(() => null);
   if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
 }
