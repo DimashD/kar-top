@@ -274,7 +274,7 @@ jobs:
     if: inputs.task == 'disk-cleanup'
     runs-on: ubuntu-latest
     steps:
-      - name: Free disk space (unused Docker images, build cache, old backups > 14 days)
+      - name: Free disk space (unused Docker images and build cache; backups are kept)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -288,6 +288,6 @@ jobs:
             docker image prune -af
             docker builder prune -af || true
             docker container prune -f
-            find /opt/kar-top-backups -type f -mtime +14 -delete 2>/dev/null || true
+            du -sh /opt/kar-top-backups 2>/dev/null || true
             echo "После:"; df -h / | tail -1
             docker system df
