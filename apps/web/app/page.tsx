@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { LangSwitcher } from '../components/LangProvider';
 import StoreMenu from '../components/StoreMenu';
 import StoreList from '../components/StoreList';
 import FeedbackButton from '../components/FeedbackButton';
@@ -19,7 +18,6 @@ export default async function Home() {
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px' }}>
           <StoreMenu />
           <div style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)', flex: 1 }}>Kartop</div>
-          <LangSwitcher />
         </div>
       </header>
 

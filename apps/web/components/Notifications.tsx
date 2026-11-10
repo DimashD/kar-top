@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { LOCALES } from '../lib/i18n';
 import { formatKzPhone } from '../lib/phone';
-import { LangSwitcher, useLang, useT } from './LangProvider';
+import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
@@ -36,7 +36,6 @@ export default function Notifications() {
         <div className="container" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <StoreMenu />
           <h1 style={{ fontSize: 20, margin: 0, flex: 1 }}>{t.navNotifications}</h1>
-          <LangSwitcher />
         </div>
       </header>
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gap: 10 }}>

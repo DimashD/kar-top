@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { fetchCatalog } from '../../../lib/api';
 import { LOCALES } from '../../../lib/i18n';
 import { getDict, getLang } from '../../../lib/i18n-server';
-import { LangSwitcher } from '../../../components/LangProvider';
 import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
@@ -39,7 +38,6 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
         <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <StoreMenu />
           <Link href={`/${s.slug}`} style={{ flex: 1, fontWeight: 800, color: 'var(--ink)', textDecoration: 'none' }}>← {t.toProducts}</Link>
-          <LangSwitcher />
         </div>
       </header>
       {photo ? <img src={photo} alt={s.name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 220, objectFit: 'cover', margin: '0 auto' }} /> : null}
