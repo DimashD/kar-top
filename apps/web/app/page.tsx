@@ -3,6 +3,7 @@ import { LangSwitcher } from '../components/LangProvider';
 import StoreMenu from '../components/StoreMenu';
 import StoreList from '../components/StoreList';
 import FeedbackButton from '../components/FeedbackButton';
+import BottomNav from '../components/BottomNav';
 import { fetchStores } from '../lib/api';
 import { getDict } from '../lib/i18n-server';
 
@@ -44,6 +45,7 @@ export default async function Home() {
 
       <FeedbackButton />
       <footer className="container" style={{ padding: '16px 20px 32px', color: 'var(--ink-40)', fontSize: 14 }}>{t.footer}</footer>
+      <BottomNav />
     </main>
   );
 }

@@ -310,6 +310,24 @@ export class OrderingService {
   }
 
   /** Публичный трекинг заказа покупателем по id (без ПДн магазина). Код получения виден владельцу. */
+  /** Заказы покупателя для «Мои заказы»: магазин, статус, сумма (с доставкой), время получения. */
+  async myOrders(userId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { customerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true, number: true, status: true, createdAt: true, fulfillment: true, pickupAt: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true,
+        store: { select: { name: true, slug: true } },
+        _count: { select: { items: true } },
+      },
+    });
+    return orders.map(({ subtotalTiyn, deliveryFeeTiyn, finalTiyn, _count, ...o }) => ({
+      ...o, itemCount: _count.items, totalTiyn: finalTiyn ?? subtotalTiyn + deliveryFeeTiyn, final: finalTiyn != null,
+    }));
+  }
+
   async track(orderId: string) {
     const o = await this.prisma.order.findUnique({
       where: { id: orderId },

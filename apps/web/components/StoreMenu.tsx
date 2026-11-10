@@ -11,6 +11,12 @@ export default function StoreMenu() {
   const [open, setOpen] = useState(false);
   const [inApp, setInApp] = useState(false);
   useEffect(() => setInApp(inKartopApp()), []);
+  // «Ещё» в нижнем меню открывает это же меню.
+  useEffect(() => {
+    const h = () => setOpen(true);
+    window.addEventListener('kartop-menu', h);
+    return () => window.removeEventListener('kartop-menu', h);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
@@ -32,7 +38,8 @@ export default function StoreMenu() {
               <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)', flex: 1 }}>Kartop</span>
               <button type="button" aria-label={t.close} onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer', color: 'var(--ink-60)' }}>✕</button>
             </div>
-            <Link href="/" style={item}>🏠 {t.toHome}</Link>
+            <Link href="/" style={item}>🏪 {t.navStores}</Link>
+            <Link href="/orders" style={item}>🧾 {t.myOrders}</Link>
             <button type="button" style={item} onClick={() => { setOpen(false); window.dispatchEvent(new Event('kartop-feedback')); }}>💬 {t.feedbackTitle}</button>
             {!inApp ? <a href={ANDROID_URL} target="_blank" rel="noreferrer" style={item}>📲 {t.downloadApp}</a> : null}
             <div style={{ borderTop: '1px solid var(--line)', margin: '8px 0' }} />

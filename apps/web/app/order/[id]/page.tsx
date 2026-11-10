@@ -7,6 +7,8 @@ import { LangSwitcher } from '../../../components/LangProvider';
 import ReviewForm from '../../../components/ReviewForm';
 import AppBanner from '../../../components/AppBanner';
 import FeedbackButton from '../../../components/FeedbackButton';
+import BottomNav from '../../../components/BottomNav';
+import AutoRefresh from '../../../components/AutoRefresh';
 import StoreMenu from '../../../components/StoreMenu';
 
 export const dynamic = 'force-dynamic';
@@ -187,6 +189,8 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         </p>
         <FeedbackButton storeSlug={o.store.slug} />
       </div>
+      {!cancelled && !delivered ? <AutoRefresh seconds={15} /> : null}
+      <BottomNav />
     </main>
   );
 }

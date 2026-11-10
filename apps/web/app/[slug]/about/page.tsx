@@ -5,6 +5,7 @@ import { getDict, getLang } from '../../../lib/i18n-server';
 import { LangSwitcher } from '../../../components/LangProvider';
 import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
+import BottomNav from '../../../components/BottomNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +80,7 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>
         <FeedbackButton storeSlug={s.slug} />
       </div>
+      <BottomNav />
     </main>
   );
 }
