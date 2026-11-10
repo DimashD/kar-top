@@ -195,6 +195,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Сменить пароль входа (по номеру и паролю).
+  Future<void> _changePassword(S s) async {
+    final a = TextEditingController(), b = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.changePassword),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(s.createPasswordHint, style: const TextStyle(color: AppColors.ink60)),
+          TextField(controller: a, obscureText: true, decoration: InputDecoration(hintText: s.passwordLabel)),
+          TextField(controller: b, obscureText: true, decoration: InputDecoration(hintText: s.repeatPassword)),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.save)),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    if (a.text != b.text) {
+      messenger.showSnackBar(SnackBar(content: Text(s.passwordsDiffer)));
+      return;
+    }
+    try {
+      await context.read<Session>().api.setPassword(a.text);
+      messenger.showSnackBar(SnackBar(content: Text(s.passwordSaved)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   Future<void> _toggleLock(bool on) async {
     if (!on) {
       await AppLock.disable();
@@ -293,6 +325,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Card(
             child: Column(children: [
               ListTile(leading: const Icon(Icons.support_agent), title: Text(s.writeUs), subtitle: Text(s.writeUsHint), onTap: () => _writeUs(s)),
+              const Divider(height: 1),
+              ListTile(leading: const Icon(Icons.password), title: Text(s.changePassword), onTap: () => _changePassword(s)),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.add_box_outlined),

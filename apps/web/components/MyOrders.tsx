@@ -98,7 +98,7 @@ export default function MyOrders() {
       </div>
       {auth ? (
         <AuthSheet initialPhone={readSession()?.phone ? formatKzPhone(readSession()!.phone) : '+7'}
-          hint={t.loginToSeeOrders} onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
+          hint={t.loginToSeeOrders} confirmLabel={t.loginBtn} onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
       ) : null}
       <BottomNav />
     </main>

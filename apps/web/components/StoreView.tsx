@@ -114,7 +114,7 @@ export async function accessToken(force = false): Promise<string | null> {
  * Подтверждение номера — шторка после «Оформить заказ»: номер → код из SMS (6 цифр, автоподстановка,
  * отправка сама при последней цифре, повтор через 60 с). После кода заказ оформляется сразу.
  */
-export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void; hint?: string }) {
+export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }: { initialPhone: string; onClose: () => void; onDone: (s: Session) => void; hint?: string; confirmLabel?: string }) {
   const t = useT();
   const [phone, setPhone] = useState(initialPhone);
   const [step, setStep] = useState<'phone' | 'code'>('phone');
@@ -122,20 +122,24 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhon
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [wait, setWait] = useState(0);
+  // Куда просили и куда ушёл код: Telegram без аккаунта на номере — сервер шлёт SMS.
+  const [via, setVia] = useState<'telegram' | 'sms'>('telegram');
+  const [sentVia, setSentVia] = useState<string | null>(null);
   useEffect(() => {
     if (!wait) return;
     const id = setTimeout(() => setWait((w) => w - 1), 1000);
     return () => clearTimeout(id);
   }, [wait]);
 
-  async function send() {
-    setErr(null); setBusy(true);
+  async function send(channel: 'telegram' | 'sms' = via) {
+    setErr(null); setBusy(true); setVia(channel);
     try {
       const r = await fetch(`${CLIENT_API}/auth/otp/request`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone: kzPhoneE164(phone), channel: 'sms' }),
+        body: JSON.stringify({ phone: kzPhoneE164(phone), channel }),
       });
       if (!r.ok) throw new Error();
+      setSentVia((await r.json().catch(() => ({}))).channel ?? null);
       setStep('code'); setCode(''); setWait(60);
     } catch {
       setErr(t.checkoutError);
@@ -174,15 +178,20 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhon
           <>
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
-            <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={send} style={{ height: 54, fontSize: 16 }}>
-              {busy ? t.sendingCode : t.getCode}
+            {/* Telegram — бесплатно для покупателя и дешевле для нас; SMS — для всех. */}
+            <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('telegram')} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
+              {busy && via === 'telegram' ? t.sendingCode : `✈️ ${t.codeTelegram}`}
+            </button>
+            <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
+              {busy && via === 'sms' ? t.sendingCode : `💬 ${t.codeSms}`}
             </button>
           </>
         ) : (
           <>
             <div className="muted" style={{ fontSize: 15 }}>
-              {t.codeSent(formatKzPhone(phone))} · <button type="button" onClick={() => { setStep('phone'); setErr(null); }} style={{ border: 'none', background: 'none', padding: 0, color: 'var(--carrot-600)', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t.changePhone}</button>
+              {sentVia === 'telegram' ? t.sentTelegram(formatKzPhone(phone)) : sentVia === 'sms' ? t.sentSms(formatKzPhone(phone)) : t.codeSent(formatKzPhone(phone))} · <button type="button" onClick={() => { setStep('phone'); setErr(null); }} style={{ border: 'none', background: 'none', padding: 0, color: 'var(--carrot-600)', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}>{t.changePhone}</button>
             </div>
+            {via === 'telegram' && sentVia === 'sms' ? <div style={{ fontSize: 14, color: 'var(--ink-60)', background: '#FCF4E6', borderRadius: 10, padding: '8px 10px' }}>{t.telegramFallback}</div> : null}
             <input value={code} autoFocus inputMode="numeric" autoComplete="one-time-code" aria-label={t.smsCode} placeholder="••••••"
               onChange={(e) => {
                 const v = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -191,9 +200,9 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint }: { initialPhon
               }}
               style={{ ...big, textAlign: 'center', letterSpacing: '0.4em', fontSize: 26 }} />
             <button className="btn btn-primary btn-block" disabled={code.length < 6 || busy} onClick={() => verify(code)} style={{ height: 54, fontSize: 16 }}>
-              {busy ? t.checkingCode : t.confirmAndOrder}
+              {busy ? t.checkingCode : confirmLabel ?? t.confirmAndOrder}
             </button>
-            <button className="btn btn-ghost btn-block" disabled={wait > 0 || busy} onClick={send} style={{ height: 46 }}>
+            <button className="btn btn-ghost btn-block" disabled={wait > 0 || busy} onClick={() => send()} style={{ height: 46 }}>
               {wait > 0 ? t.resendIn(wait) : t.resendCode}
             </button>
           </>
