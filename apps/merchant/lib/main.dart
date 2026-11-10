@@ -35,6 +35,7 @@ class KartopMerchantApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = S.of(context);
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: s.appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),

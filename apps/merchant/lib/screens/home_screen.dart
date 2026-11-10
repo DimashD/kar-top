@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
 import '../session.dart';
+import '../push.dart';
 import '../widgets/share_store.dart';
 import 'orders_screen.dart';
 import 'catalog_screen.dart';
@@ -15,6 +16,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Магазин выбран — открываем заказ из уведомления, если на него нажали до входа.
+    PushService.instance.openPending();
+  }
 
   @override
   Widget build(BuildContext context) {
