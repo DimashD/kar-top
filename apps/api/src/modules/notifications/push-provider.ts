@@ -7,6 +7,8 @@ export interface PushMessage {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /** Непрочитанных уведомлений у пользователя — счётчик на иконке приложения. */
+  badge?: number;
 }
 
 /** Абстракция провайдера пуша: FCM (Android), APNs (iOS), Web Push (VAPID). */

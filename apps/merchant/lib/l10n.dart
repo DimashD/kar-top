@@ -199,6 +199,8 @@ abstract class S {
   String get minutes;
   String get deliveryAndPickup;
   String get storePhoto;
+  String get notificationsTitle;
+  String get noNotifications;
   String get workHours;
   String get workHoursHint;
   String get dayOff;
@@ -438,6 +440,8 @@ class _Ru extends S {
   @override String get minutes => 'мин';
   @override String get deliveryAndPickup => 'Доставка и самовывоз';
   @override String get storePhoto => 'Фото магазина';
+  @override String get notificationsTitle => "Уведомления";
+  @override String get noNotifications => "Уведомлений пока нет";
   @override String get workHours => "Часы работы";
   @override String get workHoursHint => "Покупатели выбирают время получения только в эти часы.";
   @override String get dayOff => "Выходной";
@@ -673,6 +677,8 @@ class _Kk extends S {
   @override String get minutes => 'мин';
   @override String get deliveryAndPickup => 'Жеткізу және алып кету';
   @override String get storePhoto => 'Дүкен суреті';
+  @override String get notificationsTitle => "Хабарландырулар";
+  @override String get noNotifications => "Әзірге хабарландыру жоқ";
   @override String get workHours => "Жұмыс уақыты";
   @override String get workHoursHint => "Сатып алушылар алу уақытын тек осы сағаттарда таңдайды.";
   @override String get dayOff => "Демалыс";
@@ -908,6 +914,8 @@ class _Tg extends S {
   @override String get minutes => 'дақ';
   @override String get deliveryAndPickup => 'Расонидан ва худ бурдан';
   @override String get storePhoto => 'Акси мағоза';
+  @override String get notificationsTitle => "Огоҳиномаҳо";
+  @override String get noNotifications => "Ҳоло огоҳинома нест";
   @override String get workHours => "Соатҳои корӣ";
   @override String get workHoursHint => "Харидорон вақти гирифтанро танҳо дар ин соатҳо интихоб мекунанд.";
   @override String get dayOff => "Рӯзи истироҳат";
@@ -1143,6 +1151,8 @@ class _Uz extends S {
   @override String get minutes => 'daq';
   @override String get deliveryAndPickup => 'Yetkazib berish va olib ketish';
   @override String get storePhoto => "Do'kon surati";
+  @override String get notificationsTitle => "Bildirishnomalar";
+  @override String get noNotifications => "Hozircha bildirishnoma yo'q";
   @override String get workHours => "Ish vaqti";
   @override String get workHoursHint => "Xaridorlar olish vaqtini faqat shu soatlarda tanlaydi.";
   @override String get dayOff => "Dam olish kuni";

@@ -12,6 +12,9 @@ import 'screens/order_detail_screen.dart';
 /// Навигатор приложения — чтобы открыть заказ по нажатию на уведомление из любого места.
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// Счётчик пришедших пушей: экраны заказов и колокольчик слушают его и обновляются.
+final pushTick = ValueNotifier<int>(0);
+
 /// Фоновый обработчик (должен быть top-level). Срабатывает, когда приложение в фоне/закрыто.
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
@@ -73,6 +76,7 @@ class PushService {
   String? _pendingOrder;
 
   void _fromMessage(RemoteMessage m) {
+    pushTick.value++;
     if ('${m.data['type']}'.startsWith('order.')) openOrder(m.data['id'] as String?);
   }
 
@@ -95,6 +99,7 @@ class PushService {
   }
 
   void _showForeground(RemoteMessage m) {
+    pushTick.value++;
     final n = m.notification;
     if (n == null) return;
     _local.show(

@@ -402,3 +402,17 @@ model Feedback {
   createdAt DateTime       @default(now())
   @@index([status, createdAt])
 }
+
+// Центр уведомлений: всё, что отправлено пользователю (магазину или покупателю), с отметкой «прочитано».
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // order.placed, order.ready, …
+  refId     String?   // id заказа/счёта
+  title     String
+  body      String
+  url       String?   // куда вести покупателя (страница заказа)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  @@index([userId, createdAt])
+}

@@ -238,3 +238,22 @@ class CatalogItem {
     );
   }
 }
+
+/// Уведомление в центре уведомлений.
+class AppNotification {
+  final String type;
+  final String? refId;
+  final String title;
+  final String body;
+  final bool read;
+  final DateTime createdAt;
+  AppNotification({required this.type, this.refId, required this.title, required this.body, required this.read, required this.createdAt});
+  factory AppNotification.fromJson(Map<String, dynamic> j) => AppNotification(
+        type: j['type'] as String? ?? '',
+        refId: j['refId'] as String?,
+        title: j['title'] as String? ?? '',
+        body: j['body'] as String? ?? '',
+        read: j['readAt'] != null,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
+}

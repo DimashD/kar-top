@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { CLIENT_API } from '../lib/api';
+import { accessToken, readSession } from './StoreView';
 import { useT } from './LangProvider';
 
 /** Высота нижнего меню — страницы оставляют под него место. */
@@ -11,9 +14,12 @@ export const BOTTOM_NAV_H = 64;
 export default function BottomNav() {
   const t = useT();
   const path = usePathname() ?? '/';
-  const tab = (href: string, icon: string, label: string, active: boolean) => (
+  const unread = useUnread();
+  const tab = (href: string, icon: string, label: string, active: boolean, badge = 0) => (
     <Link href={href} style={{ ...item, color: active ? 'var(--carrot)' : 'var(--ink-60)' }}>
-      <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 22, lineHeight: 1, position: 'relative' }}>{icon}
+        {badge > 0 ? <span style={{ position: 'absolute', top: -6, right: -12, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--carrot)', color: '#fff', fontSize: 11, fontWeight: 800, lineHeight: '18px', textAlign: 'center' }}>{badge > 99 ? '99+' : badge}</span> : null}
+      </span>
       <span style={{ fontSize: 12, fontWeight: active ? 800 : 600 }}>{label}</span>
     </Link>
   );
@@ -22,8 +28,9 @@ export default function BottomNav() {
       <div style={{ height: BOTTOM_NAV_H }} />
       <nav style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div style={{ display: 'flex', maxWidth: 560, margin: '0 auto', height: BOTTOM_NAV_H }}>
-          {tab('/', '🏪', t.navStores, path === '/' || (!path.startsWith('/orders') && !path.startsWith('/order/')))}
+          {tab('/', '🏪', t.navStores, !path.startsWith('/orders') && !path.startsWith('/order/') && !path.startsWith('/notifications'))}
           {tab('/orders', '🧾', t.navOrders, path.startsWith('/orders') || path.startsWith('/order/'))}
+          {tab('/notifications', '🔔', t.navNotifications, path.startsWith('/notifications'), path.startsWith('/notifications') ? 0 : unread)}
           <button type="button" onClick={() => window.dispatchEvent(new Event('kartop-menu'))} style={{ ...item, color: 'var(--ink-60)', border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}>
             <span style={{ fontSize: 22, lineHeight: 1 }}>☰</span>
             <span style={{ fontSize: 12, fontWeight: 600 }}>{t.navMore}</span>
@@ -35,3 +42,23 @@ export default function BottomNav() {
 }
 
 const item: React.CSSProperties = { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, textDecoration: 'none' };
+
+/** Непрочитанные уведомления вошедшего покупателя (обновляется раз в 30 с и при возврате на вкладку). */
+function useUnread(): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      if (!readSession() || document.visibilityState !== 'visible') return;
+      const token = await accessToken();
+      if (!token) return;
+      const r = await fetch(`${CLIENT_API}/me/notifications`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+      if (alive && r?.ok) setN((await r.json()).unread ?? 0);
+    };
+    load();
+    const id = setInterval(load, 30_000);
+    document.addEventListener('visibilitychange', load);
+    return () => { alive = false; clearInterval(id); document.removeEventListener('visibilitychange', load); };
+  }, []);
+  return n;
+}
