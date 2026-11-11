@@ -37,6 +37,10 @@ services:
       # Номера, которым и на тесте приходит настоящий код (через запятую): проверка Telegram/SMS/WhatsApp.
       OTP_REAL_PHONES: ${OTP_REAL_PHONES:-}
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
+      # Вход через Telegram-бот (@kartop_kz_bot). Вебхук у бота один — ставит среда с TELEGRAM_BOT_WEBHOOK=1.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_NAME: kartop_kz_bot
+      TELEGRAM_BOT_WEBHOOK: "1"
       SMSC_LOGIN: ${SMSC_LOGIN:-}
       SMSC_PASSWORD: ${SMSC_PASSWORD:-}
       SMS_SENDER_NAME: ${SMS_SENDER_NAME:-}
