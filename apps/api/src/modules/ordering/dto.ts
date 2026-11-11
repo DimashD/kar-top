@@ -31,7 +31,7 @@ export class CreateOrderDto {
   @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
   @IsIn(['CASH', 'CARD_COURIER', 'KASPI_TRANSFER']) payMethod!: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
   @IsOptional() @IsIn(['DELIVERY', 'PICKUP']) fulfillment?: 'DELIVERY' | 'PICKUP';
-  // Доставка: OWN — магазин сам (по зонам), SERVICE — курьерская служба (Яндекс и др.), оплачивает покупатель отдельно.
+  // Доставка: OWN — магазин сам (по зонам), SERVICE — сторонняя курьерская служба, оплачивает покупатель отдельно.
   @IsOptional() @IsIn(['OWN', 'SERVICE']) deliveryBy?: 'OWN' | 'SERVICE';
   // Желаемое время получения (ISO): самовывоз — не раньше оформление + pickupLeadMinutes;
   // доставка — не раньше оформление + срок доставки магазина (своя: ownDeliveryMinutes, служба: courierHandoverMinutes).

@@ -38,7 +38,7 @@ export class OrderingService {
       throw new BadRequestException('Доставка в этом магазине сейчас недоступна — выберите самовывоз');
     }
     // Два вида доставки: своя доставка магазина (по зонам; цена и «бесплатно от» — у зоны)
-    // и курьерская служба (Яндекс и др.) — по всему городу, оплачивает покупатель отдельно, в сумму заказа не входит.
+    // и сторонняя курьерская служба — по всему городу, оплачивает покупатель отдельно, в сумму заказа не входит.
     const mode = store.deliveryMode ?? 'BOTH';
     const deliveryBy = fulfillment === 'DELIVERY' ? (dto.deliveryBy ?? (mode === 'SERVICE' ? 'SERVICE' : 'OWN')) : null;
     if (deliveryBy === 'OWN' && mode === 'SERVICE') throw new BadRequestException('Магазин сам не доставляет — выберите курьера или самовывоз');
