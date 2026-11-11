@@ -66,7 +66,7 @@ export default function Profile() {
           onClose={() => setAuth(false)} onDone={(s) => { setAuth(false); setPhone(s.phone); }} />
       ) : null}
       {/* Та же форма «Написать в Kartop»: строка «Написать в поддержку» открывает её событием. */}
-      <FeedbackButton />
+      <FeedbackButton hideLink />
       <BottomNav />
     </main>
   );
