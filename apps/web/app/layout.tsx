@@ -13,7 +13,7 @@ export function generateMetadata() {
   };
 }
 
-export const viewport = { themeColor: '#D9531E', width: 'device-width', initialScale: 1 };
+export const viewport = { themeColor: '#D9531E', width: 'device-width', initialScale: 1, colorScheme: 'only light' };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const lang = getLang();
