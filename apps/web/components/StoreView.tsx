@@ -125,6 +125,37 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
   // Куда просили и куда ушёл код: Telegram без аккаунта на номере — сервер шлёт SMS.
   const [via, setVia] = useState<'telegram' | 'sms'>('telegram');
   const [sentVia, setSentVia] = useState<string | null>(null);
+  // Вход через Telegram-бот: ссылка на бота, ждём, пока покупатель поделится номером.
+  const [tg, setTg] = useState<{ token: string; botUrl: string } | null>(null);
+  const openBot = (url: string) => { if (inKartopApp()) location.href = url; else window.open(url, '_blank'); };
+  async function loginTelegram() {
+    setErr(null);
+    const r = await fetch(`${CLIENT_API}/auth/telegram/start`, { method: 'POST' }).catch(() => null);
+    const d = r?.ok ? await r.json() : null;
+    if (!d?.botUrl) { setErr(t.checkoutError); return; }
+    setTg(d);
+    openBot(d.botUrl);
+  }
+  useEffect(() => {
+    if (!tg) return;
+    const id = setInterval(async () => {
+      const r = await fetch(`${CLIENT_API}/auth/telegram/poll`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: tg.token }),
+      }).catch(() => null);
+      const d = r?.ok ? await r.json() : null;
+      if (d?.status === 'ok' && d.accessToken) {
+        clearInterval(id);
+        const s = sessionFrom(d, d.phone);
+        saveSession(s);
+        registerAppPush();
+        onDone(s);
+      } else if (d?.status === 'expired') {
+        clearInterval(id);
+        setTg(null);
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [tg]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!wait) return;
     const id = setTimeout(() => setWait((w) => w - 1), 1000);
@@ -174,16 +205,25 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
       <div role="dialog" aria-label={t.confirmPhoneTitle} onClick={(e) => e.stopPropagation()}
         style={{ background: 'var(--card)', width: '100%', maxWidth: 520, borderRadius: '22px 22px 0 0', padding: '22px 20px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 21, fontWeight: 800 }}>{step === 'phone' ? t.confirmPhoneTitle : t.enterCode}</div>
-        {step === 'phone' ? (
+        {tg ? (
+          <>
+            <div style={{ fontSize: 15 }}>{t.tgWaiting}</div>
+            <div className="muted" style={{ textAlign: 'center', fontSize: 28 }}>⏳</div>
+            <button className="btn btn-primary btn-block" onClick={() => openBot(tg.botUrl)} style={{ height: 52, background: '#229ED9', borderColor: '#229ED9' }}>✈️ {t.tgOpenAgain}</button>
+            <button className="btn btn-ghost btn-block" onClick={() => setTg(null)} style={{ height: 46 }}>{t.orByCode}</button>
+          </>
+        ) : step === 'phone' ? (
           <>
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
+            {/* Быстрее всего — через бот Kartop в Telegram: номер подтверждает Telegram, код не нужен. */}
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={loginTelegram} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
+              ✈️ {t.loginTelegram}
+            </button>
+            <div className="muted" style={{ textAlign: 'center', fontSize: 13 }}>{t.orByCode}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             {/* Telegram — бесплатно для покупателя и дешевле для нас; SMS — для всех. */}
-            <button className="btn btn-primary btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('telegram')} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
-              {busy && via === 'telegram' ? t.sendingCode : `✈️ ${t.codeTelegram}`}
-            </button>
             <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
-              {busy && via === 'sms' ? t.sendingCode : `💬 ${t.codeSms}`}
+              {busy ? t.sendingCode : `💬 ${t.codeSms}`}
             </button>
           </>
         ) : (

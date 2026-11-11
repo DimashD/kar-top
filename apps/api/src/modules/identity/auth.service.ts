@@ -24,7 +24,11 @@ export class AuthService {
     const normalized = await this.otp.verify(phone, code);
     if (!normalized) throw new UnauthorizedException('Неверный или просроченный код.');
 
-    const e164 = '+' + normalized;
+    return this.loginVerifiedPhone('+' + normalized, deviceLabel);
+  }
+
+  /** Номер уже подтверждён (кодом или Telegram): находим/создаём пользователя, доверенное устройство, токены. */
+  async loginVerifiedPhone(e164: string, deviceLabel?: string): Promise<TokenPair & { userId: string }> {
     const user = await this.prisma.user.upsert({
       where: { phone: e164 },
       update: {},
