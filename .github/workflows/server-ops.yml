@@ -283,8 +283,8 @@ jobs:
             cd /opt/kar-top-staging
             C="docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml"
             $C exec -T staging-api node - < deploy/ops/push-diag.js
-            echo "--- журнал api (пуши) ---"
-            $C logs --since 48h staging-api 2>&1 | grep -iE "fcm|push|не доставлено" | tail -30
+            echo "--- журнал api (пуши и коды входа) ---"
+            $C logs --since 48h staging-api 2>&1 | grep -iE "fcm|push|не доставлено|telegram|smsc|otp|канал" | tail -40
 
   disk-cleanup:
     if: inputs.task == 'disk-cleanup'
