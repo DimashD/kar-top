@@ -102,6 +102,11 @@ export interface StoreCard {
   photoVersion: number | null; location: { lat: number; lng: number } | null;
   deliveryEnabled: boolean; pickupEnabled: boolean;
   hours: ({ open: string; close: string } | null)[];
+  /** Доставка магазина (по его зонам) и курьерская служба (весь город, за счёт покупателя). */
+  ownDelivery?: boolean; courierDelivery?: boolean;
+  /** Довезёт ли магазин сам до точки покупателя (null — точка не известна) и условия его зоны. */
+  ownHere?: boolean | null;
+  ownZone?: { feeTiyn: number; minOrderTiyn: number; freeFromTiyn: number | null } | null;
 }
 
 /** SSR: активные магазины для главной. */

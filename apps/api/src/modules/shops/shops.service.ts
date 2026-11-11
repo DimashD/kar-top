@@ -8,17 +8,31 @@ import { findZone } from '../../common/zones';
 export class ShopsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Активные магазины для главной: карточка, точка на карте и часы работы (чтобы показать «открыто/закрыто»). */
-  async list() {
+  /**
+   * Активные магазины для главной: карточка, точка на карте и часы работы (чтобы показать «открыто/закрыто»).
+   * Виды получения: доставка магазина (по его зонам), курьерская служба (весь город, за счёт покупателя), самовывоз.
+   * Если передана точка покупателя — ownHere: довезёт ли магазин сам сюда, и условия зоны (цена, «бесплатно от», минимум).
+   */
+  async list(point?: LngLat) {
     const stores = await this.prisma.store.findMany({
       where: { status: 'ACTIVE' },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
-      select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true },
+      select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
+        deliveryMode: true, zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
-    return stores.map(({ geom, photoAt, hours, ...s }) => {
+    return stores.map(({ geom, photoAt, hours, zones, deliveryMode, ...s }) => {
       const c = (geom as any)?.coordinates as [number, number] | undefined;
-      return { ...s, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, location: c ? { lat: c[1], lng: c[0] } : null };
+      const ownDelivery = s.deliveryEnabled !== false && deliveryMode !== 'SERVICE';
+      const courierDelivery = s.deliveryEnabled !== false && deliveryMode !== 'OWN';
+      // Зон нет — магазин возит без ограничений (как в заказе).
+      const zone = ownDelivery && point && zones.length ? findZone(zones, point) : null;
+      const ownHere = !ownDelivery ? false : !point ? null : zones.length ? !!zone : true;
+      return {
+        ...s, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, location: c ? { lat: c[1], lng: c[0] } : null,
+        ownDelivery, courierDelivery, ownHere,
+        ownZone: zone ? { feeTiyn: zone.feeTiyn, minOrderTiyn: zone.minOrderTiyn, freeFromTiyn: zone.freeFromTiyn } : null,
+      };
     });
   }
 
