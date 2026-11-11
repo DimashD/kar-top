@@ -64,7 +64,7 @@ export default function Notifications() {
           <h1 style={{ fontSize: 20, margin: 0, flex: 1 }}>{t.navNotifications}</h1>
         </div>
       </header>
-      <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gap: 10 }}>
+      <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {items === null ? <p className="muted">…</p> : needLogin ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 40 }}>🔔</div>
