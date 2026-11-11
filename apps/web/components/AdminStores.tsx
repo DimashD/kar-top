@@ -161,7 +161,8 @@ export default function AdminStores() {
                     {savingId === s.id ? 'Загрузка…' : s.photoVersion ? 'Заменить фото' : 'Загрузить фото'}
                     <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) photo(s.id, f); }} />
                   </label>
-                  <a className="btn btn-ghost" href={`/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13, marginLeft: 'auto' }}>Витрина ↗</a>
+                  <a className="btn btn-ghost" href={`/admin/poster/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13, marginLeft: 'auto' }}>🖨️ QR-постер</a>
+                  <a className="btn btn-ghost" href={`/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13 }}>Витрина ↗</a>
                 </div>
               </div>
             );
