@@ -86,10 +86,10 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
           📍 {locating ? '…' : t.nearMe}
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {filters.map(([k, label]) => (
           <button key={k} type="button" onClick={() => toggle(k)} className={kinds.includes(k) ? 'btn btn-primary' : 'btn btn-ghost'}
-            style={{ padding: '8px 14px', fontSize: 14, whiteSpace: 'nowrap', flex: 'none' }}>{label}</button>
+            style={{ padding: '8px 12px', fontSize: 14, whiteSpace: 'nowrap' }}>{label}</button>
         ))}
       </div>
       {!me ? <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>{t.locateToCheck}</p> : null}
