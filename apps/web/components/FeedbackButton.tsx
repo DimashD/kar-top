@@ -14,7 +14,7 @@ function knownPhone(): string {
 }
 
 /** «Написать в Kartop»: идея, проблема, жалоба или похвала о работе сервиса — уходит команде в админку. */
-export default function FeedbackButton({ storeSlug }: { storeSlug?: string }) {
+export default function FeedbackButton({ storeSlug, hideLink }: { storeSlug?: string; hideLink?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Kind>('IDEA');
@@ -48,11 +48,11 @@ export default function FeedbackButton({ storeSlug }: { storeSlug?: string }) {
 
   return (
     <>
-      <p style={{ textAlign: 'center', margin: '28px 0 8px' }}>
+      {hideLink ? null : <p style={{ textAlign: 'center', margin: '28px 0 8px' }}>
         <button type="button" onClick={show} style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 14, color: 'var(--ink-60)', textDecoration: 'underline', cursor: 'pointer' }}>
           💬 {t.feedbackLink}
         </button>
-      </p>
+      </p>}
       {open ? (
         <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div role="dialog" aria-label={t.feedbackTitle} onClick={(e) => e.stopPropagation()}
