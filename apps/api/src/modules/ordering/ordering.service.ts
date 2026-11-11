@@ -131,7 +131,7 @@ export class OrderingService {
     await this.prisma.$transaction([
       // Магазину — новый заказ (звук + пуш).
       this.prisma.outboxEvent.create({
-        data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, fulfillment } },
+        data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, fulfillment, estimatedTiyn: subtotal + deliveryFeeTiyn } },
       }),
       // Покупателю — подтверждение со ссылкой-трекингом и кодом получения.
       this.prisma.outboxEvent.create({

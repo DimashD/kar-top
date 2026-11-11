@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../format.dart';
 import '../l10n.dart';
 import '../models.dart';
 import '../push.dart';
@@ -54,12 +53,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, i) {
                         final n = items[i];
+                        final (icon, bg) = _look(n.type);
                         return ListTile(
                           tileColor: n.read ? null : AppColors.carrot50,
-                          leading: Icon(n.type.startsWith('order.') ? Icons.receipt_long : Icons.notifications_outlined, color: AppColors.carrot),
-                          title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.w600 : FontWeight.w800)),
-                          subtitle: Text('${n.body}\n${dateTime(s, n.createdAt)}'),
-                          isThreeLine: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: Container(
+                            width: 42, height: 42,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+                            child: Text(icon, style: const TextStyle(fontSize: 20)),
+                          ),
+                          title: Text(_plain(n.title), maxLines: 1, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontWeight: n.read ? FontWeight.w600 : FontWeight.w800)),
+                          subtitle: Text(n.body, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(_when(n.createdAt), style: const TextStyle(fontSize: 12, color: AppColors.ink40)),
+                              if (!n.read) ...[
+                                const SizedBox(height: 6),
+                                Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.carrot, shape: BoxShape.circle)),
+                              ],
+                            ],
+                          ),
                           onTap: n.type.startsWith('order.') && n.refId != null ? () => PushService.instance.openOrder(n.refId) : null,
                         );
                       },
@@ -67,6 +84,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
     );
   }
+}
+
+/// Значок и фон по событию.
+(String, Color) _look(String type) => switch (type) {
+      'order.placed' => ('🛒', const Color(0xFFFCEDE6)),
+      'order.reviewed' => ('⭐', const Color(0xFFFFF4D6)),
+      'order.cancelled' => ('❌', const Color(0xFFF4F2F0)),
+      'billing.invoice_issued' || 'billing.invoice_paid' => ('🧾', const Color(0xFFE9F2EB)),
+      _ => ('🔔', const Color(0xFFF4F2F0)),
+    };
+
+/// Заголовок без значка в начале (значок уже слева).
+String _plain(String s) {
+  final i = s.indexOf(' ');
+  final starts = s.isEmpty ? '' : s.substring(0, 1);
+  return i > 0 && !RegExp(r'[0-9A-Za-zА-Яа-яЁёӘәІіҢңҒғҮүҰұҚқӨөҺһ№«]').hasMatch(starts) ? s.substring(i + 1) : s;
+}
+
+/// Время: сегодня — «14:32», иначе — дата и время.
+String _when(DateTime d) {
+  final l = d.toLocal(), now = DateTime.now();
+  final hm = '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
+  return l.year == now.year && l.month == now.month && l.day == now.day ? hm : '${l.day.toString().padLeft(2, '0')}.${l.month.toString().padLeft(2, '0')} $hm';
 }
 
 /// Колокольчик в шапке: число непрочитанных, обновляется при каждом пуше.
