@@ -91,6 +91,18 @@ async function registerAppPush() {
   }).catch(() => null);
   if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
 }
+/** Выход на этом устройстве: телефон перестаёт получать пуши этого покупателя, сессия удаляется. */
+export async function logout() {
+  const push = (window as any).kartopPushToken as string | undefined;
+  const token = readSession() ? await accessToken() : null;
+  if (push && token) {
+    await fetch(`${CLIENT_API}/devices/push-token/remove`, {
+      method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ token: push }),
+    }).catch(() => {});
+  }
+  saveSession(null);
+  try { localStorage.removeItem('kartop:push'); } catch { /* ок */ }
+}
 /** Действующий access-токен: из памяти или продлённый по refresh. null — нужно подтвердить номер. */
 export async function accessToken(force = false): Promise<string | null> {
   const s = readSession();

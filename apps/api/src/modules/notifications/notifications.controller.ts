@@ -30,6 +30,13 @@ export class NotificationsController {
     return { registered: true };
   }
 
+  /** Выход на устройстве: токен больше не получает пуши этого пользователя. */
+  @Post('devices/push-token/remove')
+  async unregister(@Body() dto: { token?: string }, @CurrentUser() user: RequestUser) {
+    if (dto?.token) await this.prisma.pushToken.deleteMany({ where: { token: dto.token, userId: user.userId } });
+    return { removed: true };
+  }
+
   /** Центр уведомлений: последние 50 и число непрочитанных. */
   @Get('me/notifications')
   async mine(@CurrentUser() user: RequestUser, @Query('app') app?: string) {

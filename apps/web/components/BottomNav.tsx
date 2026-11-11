@@ -10,7 +10,7 @@ import { useT } from './LangProvider';
 /** Высота нижнего меню — страницы оставляют под него место. */
 export const BOTTOM_NAV_H = 64;
 
-/** Нижнее меню покупателя (сайт и приложение): Магазины · Заказы · Ещё (открывает меню ☰). */
+/** Нижнее меню покупателя (сайт и приложение): Магазины · Заказы · Уведомления · Профиль. */
 export default function BottomNav() {
   const t = useT();
   const path = usePathname() ?? '/';
@@ -28,13 +28,10 @@ export default function BottomNav() {
       <div style={{ height: BOTTOM_NAV_H }} />
       <nav style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 15, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div style={{ display: 'flex', maxWidth: 560, margin: '0 auto', height: BOTTOM_NAV_H }}>
-          {tab('/', '🏪', t.navStores, !path.startsWith('/orders') && !path.startsWith('/order/') && !path.startsWith('/notifications'))}
+          {tab('/', '🏪', t.navStores, !path.startsWith('/orders') && !path.startsWith('/order/') && !path.startsWith('/notifications') && !path.startsWith('/profile'))}
           {tab('/orders', '🧾', t.navOrders, path.startsWith('/orders') || path.startsWith('/order/'))}
           {tab('/notifications', '🔔', t.navNotifications, path.startsWith('/notifications'), path.startsWith('/notifications') ? 0 : unread)}
-          <button type="button" onClick={() => window.dispatchEvent(new Event('kartop-menu'))} style={{ ...item, color: 'var(--ink-60)', border: 'none', background: 'transparent', font: 'inherit', cursor: 'pointer' }}>
-            <span style={{ fontSize: 22, lineHeight: 1 }}>☰</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>{t.navMore}</span>
-          </button>
+          {tab('/profile', '👤', t.navProfile, path.startsWith('/profile'))}
         </div>
       </nav>
     </>
