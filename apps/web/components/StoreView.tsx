@@ -832,7 +832,7 @@ function CheckoutDrawer(props: {
   const t = useT();
   const lang = useLang();
   // Два вида доставки: магазин сам (по своим зонам; цена и «бесплатно от» — у зоны) и курьерская служба
-  // (Яндекс и др.) — по всему городу, за счёт покупателя, в сумму заказа не входит. Доставка может быть выключена.
+  // (сторонняя) — по всему городу, за счёт покупателя, в сумму заказа не входит. Доставка может быть выключена.
   const deliveryOn = store.deliveryEnabled !== false;
   const ownOn = deliveryOn && store.deliveryMode !== 'SERVICE';
   const courierOn = deliveryOn && store.deliveryMode !== 'OWN';
