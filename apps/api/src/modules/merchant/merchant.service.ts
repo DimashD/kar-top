@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoreAccess } from '../../common/auth/store-access.service';
-import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, ZonesDto } from './dto';
+import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, ZonesDto, AddMemberDto, UpdateMemberDto } from './dto';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { circlePolygon, ZoneShape } from '../../common/zones';
 import { hoursOf, parseHours, WeekHours } from '../../common/hours';
@@ -244,5 +244,68 @@ export class MerchantService {
       take: 100,
       select: { id: true, type: true, name: true, categoryName: true, unit: true, status: true, note: true, createdAt: true },
     });
+  }
+
+  // --- Сотрудники магазина ---
+
+  /** Список сотрудников. Видят владелец и менеджер. */
+  async members(storeId: string, userId: string) {
+    await this.access.assertMember(storeId, userId, CATALOG_ROLES);
+    const rows = await this.prisma.storeMember.findMany({
+      where: { storeId },
+      select: { role: true, user: { select: { id: true, phone: true, name: true, passwordHash: true } } },
+    });
+    const order: Record<string, number> = { OWNER: 0, MANAGER: 1, PICKER: 2, COURIER: 3 };
+    return rows
+      .map((m) => ({
+        userId: m.user.id, phone: m.user.phone, name: m.user.name, role: m.role,
+        // Входил ли уже (придумал пароль) — чтобы владелец видел, что доступ работает.
+        active: !!m.user.passwordHash, you: m.user.id === userId,
+      }))
+      .sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9));
+  }
+
+  /** Выдать доступ по номеру телефона. Только владелец. */
+  async addMember(storeId: string, userId: string, dto: AddMemberDto) {
+    await this.access.assertMember(storeId, userId, [Role.OWNER]);
+    const d = (dto.phone || '').replace(/\D/g, '');
+    const phone = '+' + (d.startsWith('8') && d.length === 11 ? '7' + d.slice(1) : d);
+    if (!/^\+77\d{9}$/.test(phone)) throw new BadRequestException('Неверный номер: нужен казахстанский +7 7XX XXX XX XX');
+    const name = dto.name?.trim() || undefined;
+    const user = await this.prisma.user.upsert({
+      where: { phone },
+      update: {},
+      create: { phone, name },
+    });
+    const existing = await this.prisma.storeMember.findUnique({ where: { storeId_userId: { storeId, userId: user.id } } });
+    if (existing?.role === Role.OWNER) throw new BadRequestException('Это владелец магазина');
+    if (name && !user.name) await this.prisma.user.update({ where: { id: user.id }, data: { name } });
+    await this.prisma.storeMember.upsert({
+      where: { storeId_userId: { storeId, userId: user.id } },
+      update: { role: dto.role as Role },
+      create: { storeId, userId: user.id, role: dto.role as Role },
+    });
+    return this.members(storeId, userId);
+  }
+
+  /** Сменить роль сотрудника. Только владелец; владельца не меняем. */
+  async updateMember(storeId: string, userId: string, memberId: string, dto: UpdateMemberDto) {
+    await this.access.assertMember(storeId, userId, [Role.OWNER]);
+    const m = await this.prisma.storeMember.findUnique({ where: { storeId_userId: { storeId, userId: memberId } } });
+    if (!m) throw new NotFoundException('Сотрудник не найден');
+    if (m.role === Role.OWNER) throw new ForbiddenException('Роль владельца не меняется');
+    await this.prisma.storeMember.update({ where: { storeId_userId: { storeId, userId: memberId } }, data: { role: dto.role as Role } });
+    return this.members(storeId, userId);
+  }
+
+  /** Забрать доступ. Только владелец; себя и владельца удалить нельзя. */
+  async removeMember(storeId: string, userId: string, memberId: string) {
+    await this.access.assertMember(storeId, userId, [Role.OWNER]);
+    const m = await this.prisma.storeMember.findUnique({ where: { storeId_userId: { storeId, userId: memberId } } });
+    if (!m) throw new NotFoundException('Сотрудник не найден');
+    if (m.role === Role.OWNER) throw new ForbiddenException('Владельца удалить нельзя');
+    await this.prisma.storeMember.delete({ where: { storeId_userId: { storeId, userId: memberId } } });
+    // Пуши этого магазина ему больше не нужны — токены держатся за пользователя, а заказы рассылаются по членству.
+    return this.members(storeId, userId);
   }
 }

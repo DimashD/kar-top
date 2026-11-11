@@ -77,6 +77,7 @@ class Api {
       _send(path, () => http.put(_u(path), headers: _headers, body: jsonEncode(body)));
   Future<dynamic> _patch(String path, Map<String, dynamic> body) =>
       _send(path, () => http.patch(_u(path), headers: _headers, body: jsonEncode(body)));
+  Future<dynamic> _delete(String path) => _send(path, () => http.delete(_u(path), headers: _headers));
 
   // --- Auth ---
   Future<void> requestOtp(String phone) => _post('/auth/otp/request', {'phone': phone, 'channel': kOtpChannel});
@@ -108,6 +109,19 @@ class Api {
 
   /// Придумать/сменить пароль (уже вошли).
   Future<void> setPassword(String password) => _post('/me/password', {'password': password});
+
+  // --- Сотрудники магазина ---
+  Future<List<StoreMemberInfo>> members(String storeId) async =>
+      ((await _get('/merchant/stores/$storeId/members')) as List).map((j) => StoreMemberInfo.fromJson(j as Map<String, dynamic>)).toList();
+  Future<List<StoreMemberInfo>> addMember(String storeId, String phone, String role, String? name) async =>
+      ((await _post('/merchant/stores/$storeId/members', {'phone': phone, 'role': role, if (name != null && name.isNotEmpty) 'name': name})) as List)
+          .map((j) => StoreMemberInfo.fromJson(j as Map<String, dynamic>)).toList();
+  Future<List<StoreMemberInfo>> updateMember(String storeId, String userId, String role) async =>
+      ((await _patch('/merchant/stores/$storeId/members/$userId', {'role': role})) as List)
+          .map((j) => StoreMemberInfo.fromJson(j as Map<String, dynamic>)).toList();
+  Future<List<StoreMemberInfo>> removeMember(String storeId, String userId) async =>
+      ((await _delete('/merchant/stores/$storeId/members/$userId')) as List)
+          .map((j) => StoreMemberInfo.fromJson(j as Map<String, dynamic>)).toList();
 
   /// Есть ли у пользователя пароль.
   Future<bool> hasPassword() async => ((await _get('/me')) as Map<String, dynamic>)['hasPassword'] == true;

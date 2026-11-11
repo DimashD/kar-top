@@ -12,6 +12,7 @@ import '../widgets/language_picker.dart';
 import '../widgets/share_store.dart';
 import 'delivery_zones_screen.dart';
 import 'catalog_request_screen.dart';
+import 'staff_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -23,13 +24,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   StoreSettings? _s;
   bool _loading = true;
   bool _lockEnabled = false;
+  bool _bioEnabled = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
     _load();
-    AppLock.isEnabled().then((v) => setState(() => _lockEnabled = v));
+    AppLock.isEnabled().then((v) async {
+      final bio = v && await AppLock.biometricEnabled() && await AppLock.biometricAvailable();
+      if (mounted) setState(() { _lockEnabled = v; _bioEnabled = bio; });
+    });
   }
 
   Future<void> _load() async {
@@ -230,14 +235,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _toggleLock(bool on) async {
     if (!on) {
       await AppLock.disable();
-      setState(() => _lockEnabled = false);
+      setState(() { _lockEnabled = false; _bioEnabled = false; });
       return;
     }
     final pin = await _askPin();
     if (pin != null && pin.length == 4) {
       await AppLock.enable(pin);
       setState(() => _lockEnabled = true);
+      // Сразу предлагаем отпечаток/лицо, если они настроены на телефоне.
+      if (await AppLock.biometricAvailable()) await _toggleBio(true);
     }
+  }
+
+  Future<void> _toggleBio(bool on) async {
+    final s = context.read<Lang>().s;
+    final messenger = ScaffoldMessenger.of(context);
+    if (!on) {
+      await AppLock.setBiometricEnabled(false);
+      setState(() => _bioEnabled = false);
+      return;
+    }
+    if (!await AppLock.biometricAvailable()) {
+      messenger.showSnackBar(SnackBar(content: Text(s.biometricUnavailable)));
+      return;
+    }
+    // Проверяем отпечаток сразу — так видно, что всё работает.
+    final ok = await AppLock.authenticateBiometric(s.biometricReason);
+    await AppLock.setBiometricEnabled(ok);
+    if (mounted) setState(() => _bioEnabled = ok);
   }
 
   Future<String?> _askPin() {
@@ -324,6 +349,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
           Card(
             child: Column(children: [
+              if (store.myRole == 'OWNER' || store.myRole == 'MANAGER') ...[
+                ListTile(
+                  leading: const Icon(Icons.groups_outlined),
+                  title: Text(s.staff),
+                  subtitle: Text(s.staffSubtitle),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StaffScreen())),
+                ),
+                const Divider(height: 1),
+              ],
               ListTile(leading: const Icon(Icons.support_agent), title: Text(s.writeUs), subtitle: Text(s.writeUsHint), onTap: () => _writeUs(s)),
               const Divider(height: 1),
               ListTile(leading: const Icon(Icons.password), title: Text(s.changePassword), onTap: () => _changePassword(s)),
@@ -433,6 +467,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: _toggleLock,
           ),
         ),
+        if (_lockEnabled)
+          Card(
+            child: SwitchListTile(
+              value: _bioEnabled,
+              activeThumbColor: AppColors.leaf,
+              secondary: const Icon(Icons.fingerprint, color: AppColors.carrot),
+              title: Text(s.biometricLogin),
+              subtitle: Text(s.biometricLoginSubtitle),
+              onChanged: _toggleBio,
+            ),
+          ),
         const SizedBox(height: 20),
         Card(
           child: ListTile(
