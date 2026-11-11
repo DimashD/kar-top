@@ -6,7 +6,7 @@ describe('шаблоны уведомлений', () => {
     expect(t.audience).toBe('merchant');
     expect(t.loud).toBe(true);
     expect(t.critical).toBe(true);
-    expect(t.body({ number: 42 })).toContain('42');
+    expect(t.title({ number: 42 })).toContain('42');
   });
 
   it('статусы сборки/доставки адресованы покупателю', () => {
@@ -55,6 +55,6 @@ describe('тексты для самовывоза и доставки', () => {
     expect(TEMPLATES['order.ready'].body({ number: 7, fulfillment: 'DELIVERY', finalTiyn: 150000 })).toContain('курьеру');
   });
   it('в пути: самовывоз — ждёт в магазине', () => {
-    expect(TEMPLATES['order.delivering'].body({ number: 7, fulfillment: 'PICKUP' })).toContain('магазине');
+    expect(TEMPLATES['order.delivering'].title({ number: 7, fulfillment: 'PICKUP' })).toContain('магазине');
   });
 });

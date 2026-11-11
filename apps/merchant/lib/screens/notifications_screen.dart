@@ -96,7 +96,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     };
 
 /// Заголовок без значка в начале (значок уже слева).
-String _plain(String s) => s.replaceFirst(RegExp(r'^\p{Extended_Pictographic}\uFE0F?\s*', unicode: true), '');
+String _plain(String s) {
+  final i = s.indexOf(' ');
+  final starts = s.isEmpty ? '' : s.substring(0, 1);
+  return i > 0 && !RegExp(r'[0-9A-Za-zА-Яа-яЁёӘәІіҢңҒғҮүҰұҚқӨөҺһ№«]').hasMatch(starts) ? s.substring(i + 1) : s;
+}
 
 /// Время: сегодня — «14:32», иначе — дата и время.
 String _when(DateTime d) {
