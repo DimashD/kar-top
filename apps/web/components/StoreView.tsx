@@ -831,9 +831,10 @@ function CheckoutDrawer(props: {
   const { slug, store, lines, subtotal, looks, onClose, onSet, onEdit, onDone } = props;
   const t = useT();
   const lang = useLang();
-  // Своя доставка может быть выключена магазином — тогда только самовывоз.
+  // Доставка может быть выключена магазином — тогда только самовывоз. Доставка платная (курьерская служба за счёт
+  // покупателя), поэтому по умолчанию выбран самовывоз, если он есть.
   const deliveryOn = store.deliveryEnabled !== false;
-  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(deliveryOn ? 'DELIVERY' : 'PICKUP');
+  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(store.pickupEnabled || !deliveryOn ? 'PICKUP' : 'DELIVERY');
   // Номер — не в форме: его спрашивает шторка после «Оформить заказ» (если устройство ещё не подтверждено).
   const [knownPhone, setKnownPhone] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
@@ -937,7 +938,7 @@ function CheckoutDrawer(props: {
           {/* Способ получения */}
           <Field label={t.fulfillment}>
             <div style={{ display: 'grid', gridTemplateColumns: store.pickupEnabled && deliveryOn ? '1fr 1fr' : '1fr', gap: 8 }}>
-              {deliveryOn ? <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚗" title={t.delivery} /> : null}
+              {deliveryOn ? <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚚" title={t.delivery} sub={t.deliveryCourierSub} /> : null}
               {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="🛍️" title={t.pickup} /> : null}
             </div>
           </Field>
@@ -950,6 +951,11 @@ function CheckoutDrawer(props: {
           ) : null}
 
           {mode === 'DELIVERY' ? (<>
+            {feeTiyn ? null : (
+              <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FFF4D6', color: '#7A5200', fontSize: 14, lineHeight: 1.4 }}>
+                🚚 {t.deliveryCourierNote}
+              </div>
+            )}
             <Field label={t.deliveryAddress}>
               <AddressInput value={line} onChange={setLine} placeholder={t.addressPlaceholder} style={inputStyle(true)} near={store.location ?? null}
                 onPick={(address, pt) => { setLine(address); setGeo(pt); }} />
@@ -963,7 +969,7 @@ function CheckoutDrawer(props: {
                 </div>
               ) : zone?.inZone && !zone.noZones ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--leaf-50)', color: 'var(--leaf)', fontWeight: 700, fontSize: 14 }}>
-                  {feeTiyn ? t.deliveryCost(tenge(feeTiyn)) : t.freeDelivery}
+                  {feeTiyn ? t.deliveryCost(tenge(feeTiyn)) : `${t.deliveryLine}: ${t.deliveryPaidSeparately}`}
                   {zone.freeFromTiyn != null && feeTiyn ? <span style={{ fontWeight: 500 }}> · {t.freeFrom(tenge(zone.freeFromTiyn))}</span> : null}
                   {belowMin ? <div style={{ color: 'var(--sale)', marginTop: 4 }}>{t.minOrderNote(tenge(zone.minOrderTiyn ?? 0))}</div> : null}
                 </div>
@@ -1015,7 +1021,7 @@ function CheckoutDrawer(props: {
             </div>
             {delivering ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '3px 0' }}>
-                <span className="muted">{t.deliveryLine}</span><span style={{ fontWeight: 700 }}>{feeTiyn ? tenge(feeTiyn) : zone?.inZone ? t.deliveryFree : '—'}</span>
+                <span className="muted">{t.deliveryLine}</span><span style={{ fontWeight: 700 }}>{feeTiyn ? tenge(feeTiyn) : t.deliveryPaidSeparately}</span>
               </div>
             ) : null}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--line)', marginTop: 6, paddingTop: 8 }}>
@@ -1149,7 +1155,7 @@ function OrderPlaced({ order, onClose }: { order: { id: string; number: number; 
   );
 }
 
-function ModeBtn({ active, onClick, icon, title }: { active: boolean; onClick: () => void; icon: string; title: string }) {
+function ModeBtn({ active, onClick, icon, title, sub }: { active: boolean; onClick: () => void; icon: string; title: string; sub?: string }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 10px',
@@ -1157,7 +1163,11 @@ function ModeBtn({ active, onClick, icon, title }: { active: boolean; onClick: (
       background: active ? 'var(--carrot-50)' : 'var(--card)', color: active ? 'var(--carrot-600)' : 'var(--ink)',
       fontWeight: 700, fontSize: 15,
     }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>{title}
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+        {title}
+        {sub ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-60)' }}>{sub}</span> : null}
+      </span>
     </button>
   );
 }

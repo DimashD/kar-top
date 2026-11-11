@@ -171,7 +171,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           {o.missingCount > 0 ? <Row label={t.missing} value={String(o.missingCount)} /> : null}
           {/* Товары отдельно от доставки, затем итог с доставкой. */}
           <Row label={t.goodsSum} value={`${o.finalTiyn != null ? '' : '≈ '}${tenge((o.finalTiyn ?? o.estimatedTiyn) - (o.deliveryFeeTiyn ?? 0))}`} />
-          {o.fulfillment !== 'PICKUP' ? <Row label={t.deliveryLine} value={o.deliveryFeeTiyn ? tenge(o.deliveryFeeTiyn) : t.deliveryFree} /> : null}
+          {o.fulfillment !== 'PICKUP' ? <Row label={t.deliveryLine} value={o.deliveryFeeTiyn ? tenge(o.deliveryFeeTiyn) : t.deliveryPaidSeparately} /> : null}
           <Row label={o.finalTiyn != null ? t.totalByWeight : `${t.totalSum} (${t.estimate.toLowerCase()})`} value={tenge(o.finalTiyn ?? o.estimatedTiyn)} strong />
           <Row label={t.payment} value={payLabel(o.payMethod, t)} />
           {o.store.kaspiPhone ? (
