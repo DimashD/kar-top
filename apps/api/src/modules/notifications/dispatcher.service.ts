@@ -49,6 +49,7 @@ export class NotificationDispatcher {
     if (!tpl) return 0;
     const recipients = await this.recipients(tpl.audience, ev.aggregateType, ev.aggregateId);
     const body = tpl.body(ev.payload ?? {});
+    const title = tpl.title(ev.payload ?? {});
     // Нажатие на пуш: покупатель — страница заказа (в приложении покупателя), магазин — карточка заказа.
     const web = (process.env.WEB_BASE_URL || 'https://kar-top.kz').replace(/\/$/, '');
     const url = ev.aggregateType === 'order' ? `${web}/order/${ev.aggregateId}` : '';
@@ -58,10 +59,10 @@ export class NotificationDispatcher {
       // Сначала — в центр уведомлений (виден в приложении даже без пуша), счётчик непрочитанных — на иконку.
       const app = r.role === 'customer' ? 'customer' : 'merchant';
       await this.prisma.notification.create({
-        data: { userId: r.userId, app, type: ev.type, refId: ev.aggregateId, title: tpl.title, body, url: r.role === 'customer' && url ? url : null },
+        data: { userId: r.userId, app, type: ev.type, refId: ev.aggregateId, title, body, url: r.role === 'customer' && url ? url : null },
       });
       const badge = await this.prisma.notification.count({ where: { userId: r.userId, app, readAt: null } });
-      const msg = { title: tpl.title, body, badge, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
+      const msg = { title, body, badge, data: { type: ev.type, id: ev.aggregateId, ...(r.role === 'customer' && url ? { url } : {}) } };
       // Только в нужное приложение: уведомления покупателя — в приложение покупателя, магазина — в приложение магазина.
       const tokens = await this.prisma.pushToken.findMany({ where: { userId: r.userId, app }, select: { platform: true, token: true } });
       let delivered = 0;

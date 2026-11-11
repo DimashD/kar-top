@@ -39,8 +39,8 @@ describe('шаблоны уведомлений', () => {
 
   it('у всех шаблонов есть заголовок и тело-функция', () => {
     for (const [ev, t] of Object.entries(TEMPLATES)) {
-      expect(typeof t.title).toBe('string');
-      expect(t.title.length).toBeGreaterThan(0);
+      expect(typeof t.title).toBe('function');
+      expect(t.title({}).length).toBeGreaterThan(0);
       expect(typeof t.body).toBe('function');
       expect(typeof t.body({})).toBe('string'); // не падает на пустом payload
       expect(['customer', 'merchant', 'both']).toContain(t.audience);
