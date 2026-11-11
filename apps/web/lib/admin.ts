@@ -140,12 +140,36 @@ export interface CustomerRow {
 }
 export interface CustomersResult { totals: { customers: number; gmvTiyn: number; orders: number }; rows: CustomerRow[] }
 
-export function analyticsStores(): Promise<{ rows: StoreStat[] }> {
-  return adminFetch<{ rows: StoreStat[] }>('/admin/analytics/stores');
+/** Период аналитики: даты YYYY-MM-DD (Алматы), обе включительно; пусто — за всё время. */
+export interface Period { from?: string; to?: string }
+const periodQs = (p: Period = {}, extra: Record<string, string | undefined> = {}) => {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries({ from: p.from, to: p.to, ...extra })) if (v) q.set(k, v);
+  return q.toString();
+};
+
+export function analyticsStores(p?: Period): Promise<{ rows: StoreStat[] }> {
+  return adminFetch<{ rows: StoreStat[] }>(`/admin/analytics/stores?${periodQs(p, { limit: '500' })}`);
 }
-export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend'): Promise<CustomersResult> {
-  return adminFetch<CustomersResult>(`/admin/customers?sort=${sort}`);
+export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend', p?: Period): Promise<CustomersResult> {
+  return adminFetch<CustomersResult>(`/admin/customers?${periodQs(p, { sort, limit: '500' })}`);
 }
+export interface Summary {
+  store: { id: string; name: string; slug: string; status: string; rating: number | null } | null;
+  customer: { id: string; name: string | null; phone: string | null; createdAt: string } | null;
+  totals: {
+    orders: number; cancelled: number; gmvTiyn: number; avgCheckTiyn: number;
+    customers: number; stores: number; pickup: number; firstOrderAt: string | null; lastOrderAt: string | null;
+  };
+  days: { date: string; orders: number; gmvTiyn: number }[];
+}
+export function analyticsSummary(p?: Period, f: { storeId?: string; customerId?: string } = {}): Promise<Summary> {
+  return adminFetch<Summary>(`/admin/analytics/summary?${periodQs(p, f)}`);
+}
+export function periodOrders(p?: Period, f: { storeId?: string; customerId?: string } = {}) {
+  return adminFetch<{ orders: OrderRow[] }>(`/admin/orders?${periodQs(p, { ...f, limit: '300' })}`);
+}
+export const periodCsvQs = periodQs;
 
 // --- Мастер-каталог ---
 export type I18nName = { ru: string; kk?: string; en?: string };

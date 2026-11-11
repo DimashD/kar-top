@@ -6,7 +6,7 @@ import { useAdmin } from './AdminShell';
 import { formatKzPhone } from '../lib/phone';
 import { tenge } from '../lib/format';
 
-const STATUS_RU: Record<string, string> = {
+export const STATUS_RU: Record<string, string> = {
   CREATED: 'Создан', PLACED: 'Оформлен', ACCEPTED: 'Принят', PICKING: 'Сборка',
   AWAITING_CUSTOMER: 'Ждёт клиента', READY: 'Готов', COURIER_ASSIGNED: 'Курьер назначен',
   DELIVERING: 'Доставка', DELIVERED: 'Доставлен', COMPLETED: 'Завершён', CANCELLED: 'Отменён',
