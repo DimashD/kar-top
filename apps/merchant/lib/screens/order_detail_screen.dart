@@ -425,6 +425,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(height: 14),
                 ContactActions(phone: o.customerPhone!),
               ],
+              if (o.fulfillment == 'DELIVERY' && o.deliveryBy != null) ...[
+                const SizedBox(height: 14),
+                _infoRow(o.deliveryBy == 'SERVICE' ? Icons.local_taxi_outlined : Icons.delivery_dining_outlined,
+                    o.deliveryBy == 'SERVICE' ? s.deliveryCourierInfo : s.deliveryOwnInfo),
+              ],
               if (o.fulfillment == 'DELIVERY' && o.addressLine != null) ...[
                 const SizedBox(height: 14),
                 InkWell(onTap: () => _route(o), child: _infoRow(Icons.place_outlined, o.addressLine!)),

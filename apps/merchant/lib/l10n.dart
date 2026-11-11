@@ -277,6 +277,8 @@ abstract class S {
   String get undoPoint;
   String get clearPoints;
   String get deliveryFeeLabel;
+  String get deliveryOwnInfo;
+  String get deliveryCourierInfo;
   String get minOrderLabel;
   String get freeFromLabel;
   String get deleteZone;
@@ -544,6 +546,8 @@ class _Ru extends S {
   @override String get undoPoint => 'Отменить точку';
   @override String get clearPoints => 'Очистить';
   @override String get deliveryFeeLabel => 'Доставка';
+  @override String get deliveryOwnInfo => 'Доставка магазина — везёте сами';
+  @override String get deliveryCourierInfo => 'Курьер Яндекс или другой — вызовите курьера и передайте заказ. Доставку оплачивает клиент.';
   @override String get minOrderLabel => 'Мин. заказ';
   @override String get freeFromLabel => 'Бесплатно от';
   @override String get deleteZone => 'Удалить зону';
@@ -807,6 +811,8 @@ class _Kk extends S {
   @override String get undoPoint => 'Нүктені болдырмау';
   @override String get clearPoints => 'Тазалау';
   @override String get deliveryFeeLabel => 'Жеткізу';
+  @override String get deliveryOwnInfo => 'Дүкен жеткізуі — өзіңіз апарасыз';
+  @override String get deliveryCourierInfo => 'Яндекс немесе басқа курьер — курьер шақырып, тапсырысты беріңіз. Жеткізуді клиент төлейді.';
   @override String get minOrderLabel => 'Ең аз тапсырыс';
   @override String get freeFromLabel => 'Тегін, бастап';
   @override String get deleteZone => 'Аймақты жою';
@@ -1070,6 +1076,8 @@ class _Tg extends S {
   @override String get undoPoint => 'Бекор кардани нуқта';
   @override String get clearPoints => 'Тоза кардан';
   @override String get deliveryFeeLabel => 'Расонидан';
+  @override String get deliveryOwnInfo => 'Расонидани мағоза — худатон мебаред';
+  @override String get deliveryCourierInfo => 'Курйери Яндекс ё дигар — курйерро даъват кунед ва фармоишро супоред. Расониданро мизоҷ месупорад.';
   @override String get minOrderLabel => 'Фармоиши ҳадди ақал';
   @override String get freeFromLabel => 'Ройгон аз';
   @override String get deleteZone => 'Нест кардани минтақа';
@@ -1333,6 +1341,8 @@ class _Uz extends S {
   @override String get undoPoint => 'Nuqtani bekor qilish';
   @override String get clearPoints => 'Tozalash';
   @override String get deliveryFeeLabel => 'Yetkazib berish';
+  @override String get deliveryOwnInfo => 'Do‘kon yetkazib beradi — o‘zingiz olib borasiz';
+  @override String get deliveryCourierInfo => 'Yandex yoki boshqa kuryer — kuryer chaqiring va buyurtmani topshiring. Yetkazib berishni mijoz to‘laydi.';
   @override String get minOrderLabel => 'Minimal buyurtma';
   @override String get freeFromLabel => 'Bepul, dan';
   @override String get deleteZone => 'Hududni oʻchirish';

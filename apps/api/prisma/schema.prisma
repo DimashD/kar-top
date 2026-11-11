@@ -187,7 +187,8 @@ model Store {
   kaspiPhone String?
   address   String?
   geom      Json?       // точка магазина
-  deliveryMode DeliveryMode @default(OWN)
+  // Какие доставки есть у магазина: OWN — своя (по зонам), SERVICE — курьерская служба (Яндекс и др., за счёт покупателя), BOTH — обе.
+  deliveryMode DeliveryMode @default(BOTH)
   // Самовывоз: клиент забирает сам. pickupLeadMinutes — минимум времени от оформления до готовности к выдаче.
   pickupEnabled     Boolean @default(true)
   pickupLeadMinutes Int     @default(60)
@@ -260,6 +261,8 @@ model Order {
   deliveryCode  String?
   // Способ получения: доставка или самовывоз. pickupAt — выбранное время самовывоза.
   fulfillment   Fulfillment @default(DELIVERY)
+  // Кто везёт: OWN — магазин (цена по зоне), SERVICE — курьерская служба, оплачивает покупатель отдельно. null — самовывоз.
+  deliveryBy    DeliveryMode?
   pickupAt      DateTime? // желаемое время получения: самовывоз — когда заберёт, доставка — к какому времени привезти
   // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
   address       Json?

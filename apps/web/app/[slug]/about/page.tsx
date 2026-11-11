@@ -70,9 +70,10 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
         <div className="card" style={card}>
           <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.howToGet}</div>
           {s.pickupEnabled ? <div>🛍️ {t.pickupIn(s.pickupLeadMinutes)}</div> : null}
-          {s.deliveryEnabled !== false ? (
-            <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'OWN' ? t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60) : t.courierDeliveryNote}</div>
-          ) : null}
+          {s.deliveryEnabled !== false ? (<>
+            <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'SERVICE' ? t.courierDeliveryNote : t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60)}</div>
+            {s.deliveryMode === 'BOTH' ? <div style={{ marginTop: 4 }}>🚕 {t.courierDelivery} · {t.deliveryPaidSeparately}</div> : null}
+          </>) : null}
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>

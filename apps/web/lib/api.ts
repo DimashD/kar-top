@@ -64,6 +64,8 @@ export interface OrderTrack {
   store: { name: string; slug: string; address: string | null; kaspiPhone?: string | null };
   payMethod: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
   fulfillment: 'DELIVERY' | 'PICKUP';
+  /** Кто везёт: OWN — магазин, SERVICE — курьерская служба (за счёт покупателя, отдельно). */
+  deliveryBy?: 'OWN' | 'SERVICE' | null;
   pickupAt: string | null;
   estimatedTiyn: number;
   /** Платная доставка — уже входит в estimatedTiyn и finalTiyn. */
