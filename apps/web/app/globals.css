@@ -1,5 +1,6 @@
 /* Kartop — тёплый «Морковь». Токены дизайна (см. docs/05-ux-audit.md, макеты /design). */
 :root {
+  color-scheme: only light;
   --carrot: #D9531E;        /* основной акцент */
   --carrot-600: #BE4414;
   --carrot-50: #FCEDE6;
