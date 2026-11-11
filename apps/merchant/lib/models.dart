@@ -128,6 +128,8 @@ class OrderDetail {
   final int deliveryFeeTiyn;
   final String payMethod;
   final String fulfillment;
+  /// Кто везёт: OWN — магазин, SERVICE — курьерская служба (доставку оплачивает клиент). null — самовывоз.
+  final String? deliveryBy;
   final DateTime? pickupAt;
   final List<OrderItem> items;
   final String? customerName;
@@ -147,6 +149,7 @@ class OrderDetail {
     this.deliveryFeeTiyn = 0,
     required this.payMethod,
     required this.fulfillment,
+    this.deliveryBy,
     required this.pickupAt,
     required this.items,
     required this.customerName,
@@ -174,6 +177,7 @@ class OrderDetail {
       deliveryFeeTiyn: (j['deliveryFeeTiyn'] as num?)?.toInt() ?? 0,
       payMethod: j['payMethod'] as String? ?? 'CASH',
       fulfillment: j['fulfillment'] as String? ?? 'DELIVERY',
+      deliveryBy: j['deliveryBy'] as String?,
       pickupAt: j['pickupAt'] != null ? DateTime.parse(j['pickupAt'] as String) : null,
       items: ((j['items'] as List?) ?? []).map((e) => OrderItem.fromJson(e as Map<String, dynamic>)).toList(),
       customerName: pii?['name'] as String?,

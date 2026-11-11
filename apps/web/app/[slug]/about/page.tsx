@@ -71,7 +71,8 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.howToGet}</div>
           {s.pickupEnabled ? <div>🛍️ {t.pickupIn(s.pickupLeadMinutes)}</div> : null}
           {s.deliveryEnabled !== false ? (
-            <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'OWN' ? t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60) : t.courierDeliveryNote}</div>
+            <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'SERVICE' ? t.courierDeliveryNote : t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60)}</div>
+            {s.deliveryMode === 'BOTH' ? <div style={{ marginTop: 4 }}>🚕 {t.courierDelivery} · {t.deliveryPaidSeparately}</div> : null}
           ) : null}
         </div>
 

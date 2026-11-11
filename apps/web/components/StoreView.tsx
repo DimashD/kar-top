@@ -831,10 +831,12 @@ function CheckoutDrawer(props: {
   const { slug, store, lines, subtotal, looks, onClose, onSet, onEdit, onDone } = props;
   const t = useT();
   const lang = useLang();
-  // Доставка может быть выключена магазином — тогда только самовывоз. Доставка платная (курьерская служба за счёт
-  // покупателя), поэтому по умолчанию выбран самовывоз, если он есть.
+  // Два вида доставки: магазин сам (по своим зонам; цена и «бесплатно от» — у зоны) и курьерская служба
+  // (Яндекс и др.) — по всему городу, за счёт покупателя, в сумму заказа не входит. Доставка может быть выключена.
   const deliveryOn = store.deliveryEnabled !== false;
-  const [mode, setMode] = useState<'DELIVERY' | 'PICKUP'>(store.pickupEnabled || !deliveryOn ? 'PICKUP' : 'DELIVERY');
+  const ownOn = deliveryOn && store.deliveryMode !== 'SERVICE';
+  const courierOn = deliveryOn && store.deliveryMode !== 'OWN';
+  const [mode, setMode] = useState<'OWN' | 'SERVICE' | 'PICKUP'>(ownOn ? 'OWN' : store.pickupEnabled ? 'PICKUP' : 'SERVICE');
   // Номер — не в форме: его спрашивает шторка после «Оформить заказ» (если устройство ещё не подтверждено).
   const [knownPhone, setKnownPhone] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
@@ -851,10 +853,11 @@ function CheckoutDrawer(props: {
       .then((r) => r.json()).then((z) => { if (!stale) setZone(z); }).catch(() => { if (!stale) setZone(null); });
     return () => { stale = true; };
   }, [geo, slug]);
-  const delivering = mode === 'DELIVERY';
-  const outOfZone = delivering && zone?.inZone === false;
-  const belowMin = delivering && !!zone?.inZone && (zone.minOrderTiyn ?? 0) > subtotal;
-  const feeTiyn = delivering && zone?.inZone
+  const delivering = mode !== 'PICKUP';
+  const ownDelivery = mode === 'OWN';
+  const outOfZone = ownDelivery && zone?.inZone === false;
+  const belowMin = ownDelivery && !!zone?.inZone && (zone.minOrderTiyn ?? 0) > subtotal;
+  const feeTiyn = ownDelivery && zone?.inZone
     ? (zone.freeFromTiyn != null && subtotal >= zone.freeFromTiyn ? 0 : zone.feeTiyn ?? 0)
     : 0;
   const [mapOpen, setMapOpen] = useState(false);
@@ -862,7 +865,7 @@ function CheckoutDrawer(props: {
   useEffect(() => setPickupAt(''), [mode]);
   const [payChoice, setPay] = useState<'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER'>('CASH');
   // Курьерская служба денег не берёт — при её доставке только перевод Kaspi (то же правило на сервере).
-  const serviceDelivery = mode === 'DELIVERY' && store.deliveryMode === 'SERVICE';
+  const serviceDelivery = mode === 'SERVICE';
   const pay = serviceDelivery ? 'KASPI_TRANSFER' : payChoice;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -870,7 +873,7 @@ function CheckoutDrawer(props: {
   // Самое раннее время получения по настройкам магазина: самовывоз — время сборки,
   // доставка — средний срок своей доставки или передачи курьеру. Локальное 'YYYY-MM-DDTHH:MM'.
   const leadMin = mode === 'PICKUP' ? store.pickupLeadMinutes ?? 60
-    : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes ?? 30 : store.ownDeliveryMinutes ?? 60;
+    : mode === 'SERVICE' ? store.courierHandoverMinutes ?? 30 : store.ownDeliveryMinutes ?? 60;
   const earliest = useMemo(() => {
     const d = new Date(Date.now() + leadMin * 60000);
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -896,8 +899,9 @@ function CheckoutDrawer(props: {
         ? { storeProductId: l.product.id, qtyG: l.qty }
         : { storeProductId: l.product.id, qty: l.qty });
       // Номер заказа сервер берёт из подтверждённого аккаунта (токен).
-      const body: any = { storeSlug: slug, payMethod: pay, fulfillment: mode, items };
-      if (mode === 'DELIVERY') body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
+      const body: any = { storeSlug: slug, payMethod: pay, fulfillment: delivering ? 'DELIVERY' : 'PICKUP', items };
+      if (delivering) body.deliveryBy = mode;
+      if (delivering) body.address = { line: line.trim(), ...(geo ? { lat: geo.lat, lng: geo.lng } : {}) };
       if (pickupAt) body.pickupAt = new Date(pickupAt).toISOString();
       const r = await fetch(`${CLIENT_API}/orders`, {
         method: 'POST',
@@ -937,8 +941,9 @@ function CheckoutDrawer(props: {
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Способ получения */}
           <Field label={t.fulfillment}>
-            <div style={{ display: 'grid', gridTemplateColumns: store.pickupEnabled && deliveryOn ? '1fr 1fr' : '1fr', gap: 8 }}>
-              {deliveryOn ? <ModeBtn active={mode === 'DELIVERY'} onClick={() => setMode('DELIVERY')} icon="🚚" title={t.delivery} sub={t.deliveryCourierSub} /> : null}
+            <div style={{ display: 'grid', gap: 8 }}>
+              {ownOn ? <ModeBtn active={mode === 'OWN'} onClick={() => setMode('OWN')} icon="🛵" title={t.ownDelivery} sub={t.ownDeliverySub} /> : null}
+              {courierOn ? <ModeBtn active={mode === 'SERVICE'} onClick={() => setMode('SERVICE')} icon="🚕" title={t.courierDelivery} sub={t.deliveryCourierSub} /> : null}
               {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="🛍️" title={t.pickup} /> : null}
             </div>
           </Field>
@@ -950,8 +955,8 @@ function CheckoutDrawer(props: {
             </div>
           ) : null}
 
-          {mode === 'DELIVERY' ? (<>
-            {feeTiyn ? null : (
+          {delivering ? (<>
+            {mode !== 'SERVICE' ? null : (
               <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FFF4D6', color: '#7A5200', fontSize: 14, lineHeight: 1.4 }}>
                 🚚 {t.deliveryCourierNote}
               </div>
@@ -966,10 +971,14 @@ function CheckoutDrawer(props: {
               {outOfZone ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FBEAEA', color: 'var(--sale)', fontWeight: 700, fontSize: 14 }}>
                   {t.outOfZone}
+                  {courierOn ? (
+                    <button type="button" onClick={() => setMode('SERVICE')} className="btn btn-ghost"
+                      style={{ marginTop: 8, width: '100%', justifyContent: 'center', fontSize: 14 }}>🚕 {t.chooseCourier}</button>
+                  ) : null}
                 </div>
-              ) : zone?.inZone && !zone.noZones ? (
+              ) : ownDelivery && zone?.inZone && !zone.noZones ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--leaf-50)', color: 'var(--leaf)', fontWeight: 700, fontSize: 14 }}>
-                  {feeTiyn ? t.deliveryCost(tenge(feeTiyn)) : `${t.deliveryLine}: ${t.deliveryPaidSeparately}`}
+                  {feeTiyn ? t.deliveryCost(tenge(feeTiyn)) : t.freeDelivery}
                   {zone.freeFromTiyn != null && feeTiyn ? <span style={{ fontWeight: 500 }}> · {t.freeFrom(tenge(zone.freeFromTiyn))}</span> : null}
                   {belowMin ? <div style={{ color: 'var(--sale)', marginTop: 4 }}>{t.minOrderNote(tenge(zone.minOrderTiyn ?? 0))}</div> : null}
                 </div>
@@ -1021,7 +1030,7 @@ function CheckoutDrawer(props: {
             </div>
             {delivering ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, padding: '3px 0' }}>
-                <span className="muted">{t.deliveryLine}</span><span style={{ fontWeight: 700 }}>{feeTiyn ? tenge(feeTiyn) : t.deliveryPaidSeparately}</span>
+                <span className="muted">{t.deliveryLine}</span><span style={{ fontWeight: 700 }}>{serviceDelivery ? t.deliveryPaidSeparately : feeTiyn ? tenge(feeTiyn) : zone?.inZone ? t.deliveryFree : '—'}</span>
               </div>
             ) : null}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderTop: '1px solid var(--line)', marginTop: 6, paddingTop: 8 }}>
@@ -1158,7 +1167,7 @@ function OrderPlaced({ order, onClose }: { order: { id: string; number: number; 
 function ModeBtn({ active, onClick, icon, title, sub }: { active: boolean; onClick: () => void; icon: string; title: string; sub?: string }) {
   return (
     <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 10px',
+      display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 10, padding: '12px 14px', textAlign: 'left',
       border: `1px solid ${active ? 'var(--carrot)' : 'var(--line)'}`, borderRadius: 'var(--radius-sm)',
       background: active ? 'var(--carrot-50)' : 'var(--card)', color: active ? 'var(--carrot-600)' : 'var(--ink)',
       fontWeight: 700, fontSize: 15,

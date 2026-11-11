@@ -37,13 +37,19 @@ export class OrderingService {
     if (fulfillment === 'DELIVERY' && store.deliveryEnabled === false) {
       throw new BadRequestException('Доставка в этом магазине сейчас недоступна — выберите самовывоз');
     }
-    if (!allowedPayMethods(fulfillment, store.deliveryMode ?? 'OWN').includes(dto.payMethod)) {
+    // Два вида доставки: своя доставка магазина (по зонам; цена и «бесплатно от» — у зоны)
+    // и курьерская служба (Яндекс и др.) — по всему городу, оплачивает покупатель отдельно, в сумму заказа не входит.
+    const mode = store.deliveryMode ?? 'BOTH';
+    const deliveryBy = fulfillment === 'DELIVERY' ? (dto.deliveryBy ?? (mode === 'SERVICE' ? 'SERVICE' : 'OWN')) : null;
+    if (deliveryBy === 'OWN' && mode === 'SERVICE') throw new BadRequestException('Магазин сам не доставляет — выберите курьера или самовывоз');
+    if (deliveryBy === 'SERVICE' && mode === 'OWN') throw new BadRequestException('Курьерская служба в этом магазине недоступна');
+    if (!allowedPayMethods(fulfillment, deliveryBy ?? 'OWN').includes(dto.payMethod)) {
       throw new BadRequestException('Доставку выполняет курьерская служба — оплата только переводом Kaspi заранее');
     }
     if (fulfillment === 'PICKUP' && !store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
     // Желаемое время получения — не раньше, чем магазин успевает по своим настройкам.
     const leadMin = (fulfillment === 'PICKUP' ? store.pickupLeadMinutes
-      : store.deliveryMode === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes) ?? 60;
+      : deliveryBy === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes) ?? 60;
     let pickupAt: Date | null = null;
     if (dto.pickupAt) {
       pickupAt = new Date(dto.pickupAt);
@@ -88,14 +94,15 @@ export class OrderingService {
       };
     });
 
-    // Доставка: если магазин задал зоны — точка обязательна, должна попасть в зону, сумма — не ниже минимальной.
+    // Своя доставка: если магазин задал зоны — точка обязательна, должна попасть в зону, сумма — не ниже минимальной.
+    // Курьерская служба — без зон и без цены в заказе.
     let deliveryFeeTiyn = 0;
-    if (fulfillment === 'DELIVERY' && store.zones?.length) {
+    if (deliveryBy === 'OWN' && store.zones?.length) {
       const lat = dto.address?.lat;
       const lng = dto.address?.lng;
       if (lat == null || lng == null) throw new BadRequestException('Укажите точку доставки на карте');
       const zone = findZone(store.zones, [lng, lat]);
-      if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите самовывоз');
+      if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите курьера или самовывоз');
       if (subtotal < zone.minOrderTiyn) {
         throw new BadRequestException(`Минимальная сумма заказа с доставкой — ${Math.round(zone.minOrderTiyn / 100)} ₸`);
       }
@@ -116,6 +123,7 @@ export class OrderingService {
         status: 'PLACED',
         deliveryCode: this.genDeliveryCode(),
         fulfillment,
+        deliveryBy,
         pickupAt,
         address: fulfillment === 'DELIVERY' && dto.address ? (dto.address as object) : undefined,
         payMethod: dto.payMethod,
@@ -124,7 +132,7 @@ export class OrderingService {
         items: { create: itemsData },
         events: { create: { to: 'PLACED', actor: 'customer' } },
       },
-      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true, fulfillment: true, pickupAt: true },
+      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true, fulfillment: true, deliveryBy: true, pickupAt: true },
     });
 
     const trackUrl = `${(process.env.WEB_BASE_URL || 'https://kartop.kz').replace(/\/$/, '')}/order/${order.id}`;
@@ -167,14 +175,14 @@ export class OrderingService {
       take: limit,
       select: {
         id: true, number: true, status: true, createdAt: true,
-        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, pickupAt: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, deliveryBy: true, pickupAt: true,
         _count: { select: { items: true } },
       },
     });
     return orders.map((o) => ({
       id: o.id, number: o.number, status: o.status, createdAt: o.createdAt,
       amountTiyn: o.finalTiyn ?? o.subtotalTiyn + o.deliveryFeeTiyn, payMethod: o.payMethod,
-      fulfillment: o.fulfillment, pickupAt: o.pickupAt, itemCount: o._count.items,
+      fulfillment: o.fulfillment, deliveryBy: o.deliveryBy, pickupAt: o.pickupAt, itemCount: o._count.items,
     }));
   }
 
@@ -217,6 +225,7 @@ export class OrderingService {
       finalTiyn: o.finalTiyn,
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
+      deliveryBy: o.deliveryBy,
       pickupAt: o.pickupAt,
       itemCount: o.items.length,
       items: await this.itemsWithNames(o.items), // позиции — не ПДн, нужны для сборки
@@ -317,7 +326,7 @@ export class OrderingService {
       orderBy: { createdAt: 'desc' },
       take: 50,
       select: {
-        id: true, number: true, status: true, createdAt: true, fulfillment: true, pickupAt: true,
+        id: true, number: true, status: true, createdAt: true, fulfillment: true, deliveryBy: true, pickupAt: true,
         subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true,
         store: { select: { name: true, slug: true } },
         _count: { select: { items: true } },
@@ -334,7 +343,7 @@ export class OrderingService {
       select: {
         id: true, number: true, status: true, createdAt: true,
         subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
-        fulfillment: true, pickupAt: true,
+        fulfillment: true, deliveryBy: true, pickupAt: true,
         store: { select: { name: true, slug: true, address: true, kaspiPhone: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
         items: { select: { id: true, storeProductId: true, qtyRequestedG: true, qtyRequested: true, qtyActualG: true, priceSnapTiyn: true, status: true } },
@@ -367,6 +376,7 @@ export class OrderingService {
       },
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
+      deliveryBy: o.deliveryBy,
       pickupAt: o.pickupAt,
       estimatedTiyn: o.subtotalTiyn + o.deliveryFeeTiyn,
       deliveryFeeTiyn: o.deliveryFeeTiyn,

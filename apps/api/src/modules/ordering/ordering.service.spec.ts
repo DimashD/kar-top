@@ -323,3 +323,39 @@ describe('Зоны доставки', () => {
     expect(prisma.order.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ deliveryFeeTiyn: 50000 }) }));
   });
 });
+
+describe('Два вида доставки: магазин и курьерская служба', () => {
+  const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
+  const storeWith = (deliveryMode: string) => makePrisma({
+    store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY, deliveryMode, deliveryEnabled: true,
+      zones: [{ polygon: square, feeTiyn: 50000, minOrderTiyn: 1_000_000, freeFromTiyn: null }] }) },
+  });
+  const far = { line: 'мкр. Алгабас, 5', lat: 43.5, lng: 77.2 };
+  const base = { storeSlug: 's', phone: '+77011234567', fulfillment: 'DELIVERY', items: [{ storeProductId: 'sp-pcs', qty: 1 }] };
+
+  it('курьер: любая точка города, без минимальной суммы, цена доставки в заказ не входит', async () => {
+    const prisma = storeWith('BOTH');
+    const r = await new OrderingService(prisma as any).create({ ...base, deliveryBy: 'SERVICE', payMethod: 'KASPI_TRANSFER', address: far } as any);
+    expect(r.deliveryFeeTiyn).toBe(0);
+    expect(prisma.order.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ deliveryBy: 'SERVICE', deliveryFeeTiyn: 0 }) }));
+  });
+  it('курьер: наличными нельзя (курьер деньги не берёт) → 400', async () => {
+    await expect(new OrderingService(storeWith('BOTH') as any).create({ ...base, deliveryBy: 'SERVICE', payMethod: 'CASH', address: far } as any))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('доставка магазина в ту же точку вне зоны → 400', async () => {
+    await expect(new OrderingService(storeWith('BOTH') as any).create({ ...base, deliveryBy: 'OWN', payMethod: 'CASH', address: far } as any))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('магазин без своей доставки: OWN → 400; без курьера: SERVICE → 400', async () => {
+    await expect(new OrderingService(storeWith('SERVICE') as any).create({ ...base, deliveryBy: 'OWN', payMethod: 'CASH', address: far } as any))
+      .rejects.toBeInstanceOf(BadRequestException);
+    await expect(new OrderingService(storeWith('OWN') as any).create({ ...base, deliveryBy: 'SERVICE', payMethod: 'KASPI_TRANSFER', address: far } as any))
+      .rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('самовывоз: вид доставки не записывается', async () => {
+    const prisma = storeWith('BOTH');
+    await new OrderingService(prisma as any).create({ ...base, fulfillment: 'PICKUP', deliveryBy: 'SERVICE', payMethod: 'CASH' } as any);
+    expect(prisma.order.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ deliveryBy: null }) }));
+  });
+});
