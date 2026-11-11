@@ -122,7 +122,7 @@ export default function StorePoster({ slug }: { slug: string }) {
 
           {/* Три шага */}
           <div style={{ marginTop: 'auto', background: '#FBF1EA', padding: '7mm 12mm 9mm', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5mm' }}>
-            {[['1', 'Отсканируйте', 'QR-код камерой'], ['2', 'Выберите продукты', 'в пару касаний'], ['3', third, 'наличными, картой или Kaspi']].map(([n, a, b]) => (
+            {[['1', 'Отсканируйте', 'QR-код камерой'], ['2', 'Выберите продукты', 'в пару касаний'], ['3', third, 'наличными, картой или переводом']].map(([n, a, b]) => (
               <div key={n} style={{ textAlign: 'center' }}>
                 <div style={{ width: '11mm', height: '11mm', borderRadius: '99mm', background: CARROT, color: '#fff', fontWeight: 900, fontSize: '6mm', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2.5mm' }}>{n}</div>
                 <div style={{ fontWeight: 800, fontSize: '4.6mm', lineHeight: 1.2 }}>{a}</div>
