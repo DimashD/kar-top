@@ -14,23 +14,51 @@ class LockScreen extends StatefulWidget {
   State<LockScreen> createState() => _LockScreenState();
 }
 
-class _LockScreenState extends State<LockScreen> {
+class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   String _pin = '';
   bool _error = false;
   bool _bioAvailable = false;
+  bool _asking = false;
+  bool _wasAway = false;
 
   @override
   void initState() {
     super.initState();
-    _tryBiometric();
+    WidgetsBinding.instance.addObserver(this);
+    // Окно отпечатка можно показать только когда приложение на экране: замок ставится
+    // при сворачивании, поэтому спрашиваем после первого кадра или при возврате.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) _tryBiometric();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Только после настоящего возврата из фона: закрытое окно отпечатка даёт лишь inactive → resumed,
+    // и повторно его не показываем (иначе «Отмена» открывала бы окно снова и снова).
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) _wasAway = true;
+    if (state == AppLifecycleState.resumed && _wasAway) {
+      _wasAway = false;
+      _tryBiometric();
+    }
   }
 
   Future<void> _tryBiometric() async {
-    final ok = await AppLock.biometricAvailable();
+    if (_asking) return;
+    final ok = await AppLock.biometricEnabled() && await AppLock.biometricAvailable();
     if (mounted) setState(() => _bioAvailable = ok);
-    if (!mounted) return;
+    if (!ok || !mounted) return;
     final reason = context.read<Lang>().s.biometricReason;
-    if (ok && await AppLock.authenticateBiometric(reason)) widget.onUnlocked();
+    _asking = true;
+    final passed = await AppLock.authenticateBiometric(reason);
+    _asking = false;
+    if (passed && mounted) widget.onUnlocked();
   }
 
   Future<void> _tap(String d) async {

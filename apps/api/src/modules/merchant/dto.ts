@@ -61,3 +61,14 @@ export class CatalogRequestDto {
   @IsOptional() @IsIn(['KG', 'G', 'PCS', 'BUNCH', 'PACK']) unit?: string;
   @IsOptional() @IsString() note?: string;
 }
+
+/** Добавить сотрудника магазина (только владелец). Сотрудник входит по своему номеру — по коду, потом придумывает пароль. */
+export class AddMemberDto {
+  @IsString() phone!: string;
+  @IsOptional() @IsString() name?: string;
+  @IsIn(['MANAGER', 'PICKER', 'COURIER']) role!: 'MANAGER' | 'PICKER' | 'COURIER';
+}
+
+export class UpdateMemberDto {
+  @IsIn(['MANAGER', 'PICKER', 'COURIER']) role!: 'MANAGER' | 'PICKER' | 'COURIER';
+}

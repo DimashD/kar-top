@@ -257,3 +257,22 @@ class AppNotification {
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
 }
+
+/// Сотрудник магазина (экран «Сотрудники»).
+class StoreMemberInfo {
+  final String userId;
+  final String phone;
+  final String? name;
+  final String role;
+  final bool active;
+  final bool you;
+  StoreMemberInfo({required this.userId, required this.phone, this.name, required this.role, required this.active, required this.you});
+  factory StoreMemberInfo.fromJson(Map<String, dynamic> j) => StoreMemberInfo(
+        userId: j['userId'] as String,
+        phone: j['phone'] as String? ?? '',
+        name: j['name'] as String?,
+        role: j['role'] as String? ?? '',
+        active: j['active'] == true,
+        you: j['you'] == true,
+      );
+}
