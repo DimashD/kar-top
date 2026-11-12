@@ -17,6 +17,7 @@ import { useLang, useT } from './LangProvider';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import MapPicker from './MapPicker';
 import AddressInput from './AddressInput';
+import Icon, { IconName, IconTile } from './Icon';
 
 type Line = { product: CatalogProduct; qty: number }; // qty: граммы (весовой) или штуки
 
@@ -230,13 +231,13 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
             {/* Быстрее всего — через бот Kartop в Telegram: номер подтверждает Telegram, код не нужен. */}
             <button className="btn btn-primary btn-block" disabled={busy} onClick={loginTelegram} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
-              ✈️ {t.loginTelegram}
+              <Icon name="send" size={20} />{t.loginTelegram}
             </button>
             <div className="muted" style={{ textAlign: 'center', fontSize: 13 }}>{t.orByCode}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             {/* Telegram — бесплатно для покупателя и дешевле для нас; SMS — для всех. */}
             <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
-              {busy ? t.sendingCode : `💬 ${t.codeSms}`}
+              {busy ? t.sendingCode : <><Icon name="chat" size={19} />{t.codeSms}</>}
             </button>
           </>
         ) : (
@@ -528,7 +529,7 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onSet, on
       <button type="button" onClick={onEdit} aria-label={name}
         style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: 0, border: 'none', background: 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
       {/* Фото магазина; пока его нет — пиктограмма самого товара (или инициалы) на фоне цвета группы. */}
-      <div style={{ width: 88, height: 88, borderRadius: 18, background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 76, height: 76, borderRadius: 16, background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {p.photo ? <img src={p.photo} alt={name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : look?.pic ? <span aria-hidden="true" style={{ fontSize: 44, lineHeight: 1 }}>{look.pic}</span>
           : <span aria-hidden="true" style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
@@ -536,10 +537,10 @@ function ProductRow({ p, look, showCategory, qty, onAdd, onInc, onDec, onSet, on
       <div style={{ flex: 1, minWidth: 0 }}>
         {showCategory && p.category ? <div style={{ fontSize: 12, color: 'var(--ink-40)' }}>{localized(p.category, lang)}</div> : null}
         <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.25 }}>{name}</div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
-          <span style={{ fontWeight: 800, fontSize: 15 }}>{tenge(p.priceTiyn)}</span>
-          <span style={{ fontSize: 12, color: 'var(--ink-40)' }}>{perUnit(p.unit, t)}</span>
-          {sale ? <span className="price-old" style={{ fontSize: 12 }}>{tenge(p.oldPriceTiyn!)}</span> : null}
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 6, marginTop: 2 }}>
+          <span style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', color: sale ? 'var(--sale)' : undefined }}>{tenge(p.priceTiyn)}</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-40)', whiteSpace: 'nowrap' }}>{perUnit(p.unit, t)}</span>
+          {sale ? <span className="price-old" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{tenge(p.oldPriceTiyn!)}</span> : null}
         </div>
       </div>
       </button>
@@ -944,9 +945,9 @@ function CheckoutDrawer(props: {
           {/* Способ получения */}
           <Field label={t.fulfillment}>
             <div style={{ display: 'grid', gap: 8 }}>
-              {ownOn ? <ModeBtn active={mode === 'OWN'} onClick={() => setMode('OWN')} icon="🛵" title={t.ownDelivery} sub={t.ownDeliverySub} /> : null}
-              {courierOn ? <ModeBtn active={mode === 'SERVICE'} onClick={() => setMode('SERVICE')} icon="🚕" title={t.courierDelivery} sub={t.deliveryCourierSub} /> : null}
-              {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="🛍️" title={t.pickup} /> : null}
+              {ownOn ? <ModeBtn active={mode === 'OWN'} onClick={() => setMode('OWN')} icon="scooter" title={t.ownDelivery} sub={t.ownDeliverySub} /> : null}
+              {courierOn ? <ModeBtn active={mode === 'SERVICE'} onClick={() => setMode('SERVICE')} icon="car" title={t.courierDelivery} sub={t.deliveryCourierSub} /> : null}
+              {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="bag" title={t.pickup} /> : null}
             </div>
           </Field>
 
@@ -960,7 +961,7 @@ function CheckoutDrawer(props: {
           {delivering ? (<>
             {mode !== 'SERVICE' ? null : (
               <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FFF4D6', color: '#7A5200', fontSize: 14, lineHeight: 1.4 }}>
-                🚚 {t.deliveryCourierNote}
+                <Icon name="car" size={17} style={{ marginRight: 6 }} />{t.deliveryCourierNote}
               </div>
             )}
             <Field label={t.deliveryAddress}>
@@ -968,14 +969,14 @@ function CheckoutDrawer(props: {
                 onPick={(address, pt) => { setLine(address); setGeo(pt); }} />
               <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
                 style={{ marginTop: 8, width: '100%', justifyContent: 'center', ...(geo ? { borderColor: 'var(--leaf)', color: 'var(--leaf)' } : {}) }}>
-                {geo ? t.changePoint : t.addLocation}
+                <Icon name="pin" size={18} />{geo ? t.changePoint : t.addLocation}
               </button>
               {outOfZone ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FBEAEA', color: 'var(--sale)', fontWeight: 700, fontSize: 14 }}>
                   {t.outOfZone}
                   {courierOn ? (
                     <button type="button" onClick={() => setMode('SERVICE')} className="btn btn-ghost"
-                      style={{ marginTop: 8, width: '100%', justifyContent: 'center', fontSize: 14 }}>🚕 {t.chooseCourier}</button>
+                      style={{ marginTop: 8, width: '100%', justifyContent: 'center', fontSize: 14 }}><Icon name="car" size={18} />{t.chooseCourier}</button>
                   ) : null}
                 </div>
               ) : ownDelivery && zone?.inZone && !zone.noZones ? (
@@ -1114,7 +1115,7 @@ function PickupTimePicker({ earliest, hours, value, onChange, asapNote }: { earl
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {asapOk ? (
         <button type="button" onClick={() => onChange('')} style={{ ...on(!value), padding: '12px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>⚡</span>
+          <IconTile name="zap" size={36} bg={!value ? '#fff' : 'var(--carrot-50)'} />
           <span><span style={{ display: 'block', fontWeight: 800 }}>{t.asap}</span><span className="muted" style={{ fontSize: 13 }}>{asapNote(hhmm(first))}</span></span>
         </button>
       ) : null}
@@ -1149,7 +1150,7 @@ function OrderPlaced({ order, onClose }: { order: { id: string; number: number; 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div className="card" style={{ maxWidth: 420, width: '100%', padding: 28, textAlign: 'center', boxShadow: 'var(--shadow)' }}>
-        <div style={{ fontSize: 48 }}>✅</div>
+        <IconTile name="checkCircle" size={64} round bg="var(--leaf-50)" color="var(--leaf)" />
         <h2 style={{ fontSize: 24, margin: '12px 0 6px' }}>{t.orderPlaced(order.number)}</h2>
         <p className="muted" style={{ marginTop: 0 }}>{t.orderPlacedText(tenge(order.estimatedTiyn))}</p>
         {order.deliveryCode ? (
@@ -1166,7 +1167,7 @@ function OrderPlaced({ order, onClose }: { order: { id: string; number: number; 
   );
 }
 
-function ModeBtn({ active, onClick, icon, title, sub }: { active: boolean; onClick: () => void; icon: string; title: string; sub?: string }) {
+function ModeBtn({ active, onClick, icon, title, sub }: { active: boolean; onClick: () => void; icon: IconName; title: string; sub?: string }) {
   return (
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 10, padding: '12px 14px', textAlign: 'left',
@@ -1174,7 +1175,7 @@ function ModeBtn({ active, onClick, icon, title, sub }: { active: boolean; onCli
       background: active ? 'var(--carrot-50)' : 'var(--card)', color: active ? 'var(--carrot-600)' : 'var(--ink)',
       fontWeight: 700, fontSize: 15,
     }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
+      <IconTile name={icon} size={36} bg={active ? '#fff' : 'var(--carrot-50)'} />
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
         {title}
         {sub ? <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-60)' }}>{sub}</span> : null}
