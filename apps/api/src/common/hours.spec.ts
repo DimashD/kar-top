@@ -1,4 +1,4 @@
-import { DEFAULT_HOURS, hoursOf, isOpenAt, parseHours } from './hours';
+import { DEFAULT_HOURS, hoursOf, isOpenAt, minutesUntilOpen, parseHours } from './hours';
 
 describe('часы работы', () => {
   const week = parseHours([{ open: '09:00', close: '21:00' }, null, null, null, null, null, { open: '10:00', close: '24:00' }]);
@@ -19,5 +19,12 @@ describe('часы работы', () => {
     expect(isOpenAt(week, new Date('2026-11-09T16:00:00Z'))).toBe(false); // пн 21:00 — уже закрыт
     expect(isOpenAt(week, new Date('2026-11-10T06:00:00Z'))).toBe(false); // вт — выходной
     expect(isOpenAt(week, new Date('2026-11-15T18:30:00Z'))).toBe(true); // вс 23:30, до полуночи
+  });
+
+  it('минуты до открытия', () => {
+    expect(minutesUntilOpen(week, new Date('2026-11-09T03:00:00Z'))).toBe(60); // пн 08:00, откроются в 09:00
+    expect(minutesUntilOpen(week, new Date('2026-11-09T03:30:00Z'))).toBe(30);
+    expect(minutesUntilOpen(week, new Date('2026-11-09T04:10:00Z'))).toBeNull(); // уже открыты
+    expect(minutesUntilOpen(week, new Date('2026-11-10T03:00:00Z'))).toBeNull(); // вт — выходной
   });
 });

@@ -92,6 +92,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'order.reviewed' => ('⭐', const Color(0xFFFFF4D6)),
       'order.cancelled' => ('❌', const Color(0xFFF4F2F0)),
       'billing.invoice_issued' || 'billing.invoice_paid' => ('🧾', const Color(0xFFE9F2EB)),
+      'store.update_reminder' => ('🌅', const Color(0xFFFFF4D6)),
       _ => ('🔔', const Color(0xFFF4F2F0)),
     };
 
