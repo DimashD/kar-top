@@ -1,3 +1,4 @@
+import Logo from '../../components/Logo';
 import Link from 'next/link';
 import AppBanner from '../../components/AppBanner';
 import { LangSwitcher } from '../../components/LangProvider';
@@ -13,7 +14,7 @@ export default function AppPage() {
     <main>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          <Link href="/" style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)' }}>Kartop</Link>
+          <Logo size={28} />
           <LangSwitcher />
         </div>
       </header>

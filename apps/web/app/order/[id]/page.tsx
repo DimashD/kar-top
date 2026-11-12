@@ -1,3 +1,4 @@
+import Logo from '../../../components/Logo';
 import Link from 'next/link';
 import { fetchTrack, OrderStatus } from '../../../lib/api';
 import { grams, tenge } from '../../../lib/format';
@@ -57,7 +58,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
       <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <StoreMenu />
-          <Link href={`/${o.store.slug}`} style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
+          <Logo size={24} href={`/${o.store.slug}`} />
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 17 }}>{t.orderNo(o.number)}</div>

@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from './Logo';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,7 +39,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{ signOut }}>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 16, height: 60, maxWidth: 920 }}>
-          <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</span>
+          <Logo size={24} href="/admin" />
           <nav style={{ display: 'flex', gap: 6 }}>
             {NAV.map((n) => {
               const active = pathname === n.href;
@@ -87,7 +88,7 @@ function AdminLogin({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="container" style={{ maxWidth: 400, padding: '64px 20px' }}>
-      <div style={{ fontWeight: 900, fontSize: 28, color: 'var(--carrot)', marginBottom: 4 }}>Kartop</div>
+      <div style={{ marginBottom: 6 }}><Logo size={30} href={null} /></div>
       <div className="muted" style={{ marginBottom: 28 }}>Админка платформы</div>
       <label style={{ fontWeight: 700, fontSize: 14, display: 'block', marginBottom: 6 }}>Телефон или email</label>
       <input value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username"
