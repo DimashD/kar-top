@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.50.0, cache: true }
       - run: flutter pub get
       # Веб-версия той же кодовой базы, но смотрит на тестовую среду (демо-данные, без ленты «ТЕСТ»).
       - run: flutter build web --release --dart-define=APP_ENV=prod --dart-define=API_BASE=https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}/api
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.50.0, cache: true }
       - run: flutter pub get
       - name: Keystore
         env:
