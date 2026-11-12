@@ -42,3 +42,12 @@ export function isOpenAt(week: WeekHours, at: Date): boolean {
   const d = week[day];
   return !!d && min >= minutes(d.open) && min < minutes(d.close);
 }
+
+/** Сколько минут осталось до сегодняшнего открытия по Алматы; null — сегодня выходной или уже открылись. */
+export function minutesUntilOpen(week: WeekHours, at: Date): number | null {
+  const { day, min } = localParts(at);
+  const d = week[day];
+  if (!d) return null;
+  const left = minutes(d.open) - min;
+  return left > 0 ? left : null;
+}

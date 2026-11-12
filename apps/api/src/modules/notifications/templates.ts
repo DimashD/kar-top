@@ -96,7 +96,14 @@ export const TEMPLATES: Record<string, NotifTemplate> = {
     critical: true,
   },
 
-// --- Биллинг магазина ---
+  // --- Магазину: перед открытием (за час и за 30 минут) ---
+  'store.update_reminder': {
+    audience: 'merchant',
+    title: (p) => (p.minutes >= 60 ? '🌅 Через час открываетесь' : '⏰ Через 30 минут открываетесь'),
+    body: () => 'Проверьте цены. Чего нет в наличии — скройте, чтобы это не заказали',
+  },
+
+  // --- Биллинг магазина ---
   'billing.invoice_issued': {
     audience: 'merchant',
     title: () => '🧾 Счёт на подписку',

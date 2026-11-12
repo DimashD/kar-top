@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, Interval } from '@nestjs/schedule';
 import { NotificationDispatcher } from '../notifications/dispatcher.service';
+import { OpeningReminders } from '../notifications/opening-reminders.service';
 import { BillingService } from '../billing/billing.service';
 
 /**
@@ -20,6 +21,7 @@ export class SchedulerService {
     config: ConfigService,
     private readonly dispatcher: NotificationDispatcher,
     private readonly billing: BillingService,
+    private readonly reminders: OpeningReminders,
   ) {
     this.enabled = config.get('SCHEDULER_ENABLED') === '1';
     // Счета за подписку — отдельным выключателем: включаем, когда начнём брать плату с магазинов.
@@ -39,6 +41,18 @@ export class SchedulerService {
       this.log.error(`outbox-dispatch: ${(e as Error).message}`);
     } finally {
       this.dispatchRunning = false;
+    }
+  }
+
+  /** Раз в минуту: магазинам за час и за 30 минут до открытия — «проверьте цены и наличие». */
+  @Cron('* * * * *', { name: 'opening-reminders', timeZone: 'UTC' })
+  async openingReminders() {
+    if (!this.enabled) return;
+    try {
+      const n = await this.reminders.run();
+      if (n) this.log.log(`напоминаний перед открытием: ${n}`);
+    } catch (e) {
+      this.log.error(`opening-reminders: ${(e as Error).message}`);
     }
   }
 

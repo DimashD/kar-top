@@ -96,6 +96,9 @@ export class NotificationDispatcher {
       if (audience === 'merchant' || audience === 'both') {
         order.store.members.forEach((m) => ids.add(m.userId, 'merchant'));
       }
+    } else if (aggregateType === 'store') {
+      const store = await this.prisma.store.findUnique({ where: { id: aggregateId }, select: { members: { select: { userId: true } } } });
+      store?.members.forEach((m) => ids.add(m.userId, 'merchant'));
     } else if (aggregateType === 'subscription') {
       const sub = await this.prisma.subscription.findUnique({
         where: { id: aggregateId },
