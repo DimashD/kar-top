@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Тёплая палитра «Морковь» — как в вебе и макетах.
 class AppColors {

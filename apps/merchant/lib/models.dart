@@ -20,12 +20,35 @@ class StoreSummary {
 class StoreSettings {
   bool pickupEnabled;
   int pickupLeadMinutes;
+  bool deliveryEnabled;
+  int courierHandoverMinutes;
+  int ownDeliveryMinutes;
   String deliveryMode;
-  StoreSettings({required this.pickupEnabled, required this.pickupLeadMinutes, required this.deliveryMode});
+  /// Версия фото магазина (null — фото нет).
+  int? photoVersion;
+  /// Часы работы: 7 дней (пн первый), {'open': 'HH:MM', 'close': 'HH:MM'} или null — выходной.
+  List<Map<String, String>?> hours;
+  StoreSettings({
+    required this.pickupEnabled,
+    required this.pickupLeadMinutes,
+    required this.deliveryEnabled,
+    required this.courierHandoverMinutes,
+    required this.ownDeliveryMinutes,
+    required this.deliveryMode,
+    this.photoVersion,
+    this.hours = const [],
+  });
   factory StoreSettings.fromJson(Map<String, dynamic> j) => StoreSettings(
         pickupEnabled: j['pickupEnabled'] as bool? ?? true,
         pickupLeadMinutes: (j['pickupLeadMinutes'] as num?)?.toInt() ?? 60,
+        deliveryEnabled: j['deliveryEnabled'] as bool? ?? true,
+        courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
+        ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
+        photoVersion: (j['photoVersion'] as num?)?.toInt(),
+        hours: ((j['hours'] as List?) ?? const [])
+            .map((d) => d == null ? null : {'open': '${d['open']}', 'close': '${d['close']}'})
+            .toList(),
       );
 }
 
@@ -101,8 +124,12 @@ class OrderDetail {
   final String status;
   final int subtotalTiyn;
   final int? finalTiyn;
+  /// Платная доставка — уже входит в finalTiyn; к subtotalTiyn прибавляем.
+  final int deliveryFeeTiyn;
   final String payMethod;
   final String fulfillment;
+  /// Кто везёт: OWN — магазин, SERVICE — курьерская служба (доставку оплачивает клиент). null — самовывоз.
+  final String? deliveryBy;
   final DateTime? pickupAt;
   final List<OrderItem> items;
   final String? customerName;
@@ -119,8 +146,10 @@ class OrderDetail {
     required this.status,
     required this.subtotalTiyn,
     required this.finalTiyn,
+    this.deliveryFeeTiyn = 0,
     required this.payMethod,
     required this.fulfillment,
+    this.deliveryBy,
     required this.pickupAt,
     required this.items,
     required this.customerName,
@@ -145,8 +174,10 @@ class OrderDetail {
       status: j['status'] as String,
       subtotalTiyn: (j['subtotalTiyn'] as num?)?.toInt() ?? 0,
       finalTiyn: (j['finalTiyn'] as num?)?.toInt(),
+      deliveryFeeTiyn: (j['deliveryFeeTiyn'] as num?)?.toInt() ?? 0,
       payMethod: j['payMethod'] as String? ?? 'CASH',
       fulfillment: j['fulfillment'] as String? ?? 'DELIVERY',
+      deliveryBy: j['deliveryBy'] as String?,
       pickupAt: j['pickupAt'] != null ? DateTime.parse(j['pickupAt'] as String) : null,
       items: ((j['items'] as List?) ?? []).map((e) => OrderItem.fromJson(e as Map<String, dynamic>)).toList(),
       customerName: pii?['name'] as String?,
@@ -164,18 +195,88 @@ class CatalogItem {
   final String id;
   final String name;
   final String unit;
+  /// Названия по языкам из общего каталога: { ru, kk, en }.
+  final Map<String, dynamic> names;
+  final String categoryId;
+  /// Название категории по языкам: { ru, kk, en }.
+  final Map<String, dynamic> categoryNames;
+  final int categorySort;
+  /// Крупная группа каталога («Фрукты и ягоды»…): родитель категории. Пусто — без группы.
+  final String groupId;
+  final Map<String, dynamic> groupNames;
+  final int groupSort;
   int priceTiyn;
   bool inStock;
-  CatalogItem({required this.id, required this.name, required this.unit, required this.priceTiyn, required this.inStock});
+  CatalogItem({
+    required this.id,
+    required this.name,
+    required this.unit,
+    required this.names,
+    required this.categoryId,
+    required this.categoryNames,
+    required this.categorySort,
+    required this.groupId,
+    required this.groupNames,
+    required this.groupSort,
+    required this.priceTiyn,
+    required this.inStock,
+  });
   factory CatalogItem.fromJson(Map<String, dynamic> j) {
     final master = j['master'] as Map<String, dynamic>?;
     final name = master?['name'] as Map<String, dynamic>?;
+    final category = master?['category'] as Map<String, dynamic>?;
+    final group = category?['parent'] as Map<String, dynamic>?;
     return CatalogItem(
       id: j['id'] as String,
       name: name?['ru'] as String? ?? 'Товар',
       unit: master?['unit'] as String? ?? 'PCS',
+      names: name ?? const {},
+      categoryId: category?['id'] as String? ?? '',
+      categoryNames: category?['name'] as Map<String, dynamic>? ?? const {},
+      categorySort: (category?['sort'] as num?)?.toInt() ?? 0,
+      groupId: group?['id'] as String? ?? '',
+      groupNames: group?['name'] as Map<String, dynamic>? ?? const {},
+      groupSort: (group?['sort'] as num?)?.toInt() ?? 999,
       priceTiyn: (j['priceTiyn'] as num?)?.toInt() ?? 0,
       inStock: j['inStock'] as bool? ?? true,
     );
   }
+}
+
+/// Уведомление в центре уведомлений.
+class AppNotification {
+  final String type;
+  final String? refId;
+  final String title;
+  final String body;
+  final bool read;
+  final DateTime createdAt;
+  AppNotification({required this.type, this.refId, required this.title, required this.body, required this.read, required this.createdAt});
+  factory AppNotification.fromJson(Map<String, dynamic> j) => AppNotification(
+        type: j['type'] as String? ?? '',
+        refId: j['refId'] as String?,
+        title: j['title'] as String? ?? '',
+        body: j['body'] as String? ?? '',
+        read: j['readAt'] != null,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
+}
+
+/// Сотрудник магазина (экран «Сотрудники»).
+class StoreMemberInfo {
+  final String userId;
+  final String phone;
+  final String? name;
+  final String role;
+  final bool active;
+  final bool you;
+  StoreMemberInfo({required this.userId, required this.phone, this.name, required this.role, required this.active, required this.you});
+  factory StoreMemberInfo.fromJson(Map<String, dynamic> j) => StoreMemberInfo(
+        userId: j['userId'] as String,
+        phone: j['phone'] as String? ?? '',
+        name: j['name'] as String?,
+        role: j['role'] as String? ?? '',
+        active: j['active'] == true,
+        you: j['you'] == true,
+      );
 }

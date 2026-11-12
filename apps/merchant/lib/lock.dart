@@ -10,6 +10,7 @@ class AppLock {
   static const _storage = FlutterSecureStorage();
   static const _kEnabled = 'lock_enabled';
   static const _kPin = 'lock_pin_hash';
+  static const _kBio = 'lock_bio';
   static final _auth = LocalAuthentication();
 
   static String _hash(String pin) => sha256.convert(utf8.encode(pin)).toString();
@@ -29,6 +30,7 @@ class AppLock {
 
   static Future<void> disable() async {
     await _storage.delete(key: _kPin);
+    await _storage.write(key: _kBio, value: '0');
     await _storage.write(key: _kEnabled, value: '0');
   }
 
@@ -41,25 +43,39 @@ class AppLock {
     }
   }
 
-  /// Доступна ли биометрия на устройстве (на web — нет).
-  static Future<bool> biometricAvailable() async {
-    if (kIsWeb) return false;
+  /// Вход по биометрии включён пользователем (по умолчанию — да, если замок включён).
+  static Future<bool> biometricEnabled() async {
     try {
-      return await _auth.canCheckBiometrics && await _auth.isDeviceSupported();
+      return (await _storage.read(key: _kBio)) != '0';
     } catch (_) {
       return false;
     }
   }
 
-  /// Запрос биометрии. true — успех.
-  static Future<bool> authenticateBiometric() async {
+  static Future<void> setBiometricEnabled(bool on) => _storage.write(key: _kBio, value: on ? '1' : '0');
+
+  /// Доступна ли биометрия на устройстве (на web — нет): есть датчик и хотя бы один отпечаток/лицо.
+  static Future<bool> biometricAvailable() async {
+    if (kIsWeb) return false;
+    try {
+      if (!await _auth.isDeviceSupported()) return false;
+      return await _auth.canCheckBiometrics || (await _auth.getAvailableBiometrics()).isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Запрос биометрии. true — успех. Только отпечаток/лицо: системный код телефона
+  /// открыл бы отдельный экран, приложение ушло бы в фон и снова заблокировалось.
+  static Future<bool> authenticateBiometric(String reason) async {
     if (kIsWeb) return false;
     try {
       return await _auth.authenticate(
-        localizedReason: 'Подтвердите вход в Kartop',
+        localizedReason: reason,
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('biometric: $e');
       return false;
     }
   }

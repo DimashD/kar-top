@@ -90,8 +90,8 @@ export class FcmSender {
           token,
           notification: { title: msg.title, body: msg.body },
           data: msg.data ?? {},
-          android: { priority: 'high' },
-          apns: { headers: { 'apns-priority': '10' } },
+          android: { priority: 'high', ...(msg.badge != null ? { notification: { notification_count: msg.badge } } : {}) },
+          apns: { headers: { 'apns-priority': '10' }, ...(msg.badge != null ? { payload: { aps: { badge: msg.badge } } } : {}) },
         },
       }),
     });

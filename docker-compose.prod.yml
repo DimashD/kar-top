@@ -32,7 +32,20 @@ services:
       WEB_BASE_URL: https://${DOMAIN}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       TELEGRAM_GATEWAY_TOKEN: ${TELEGRAM_GATEWAY_TOKEN:-}
+      # Вход через Telegram-бот (@kartop_kz_bot). Вебхук у бота один — ставит среда с TELEGRAM_BOT_WEBHOOK=1.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_NAME: kartop_kz_bot
+      TELEGRAM_BOT_WEBHOOK: ${TELEGRAM_BOT_WEBHOOK:-1}
       SMS_API_KEY: ${SMS_API_KEY:-}
+      # Коды и уведомления (docs/30): SMS — SMSC.kz, WhatsApp — Meta Cloud API.
+      SMSC_LOGIN: ${SMSC_LOGIN:-}
+      SMSC_PASSWORD: ${SMSC_PASSWORD:-}
+      SMS_SENDER_NAME: ${SMS_SENDER_NAME:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_OTP_TEMPLATE: ${WHATSAPP_OTP_TEMPLATE:-kartop_otp}
+      # 1 — покупателю без приложения важные статусы заказа уходят SMS (платно).
+      NOTIFY_SMS_FALLBACK: ${NOTIFY_SMS_FALLBACK:-0}
       EMAIL_API_KEY: ${EMAIL_API_KEY:-}
       # Email через SMTP (nodemailer): для кодов на почту и писем сброса пароля.
       SMTP_HOST: ${SMTP_HOST:-}
@@ -44,6 +57,8 @@ services:
       KASPI_API_KEY: ${KASPI_API_KEY:-}
       # Push (FCM): положить JSON сервис-аккаунта целиком в эту переменную (.env.prod) — тогда пуши уходят реально.
       FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT:-}
+      # Фоновые задачи: отправка уведомлений из очереди (каждые 5 с) и ежемесячные счета.
+      SCHEDULER_ENABLED: "1"
     command: sh -c "npx prisma migrate deploy && node dist/main.js"
     depends_on: [db, redis]
     restart: unless-stopped

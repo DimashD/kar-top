@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { StorePhotoDto } from '../merchant/dto';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 import { StoreStatus } from '@prisma/client';
 import { AdminStoresService } from './admin-stores.service';
@@ -29,6 +30,10 @@ export class AdminStoresController {
   provision(@Body() dto: ProvisionStoreDto) {
     return this.stores.provision(dto);
   }
+
+  /** Фото магазина — показывается вверху витрины. */
+  @Put(':id/photo')
+  setPhoto(@Param('id') id: string, @Body() dto: StorePhotoDto) { return this.stores.setPhoto(id, dto.data, dto.type); }
 
   @Post(':id/approve')
   approve(@Param('id') id: string) { return this.stores.approve(id); }

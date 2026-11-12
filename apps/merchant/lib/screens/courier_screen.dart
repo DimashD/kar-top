@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../format.dart';
+import '../l10n.dart';
 import '../models.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -44,24 +45,25 @@ class _CourierScreenState extends State<CourierScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final o = widget.order;
     return Scaffold(
-      appBar: AppBar(title: Text('Выдача №${o.number}')),
-      body: _done ? _success(o) : _entry(o),
+      appBar: AppBar(title: Text(s.handoverNo(o.number))),
+      body: _done ? _success(s, o) : _entry(s, o),
     );
   }
 
-  Widget _entry(OrderDetail o) {
+  Widget _entry(S s, OrderDetail o) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             const SizedBox(height: 8),
-            const Text('Попросите у клиента код', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
+            Text(s.askCode, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
             const SizedBox(height: 6),
-            const Text('4-значный код — в приложении покупателя. Так подтверждается, что заказ у него на руках.',
-                style: TextStyle(color: AppColors.ink60), textAlign: TextAlign.center),
+            Text(s.askCodeHint,
+                style: const TextStyle(color: AppColors.ink60), textAlign: TextAlign.center),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -80,16 +82,16 @@ class _CourierScreenState extends State<CourierScreen> {
                 );
               }),
             ),
-            if (_error) const Padding(padding: EdgeInsets.only(top: 12), child: Text('Неверный код, попробуйте ещё раз', style: TextStyle(color: AppColors.sale))),
+            if (_error) Padding(padding: const EdgeInsets.only(top: 12), child: Text(s.wrongCode, style: const TextStyle(color: AppColors.sale))),
             const Spacer(),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: AppColors.carrot50, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  const Text('Принять оплату', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(s.takePayment, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const Spacer(),
-                  Text('${tenge(o.finalTiyn ?? o.subtotalTiyn)} · ${payLabel(o.payMethod)}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.carrot600)),
+                  Text('${tenge(o.finalTiyn ?? o.subtotalTiyn)} · ${payLabel(s, o.payMethod)}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.carrot600)),
                 ],
               ),
             ),
@@ -125,7 +127,7 @@ class _CourierScreenState extends State<CourierScreen> {
     );
   }
 
-  Widget _success(OrderDetail o) {
+  Widget _success(S s, OrderDetail o) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -138,9 +140,9 @@ class _CourierScreenState extends State<CourierScreen> {
               child: const Icon(Icons.check, color: AppColors.leaf, size: 48),
             ),
             const SizedBox(height: 16),
-            const Text('Заказ выдан', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+            Text(s.orderHandedOver, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text('Код подтверждён. Оплата ${tenge(o.finalTiyn ?? o.subtotalTiyn)} принята. Заказ закрыт.',
+            Text(s.handedOverText(tenge(o.finalTiyn ?? o.subtotalTiyn)),
                 style: const TextStyle(color: AppColors.ink60), textAlign: TextAlign.center),
             const Spacer(),
             SizedBox(
@@ -148,7 +150,7 @@ class _CourierScreenState extends State<CourierScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: AppColors.leaf),
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Готово'),
+                child: Text(s.done),
               ),
             ),
           ],

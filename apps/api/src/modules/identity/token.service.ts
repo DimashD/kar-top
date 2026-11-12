@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
@@ -21,6 +21,17 @@ export class TokenService {
       { sub: userId, typ: 'access' },
       { secret: this.config.get('JWT_ACCESS_SECRET'), expiresIn: '7d' },
     );
+  }
+
+  /** Новая пара по refresh-токену (ротация): покупателю не нужен код при каждом заказе. */
+  async refresh(refreshToken: string): Promise<TokenPair & { userId: string }> {
+    try {
+      const payload = await this.jwt.verifyAsync(refreshToken, { secret: this.config.get('JWT_REFRESH_SECRET') });
+      if (payload.typ !== 'refresh') throw new Error('wrong token type');
+      return { ...(await this.issue(payload.sub)), userId: payload.sub };
+    } catch {
+      throw new UnauthorizedException('Сессия истекла — подтвердите номер ещё раз');
+    }
   }
 
   async issue(userId: string): Promise<TokenPair> {

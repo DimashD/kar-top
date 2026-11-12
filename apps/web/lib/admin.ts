@@ -114,6 +114,7 @@ export interface AdminStore {
   id: string; slug: string; name: string; status: StoreStatus;
   phone: string | null; address: string | null; deliveryMode: string;
   createdAt: string; productCount: number; orderCount: number;
+  photoVersion: number | null;
   owner: { phone: string; name: string | null } | null;
 }
 
@@ -139,12 +140,36 @@ export interface CustomerRow {
 }
 export interface CustomersResult { totals: { customers: number; gmvTiyn: number; orders: number }; rows: CustomerRow[] }
 
-export function analyticsStores(): Promise<{ rows: StoreStat[] }> {
-  return adminFetch<{ rows: StoreStat[] }>('/admin/analytics/stores');
+/** Период аналитики: даты YYYY-MM-DD (Алматы), обе включительно; пусто — за всё время. */
+export interface Period { from?: string; to?: string }
+const periodQs = (p: Period = {}, extra: Record<string, string | undefined> = {}) => {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries({ from: p.from, to: p.to, ...extra })) if (v) q.set(k, v);
+  return q.toString();
+};
+
+export function analyticsStores(p?: Period): Promise<{ rows: StoreStat[] }> {
+  return adminFetch<{ rows: StoreStat[] }>(`/admin/analytics/stores?${periodQs(p, { limit: '500' })}`);
 }
-export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend'): Promise<CustomersResult> {
-  return adminFetch<CustomersResult>(`/admin/customers?sort=${sort}`);
+export function analyticsCustomers(sort: 'spend' | 'orders' | 'recent' = 'spend', p?: Period): Promise<CustomersResult> {
+  return adminFetch<CustomersResult>(`/admin/customers?${periodQs(p, { sort, limit: '500' })}`);
 }
+export interface Summary {
+  store: { id: string; name: string; slug: string; status: string; rating: number | null } | null;
+  customer: { id: string; name: string | null; phone: string | null; createdAt: string } | null;
+  totals: {
+    orders: number; cancelled: number; gmvTiyn: number; avgCheckTiyn: number;
+    customers: number; stores: number; pickup: number; firstOrderAt: string | null; lastOrderAt: string | null;
+  };
+  days: { date: string; orders: number; gmvTiyn: number }[];
+}
+export function analyticsSummary(p?: Period, f: { storeId?: string; customerId?: string } = {}): Promise<Summary> {
+  return adminFetch<Summary>(`/admin/analytics/summary?${periodQs(p, f)}`);
+}
+export function periodOrders(p?: Period, f: { storeId?: string; customerId?: string } = {}) {
+  return adminFetch<{ orders: OrderRow[] }>(`/admin/orders?${periodQs(p, { ...f, limit: '300' })}`);
+}
+export const periodCsvQs = periodQs;
 
 // --- Мастер-каталог ---
 export type I18nName = { ru: string; kk?: string; en?: string };
@@ -213,4 +238,41 @@ export async function downloadCsv(path: string, filename: string): Promise<void>
   const a = document.createElement('a');
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
+}
+
+// --- Отзывы о сервисе (покупатели и магазины) ---
+export type FeedbackStatus = 'NEW' | 'IN_PROGRESS' | 'DONE';
+export type FeedbackKind = 'IDEA' | 'PROBLEM' | 'COMPLAINT' | 'PRAISE' | 'OTHER';
+export interface Feedback {
+  id: string;
+  source: 'CUSTOMER' | 'MERCHANT';
+  kind: FeedbackKind;
+  text: string;
+  phone: string | null;
+  storeSlug: string | null;
+  page: string | null;
+  status: FeedbackStatus;
+  createdAt: string;
+}
+
+export function listFeedback(status?: string, source?: string): Promise<Feedback[]> {
+  const q = new URLSearchParams();
+  if (status && status !== 'ALL') q.set('status', status);
+  if (source && source !== 'ALL') q.set('source', source);
+  return adminFetch<Feedback[]>(`/admin/feedback?${q}`);
+}
+
+export function setFeedbackStatus(id: string, status: FeedbackStatus): Promise<Feedback> {
+  return adminFetch<Feedback>(`/admin/feedback/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+}
+
+/** Фото магазина: файл ужимается в браузере до 1280 px JPEG и уходит base64. */
+export async function uploadStorePhoto(storeId: string, file: File): Promise<{ photoVersion: number | null }> {
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, 1280 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+  const data = c.toDataURL('image/jpeg', 0.82).split(',')[1];
+  return adminFetch(`/admin/stores/${storeId}/photo`, { method: 'PUT', body: JSON.stringify({ data, type: 'image/jpeg' }) });
 }

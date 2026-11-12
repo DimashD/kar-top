@@ -10,6 +10,7 @@ function makePrisma(order: any, existingReview: any = null) {
       aggregate: jest.fn().mockResolvedValue({ _avg: { rating: 4.5 }, _count: { _all: 2 } }),
     },
     store: { update: jest.fn().mockResolvedValue({}) },
+    outboxEvent: { create: jest.fn().mockResolvedValue({}) },
   };
 }
 const deliveredOrder = { id: 'o1', storeId: 's1', customerId: 'c1', status: 'DELIVERED' };

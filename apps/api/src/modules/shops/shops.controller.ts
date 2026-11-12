@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query, BadRequestException, StreamableFile } from '@nestjs/common';
 import { ShopsService } from './shops.service';
 import { Public } from '../../common/auth/public.decorator';
 
@@ -7,9 +7,22 @@ import { Public } from '../../common/auth/public.decorator';
 export class ShopsController {
   constructor(private readonly shops: ShopsService) {}
 
+  @Get()
+  list(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+    const la = Number(lat), ln = Number(lng);
+    return this.shops.list(lat && lng && Number.isFinite(la) && Number.isFinite(ln) ? [ln, la] : undefined);
+  }
+
   @Get(':slug/catalog')
   catalog(@Param('slug') slug: string) {
     return this.shops.catalog(slug);
+  }
+
+  @Get(':slug/photo')
+  @Header('cache-control', 'public, max-age=31536000, immutable')
+  async photo(@Param('slug') slug: string) {
+    const p = await this.shops.photo(slug);
+    return new StreamableFile(p.data, { type: p.type });
   }
 
   @Get(':slug/zone-check')

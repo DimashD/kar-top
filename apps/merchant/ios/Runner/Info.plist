@@ -66,6 +66,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Чтобы сфотографировать магазин для витрины.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Чтобы выбрать фото магазина для витрины.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Вход в Kartop по Face ID</string>
 	<key>UIBackgroundModes</key>

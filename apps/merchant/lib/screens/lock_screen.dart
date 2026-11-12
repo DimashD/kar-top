@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import '../l10n.dart';
 import '../lock.dart';
 import '../session.dart';
 import '../theme.dart';
@@ -13,21 +14,51 @@ class LockScreen extends StatefulWidget {
   State<LockScreen> createState() => _LockScreenState();
 }
 
-class _LockScreenState extends State<LockScreen> {
+class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
   String _pin = '';
   bool _error = false;
   bool _bioAvailable = false;
+  bool _asking = false;
+  bool _wasAway = false;
 
   @override
   void initState() {
     super.initState();
-    _tryBiometric();
+    WidgetsBinding.instance.addObserver(this);
+    // Окно отпечатка можно показать только когда приложение на экране: замок ставится
+    // при сворачивании, поэтому спрашиваем после первого кадра или при возврате.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) _tryBiometric();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Только после настоящего возврата из фона: закрытое окно отпечатка даёт лишь inactive → resumed,
+    // и повторно его не показываем (иначе «Отмена» открывала бы окно снова и снова).
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) _wasAway = true;
+    if (state == AppLifecycleState.resumed && _wasAway) {
+      _wasAway = false;
+      _tryBiometric();
+    }
   }
 
   Future<void> _tryBiometric() async {
-    final ok = await AppLock.biometricAvailable();
+    if (_asking) return;
+    final ok = await AppLock.biometricEnabled() && await AppLock.biometricAvailable();
     if (mounted) setState(() => _bioAvailable = ok);
-    if (ok && await AppLock.authenticateBiometric()) widget.onUnlocked();
+    if (!ok || !mounted) return;
+    final reason = context.read<Lang>().s.biometricReason;
+    _asking = true;
+    final passed = await AppLock.authenticateBiometric(reason);
+    _asking = false;
+    if (passed && mounted) widget.onUnlocked();
   }
 
   Future<void> _tap(String d) async {
@@ -48,6 +79,7 @@ class _LockScreenState extends State<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -57,7 +89,7 @@ class _LockScreenState extends State<LockScreen> {
               const Spacer(),
               const Text('Kartop', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: AppColors.carrot)),
               const SizedBox(height: 6),
-              const Text('Введите PIN для входа', style: TextStyle(color: AppColors.ink60)),
+              Text(s.enterPin, style: const TextStyle(color: AppColors.ink60)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -74,13 +106,13 @@ class _LockScreenState extends State<LockScreen> {
                   );
                 }),
               ),
-              if (_error) const Padding(padding: EdgeInsets.only(top: 12), child: Text('Неверный PIN', style: TextStyle(color: AppColors.sale))),
+              if (_error) Padding(padding: const EdgeInsets.only(top: 12), child: Text(s.wrongPin, style: const TextStyle(color: AppColors.sale))),
               const Spacer(),
               _keypad(),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => context.read<Session>().logout(),
-                child: const Text('Забыли PIN? Войти заново'),
+                child: Text(s.forgotPin),
               ),
             ],
           ),

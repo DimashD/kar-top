@@ -9,11 +9,17 @@ import { CurrentUser, RequestUser } from '../../common/auth/current-user.decorat
 export class OrderingController {
   constructor(private readonly ordering: OrderingService) {}
 
-  // Гостевой заказ — публично (личность подтверждается OTP на шаге оформления).
-  @Public()
+  // Оформление — только после подтверждения номера по SMS: нужен access-токен покупателя,
+  // номер заказа берётся из его аккаунта, а не из формы.
   @Post('orders')
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordering.create(dto);
+  create(@Body() dto: CreateOrderDto, @CurrentUser() user: RequestUser) {
+    return this.ordering.createForUser(dto, user.userId);
+  }
+
+  // «Мои заказы» покупателя (по access-токену): свежие сверху.
+  @Get('me/orders')
+  myOrders(@CurrentUser() user: RequestUser) {
+    return this.ordering.myOrders(user.userId);
   }
 
   // Публичный трекинг заказа покупателем (по id-ссылке). Показывает код получения до закрытия.
@@ -55,13 +61,29 @@ export class OrderingController {
   }
 
   @Post('merchant/orders/:id/items/:itemId/weigh')
-  weigh(@Param('id') id: string, @Param('itemId') itemId: string, @Body('qtyActualG') qtyActualG: number, @CurrentUser() user: RequestUser) {
-    return this.ordering.weighItem(id, itemId, Number(qtyActualG), user.userId);
+  weigh(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body('qtyActualG') qtyActualG: number,
+    @Body('customerApproved') customerApproved: boolean | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.ordering.weighItem(id, itemId, Number(qtyActualG), user.userId, customerApproved === true);
+  }
+
+  @Post('merchant/orders/:id/await-customer')
+  awaitCustomer(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    return this.ordering.awaitCustomer(id, user.userId);
   }
 
   @Post('merchant/orders/:id/items/:itemId/missing')
   missing(@Param('id') id: string, @Param('itemId') itemId: string, @CurrentUser() user: RequestUser) {
     return this.ordering.markMissing(id, itemId, user.userId);
+  }
+
+  @Post('merchant/orders/:id/items/:itemId/restore')
+  restore(@Param('id') id: string, @Param('itemId') itemId: string, @CurrentUser() user: RequestUser) {
+    return this.ordering.restoreItem(id, itemId, user.userId);
   }
 
   // --- Курьер ---

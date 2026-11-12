@@ -31,3 +31,9 @@ apps/web/public/products/*.webp
 
 # Скачанные CI-артефакты (сборки .aab и т.п.) — не хранить в репо
 artifacts/
+
+# Ключи сервис-аккаунтов Firebase — только в секретах GitHub
+*firebase-adminsdk*.json
+
+# Скачанные тестовые сборки
+build-apk/

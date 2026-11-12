@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AdminStore, StoreStatus, listStores, createStore, storeAction, UnauthorizedError } from '../lib/admin';
+import { AdminStore, StoreStatus, listStores, createStore, storeAction, uploadStorePhoto, UnauthorizedError } from '../lib/admin';
+import { CLIENT_API } from '../lib/api';
 import { useAdmin } from './AdminShell';
 import { isValidKzPhone, kzPhoneE164, formatKzPhone } from '../lib/phone';
 import PhoneInput from './PhoneInput';
@@ -73,6 +74,15 @@ export default function AdminStores() {
     finally { setSavingId(null); }
   }
 
+  async function photo(id: string, file: File) {
+    setSavingId(id); setErr(null);
+    try {
+      const { photoVersion } = await uploadStorePhoto(id, file);
+      setStores((xs) => xs.map((x) => (x.id === id ? { ...x, photoVersion } : x)));
+    } catch (e) { if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message); }
+    finally { setSavingId(null); }
+  }
+
   const input: React.CSSProperties = { width: '100%', padding: '12px 14px', fontSize: 16, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--card)', color: 'var(--ink)', fontFamily: 'inherit' };
 
   return (
@@ -129,7 +139,10 @@ export default function AdminStores() {
             return (
               <div key={s.id} className="card" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ minWidth: 200 }}>
+                  {s.photoVersion && s.status === 'ACTIVE' ? (
+                    <img src={`${CLIENT_API}/shops/${s.slug}/photo?v=${s.photoVersion}`} alt="" style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }} />
+                  ) : null}
+                  <div style={{ minWidth: 200, flex: 1 }}>
                     <div style={{ fontWeight: 800, fontSize: 17 }}>{s.name}</div>
                     <div className="muted" style={{ fontSize: 13 }}>/{s.slug}</div>
                     {s.owner ? <div style={{ fontSize: 14, marginTop: 2 }}>Владелец: {s.owner.name ? `${s.owner.name}, ` : ''}{formatKzPhone(s.owner.phone)}</div> : null}
@@ -144,7 +157,12 @@ export default function AdminStores() {
                   {s.status !== 'ACTIVE' ? <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => act(s.id, 'approve')} style={{ padding: '6px 12px', fontSize: 13 }}>Активировать</button> : null}
                   {s.status !== 'SUSPENDED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'suspend')} style={{ padding: '6px 12px', fontSize: 13 }}>Приостановить</button> : null}
                   {s.status !== 'BLOCKED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'block')} style={{ padding: '6px 12px', fontSize: 13, color: 'var(--sale)' }}>Заблокировать</button> : null}
-                  <a className="btn btn-ghost" href={`/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13, marginLeft: 'auto' }}>Витрина ↗</a>
+                  <label className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
+                    {savingId === s.id ? 'Загрузка…' : s.photoVersion ? 'Заменить фото' : 'Загрузить фото'}
+                    <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) photo(s.id, f); }} />
+                  </label>
+                  <a className="btn btn-ghost" href={`/admin/poster/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13, marginLeft: 'auto' }}>🖨️ QR-постер</a>
+                  <a className="btn btn-ghost" href={`/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13 }}>Витрина ↗</a>
                 </div>
               </div>
             );

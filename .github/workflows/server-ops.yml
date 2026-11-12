@@ -11,13 +11,17 @@ name: Server ops
 #                            затем регистрирует в Firebase тестовое приложение kz.kartop.kartop_merchant.staging,
 #                            печатает его google-services.json и включает пуши в тестовой среде
 #                            (копирует FIREBASE_SERVICE_ACCOUNT из .env.prod в .env.staging, тот же проект).
+#   firebase-customer-app  — регистрирует в том же проекте Firebase приложение покупателя kz.kartop.app и его
+#                            тестовую сборку kz.kartop.app.staging, печатает их google-services.json (для apps/customer).
+#   apply-provider-keys    — переносит ключи SMS/Telegram/WhatsApp/почты из секретов репозитория в .env.prod
+#                            (только заданные) и перезапускает api. Список секретов — docs/30-notifications-and-codes.md.
 on:
   workflow_dispatch:
     inputs:
       task:
         description: 'Операция'
         type: choice
-        options: [install-ssh-key, disable-password-login, firebase-staging-app]
+        options: [install-ssh-key, disable-password-login, firebase-staging-app, firebase-customer-app, apply-provider-keys, push-diagnostics, disk-cleanup]
 
 permissions:
   contents: read
@@ -158,3 +162,149 @@ jobs:
               docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml up -d --no-build staging-api
               echo "Пуши в тестовой среде включены (staging-api перезапущен)."
             fi
+
+  firebase-customer-app:
+    if: inputs.task == 'firebase-customer-app'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: deploy/ops/firebase-staging-app.js
+          target: /opt/kar-top
+          overwrite: true
+      - name: Register customer apps in Firebase
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /opt/kar-top
+            for pkg in kz.kartop.app kz.kartop.app.staging; do
+              name="Kartop (покупатель)"; [ "$pkg" = kz.kartop.app.staging ] && name="Kartop ТЕСТ (покупатель)"
+              docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml exec -T \
+                -e STAGING_PACKAGE="$pkg" -e DISPLAY_NAME="$name" api node - < deploy/ops/firebase-staging-app.js
+            done
+
+  apply-provider-keys:
+    if: inputs.task == 'apply-provider-keys'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write provider keys to .env.prod and restart api
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          K_SMSC_LOGIN: ${{ secrets.SMSC_LOGIN }}
+          K_SMSC_PASSWORD: ${{ secrets.SMSC_PASSWORD }}
+          K_SMS_SENDER_NAME: ${{ secrets.SMS_SENDER_NAME }}
+          K_TELEGRAM_GATEWAY_TOKEN: ${{ secrets.TELEGRAM_GATEWAY_TOKEN }}
+          K_WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          K_WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          K_SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          K_SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          K_SMTP_USER: ${{ secrets.SMTP_USER }}
+          K_SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          K_EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          K_NOTIFY_SMS_FALLBACK: ${{ secrets.NOTIFY_SMS_FALLBACK }}
+          K_OTP_REAL_PHONES: ${{ secrets.OTP_REAL_PHONES }}
+          K_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 10m
+          envs: K_SMSC_LOGIN,K_SMSC_PASSWORD,K_SMS_SENDER_NAME,K_TELEGRAM_GATEWAY_TOKEN,K_WHATSAPP_TOKEN,K_WHATSAPP_PHONE_NUMBER_ID,K_SMTP_HOST,K_SMTP_PORT,K_SMTP_USER,K_SMTP_PASS,K_EMAIL_FROM,K_NOTIFY_SMS_FALLBACK,K_OTP_REAL_PHONES,K_TELEGRAM_BOT_TOKEN
+          script: |
+            set -e
+            cd /opt/kar-top
+            cp .env.prod ".env.prod.bak-$(date +%Y%m%d%H%M%S)"
+            changed=""
+            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN TELEGRAM_BOT_TOKEN WHATSAPP_TOKEN WHATSAPP_PHONE_NUMBER_ID SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS EMAIL_FROM NOTIFY_SMS_FALLBACK; do
+              v="$(printenv "K_$k" || true)"
+              [ -z "$v" ] && continue
+              esc=$(printf '%s' "$v" | sed "s/'/'\\\\''/g")
+              grep -v "^$k=" .env.prod > .env.prod.tmp || true
+              printf "%s='%s'\n" "$k" "$esc" >> .env.prod.tmp
+              mv .env.prod.tmp .env.prod
+              changed="$changed $k"
+            done
+            chmod 600 .env.prod
+            echo "Обновлены ключи:${changed:- нет (секреты не заданы)}"
+            . ./.deployed; export API_IMAGE WEB_IMAGE APP_VERSION
+            docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml up -d --no-build api
+            echo "api перезапущен"
+            # Те же ключи — в тестовую среду (там коды фиксированные, кроме номеров из OTP_REAL_PHONES).
+            cd /opt/kar-top-staging
+            cp .env.staging ".env.staging.bak-$(date +%Y%m%d%H%M%S)"
+            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN TELEGRAM_BOT_TOKEN WHATSAPP_TOKEN WHATSAPP_PHONE_NUMBER_ID OTP_REAL_PHONES; do
+              v="$(printenv "K_$k" || true)"
+              [ -z "$v" ] && continue
+              esc=$(printf '%s' "$v" | sed "s/'/'\\\\''/g")
+              grep -v "^$k=" .env.staging > .env.staging.tmp || true
+              printf "%s='%s'\n" "$k" "$esc" >> .env.staging.tmp
+              mv .env.staging.tmp .env.staging
+            done
+            chmod 600 .env.staging
+            . ./.deployed; export API_IMAGE WEB_IMAGE APP_VERSION
+            docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml up -d --no-build staging-api
+            echo "staging-api перезапущен"
+
+  push-diagnostics:
+    if: inputs.task == 'push-diagnostics'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: deploy/ops/push-diag.js
+          target: /opt/kar-top-staging
+          overwrite: true
+      - name: Push diagnostics (staging) — только чтение
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/kar-top-staging
+            C="docker compose -p kartop-staging --env-file .env.staging -f docker-compose.staging.yml"
+            $C exec -T staging-api node - < deploy/ops/push-diag.js
+            echo "--- журнал api (пуши и коды входа) ---"
+            $C logs --since 48h staging-api 2>&1 | grep -iE "fcm|push|не доставлено|telegram|smsc|otp|канал" | tail -40
+
+  disk-cleanup:
+    if: inputs.task == 'disk-cleanup'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space (unused Docker images and build cache; backups are kept)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            echo "До:"; df -h / | tail -1
+            # Образы, которые использует хотя бы один контейнер (прод и тест), не трогаются.
+            docker image prune -af
+            docker builder prune -af || true
+            docker container prune -f
+            du -sh /opt/kar-top-backups 2>/dev/null || true
+            echo "После:"; df -h / | tail -1
+            docker system df

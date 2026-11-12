@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kz.kartop.app.staging",
+      "sha256_cert_fingerprints": ["77:0E:EF:C7:A6:55:00:B7:64:74:9C:DC:24:FF:88:CE:9C:2D:5D:31:71:42:4F:A6:84:4D:56:09:22:4F:73:7C"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kz.kartop.app",
+      "sha256_cert_fingerprints": ["77:0E:EF:C7:A6:55:00:B7:64:74:9C:DC:24:FF:88:CE:9C:2D:5D:31:71:42:4F:A6:84:4D:56:09:22:4F:73:7C"]
+    }
+  }
+]

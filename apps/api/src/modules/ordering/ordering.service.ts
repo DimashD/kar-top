@@ -1,8 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Unit, OrderStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateOrderDto } from './dto';
 import { piiVisibleToMerchant, canTransition } from './order-state';
+import { weightRange } from './weight-tolerance';
+import { allowedPayMethods } from './payment-rules';
+import { deliveryFee, findZone } from '../../common/zones';
+import { hoursOf, isOpenAt } from '../../common/hours';
 
 @Injectable()
 export class OrderingService {
@@ -13,28 +17,52 @@ export class OrderingService {
     return String(Math.floor(1000 + Math.random() * 9000));
   }
 
-  /** Создание заказа. Оплата при получении (MVP). Сумма — оценочная, уточняется после взвешивания. */
+  /** Заказ от покупателя, подтвердившего номер по SMS: телефон — из его аккаунта. */
+  async createForUser(dto: CreateOrderDto, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true } });
+    if (!user?.phone) throw new UnauthorizedException('Подтвердите номер телефона');
+    return this.create({ ...dto, phone: user.phone });
+  }
+
+  /** Создание заказа. Онлайн-оплаты нет (MVP): см. allowedPayMethods. Сумма — оценочная, уточняется после взвешивания. */
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
     // Способ получения: доставка (по умолчанию) или самовывоз.
     const fulfillment = dto.fulfillment ?? 'DELIVERY';
+    if (fulfillment === 'DELIVERY' && store.deliveryEnabled === false) {
+      throw new BadRequestException('Доставка в этом магазине сейчас недоступна — выберите самовывоз');
+    }
+    // Два вида доставки: своя доставка магазина (по зонам; цена и «бесплатно от» — у зоны)
+    // и сторонняя курьерская служба — по всему городу, оплачивает покупатель отдельно, в сумму заказа не входит.
+    const mode = store.deliveryMode ?? 'BOTH';
+    const deliveryBy = fulfillment === 'DELIVERY' ? (dto.deliveryBy ?? (mode === 'SERVICE' ? 'SERVICE' : 'OWN')) : null;
+    if (deliveryBy === 'OWN' && mode === 'SERVICE') throw new BadRequestException('Магазин сам не доставляет — выберите курьера или самовывоз');
+    if (deliveryBy === 'SERVICE' && mode === 'OWN') throw new BadRequestException('Курьерская служба в этом магазине недоступна');
+    if (!allowedPayMethods(fulfillment, deliveryBy ?? 'OWN').includes(dto.payMethod)) {
+      throw new BadRequestException('Доставку выполняет курьерская служба — оплата только переводом Kaspi заранее');
+    }
+    if (fulfillment === 'PICKUP' && !store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
+    // Желаемое время получения — не раньше, чем магазин успевает по своим настройкам.
+    const leadMin = (fulfillment === 'PICKUP' ? store.pickupLeadMinutes
+      : deliveryBy === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes) ?? 60;
     let pickupAt: Date | null = null;
-    if (fulfillment === 'PICKUP') {
-      if (!store.pickupEnabled) throw new BadRequestException('Самовывоз в этом магазине недоступен');
+    if (dto.pickupAt) {
+      pickupAt = new Date(dto.pickupAt);
+      if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время');
       // Небольшой допуск (1 мин): UI считает «раньше всего» в минутах, учитываем дрейф секунд.
-      const earliest = Date.now() + store.pickupLeadMinutes * 60_000 - 60_000;
-      if (dto.pickupAt) {
-        pickupAt = new Date(dto.pickupAt);
-        if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время самовывоза');
-        if (pickupAt.getTime() < earliest) {
-          throw new BadRequestException(`Самовывоз возможен не ранее чем через ${store.pickupLeadMinutes} мин после оформления`);
-        }
+      if (pickupAt.getTime() < Date.now() + leadMin * 60_000 - 60_000) {
+        throw new BadRequestException(fulfillment === 'PICKUP'
+          ? `Самовывоз возможен не ранее чем через ${leadMin} мин после оформления`
+          : `Доставка возможна не ранее чем через ${leadMin} мин после оформления`);
       }
+      if (!isOpenAt(hoursOf(store.hours), pickupAt)) throw new BadRequestException('Магазин в это время не работает — выберите другое время');
+    } else if (!isOpenAt(hoursOf(store.hours), new Date(Date.now() + leadMin * 60_000))) {
+      throw new BadRequestException('Магазин сейчас не успеет в рабочее время — выберите время получения');
     }
 
     const ids = dto.items.map((i) => i.storeProductId);
@@ -66,11 +94,26 @@ export class OrderingService {
       };
     });
 
+    // Своя доставка: если магазин задал зоны — точка обязательна, должна попасть в зону, сумма — не ниже минимальной.
+    // Курьерская служба — без зон и без цены в заказе.
+    let deliveryFeeTiyn = 0;
+    if (deliveryBy === 'OWN' && store.zones?.length) {
+      const lat = dto.address?.lat;
+      const lng = dto.address?.lng;
+      if (lat == null || lng == null) throw new BadRequestException('Укажите точку доставки на карте');
+      const zone = findZone(store.zones, [lng, lat]);
+      if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите курьера или самовывоз');
+      if (subtotal < zone.minOrderTiyn) {
+        throw new BadRequestException(`Минимальная сумма заказа с доставкой — ${Math.round(zone.minOrderTiyn / 100)} ₸`);
+      }
+      deliveryFeeTiyn = deliveryFee(zone, subtotal);
+    }
+
     // Email НЕ привязываем здесь: спаривание требует подтверждения владения (см. auth/email/*).
     const user = await this.prisma.user.upsert({
-      where: { phone: dto.phone },
+      where: { phone: dto.phone! },
       update: {},
-      create: { phone: dto.phone },
+      create: { phone: dto.phone! },
     });
 
     const order = await this.prisma.order.create({
@@ -80,21 +123,23 @@ export class OrderingService {
         status: 'PLACED',
         deliveryCode: this.genDeliveryCode(),
         fulfillment,
+        deliveryBy,
         pickupAt,
         address: fulfillment === 'DELIVERY' && dto.address ? (dto.address as object) : undefined,
         payMethod: dto.payMethod,
         subtotalTiyn: subtotal,
+        deliveryFeeTiyn,
         items: { create: itemsData },
         events: { create: { to: 'PLACED', actor: 'customer' } },
       },
-      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true, fulfillment: true, pickupAt: true },
+      select: { id: true, number: true, status: true, subtotalTiyn: true, deliveryCode: true, fulfillment: true, deliveryBy: true, pickupAt: true },
     });
 
     const trackUrl = `${(process.env.WEB_BASE_URL || 'https://kartop.kz').replace(/\/$/, '')}/order/${order.id}`;
     await this.prisma.$transaction([
       // Магазину — новый заказ (звук + пуш).
       this.prisma.outboxEvent.create({
-        data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, fulfillment } },
+        data: { type: 'order.placed', aggregateType: 'order', aggregateId: order.id, payload: { number: order.number, fulfillment, estimatedTiyn: subtotal + deliveryFeeTiyn } },
       }),
       // Покупателю — подтверждение со ссылкой-трекингом и кодом получения.
       this.prisma.outboxEvent.create({
@@ -102,7 +147,7 @@ export class OrderingService {
       }),
     ]);
 
-    return { ...order, estimatedTiyn: subtotal, trackUrl, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
+    return { ...order, estimatedTiyn: subtotal + deliveryFeeTiyn, deliveryFeeTiyn, trackUrl, note: 'Оплата при получении. Точная сумма — после взвешивания.' };
   }
 
   /** Проверка, что пользователь — сотрудник магазина заказа (защита от IDOR). */
@@ -130,14 +175,14 @@ export class OrderingService {
       take: limit,
       select: {
         id: true, number: true, status: true, createdAt: true,
-        subtotalTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, pickupAt: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, fulfillment: true, deliveryBy: true, pickupAt: true,
         _count: { select: { items: true } },
       },
     });
     return orders.map((o) => ({
       id: o.id, number: o.number, status: o.status, createdAt: o.createdAt,
-      amountTiyn: o.finalTiyn ?? o.subtotalTiyn, payMethod: o.payMethod,
-      fulfillment: o.fulfillment, pickupAt: o.pickupAt, itemCount: o._count.items,
+      amountTiyn: o.finalTiyn ?? o.subtotalTiyn + o.deliveryFeeTiyn, payMethod: o.payMethod,
+      fulfillment: o.fulfillment, deliveryBy: o.deliveryBy, pickupAt: o.pickupAt, itemCount: o._count.items,
     }));
   }
 
@@ -151,6 +196,7 @@ export class OrderingService {
     return items.map((i) => ({
       id: i.id,
       name: (m.get(i.storeProductId)?.name as any)?.ru ?? 'Товар',
+      names: (m.get(i.storeProductId)?.name as Record<string, string> | undefined) ?? { ru: 'Товар' },
       unit: m.get(i.storeProductId)?.unit ?? 'PCS',
       qtyRequestedG: i.qtyRequestedG,
       qtyRequested: i.qtyRequested,
@@ -175,9 +221,11 @@ export class OrderingService {
       number: o.number,
       status: o.status,
       subtotalTiyn: o.subtotalTiyn,
+      deliveryFeeTiyn: o.deliveryFeeTiyn,
       finalTiyn: o.finalTiyn,
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
+      deliveryBy: o.deliveryBy,
       pickupAt: o.pickupAt,
       itemCount: o.items.length,
       items: await this.itemsWithNames(o.items), // позиции — не ПДн, нужны для сборки
@@ -213,6 +261,8 @@ export class OrderingService {
   // Статус заказа → тип уведомления (outbox). Нет записи — пуш не шлём.
   private static readonly STATUS_EVENT: Partial<Record<OrderStatus, string>> = {
     ACCEPTED: 'order.accepted',
+    PICKING: 'order.picking',
+    AWAITING_CUSTOMER: 'order.awaiting_customer',
     READY: 'order.ready',
     DELIVERING: 'order.delivering',
     DELIVERED: 'order.delivered',
@@ -221,7 +271,10 @@ export class OrderingService {
 
   /** Идемпотентный переход статуса с записью события и outbox-уведомления (в одной транзакции). */
   async transition(orderId: string, to: OrderStatus, actor: string, userId: string) {
-    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, storeId: true, number: true } });
+    const o = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true, storeId: true, number: true, fulfillment: true, subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true },
+    });
     if (!o) throw new NotFoundException('Заказ не найден');
     await this.authorizeStore(o.storeId, userId);
     if (o.status === to) return { id: o.id, status: to, changed: false };
@@ -235,7 +288,10 @@ export class OrderingService {
     const evType = OrderingService.STATUS_EVENT[to];
     if (evType) {
       ops.push(this.prisma.outboxEvent.create({
-        data: { type: evType, aggregateType: 'order', aggregateId: orderId, payload: { number: o.number } },
+        data: {
+          type: evType, aggregateType: 'order', aggregateId: orderId,
+          payload: { number: o.number, fulfillment: o.fulfillment, finalTiyn: o.finalTiyn, estimatedTiyn: o.subtotalTiyn + o.deliveryFeeTiyn },
+        },
       }));
     }
     await this.prisma.$transaction(ops);
@@ -263,34 +319,71 @@ export class OrderingService {
   }
 
   /** Публичный трекинг заказа покупателем по id (без ПДн магазина). Код получения виден владельцу. */
+  /** Заказы покупателя для «Мои заказы»: магазин, статус, сумма (с доставкой), время получения. */
+  async myOrders(userId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { customerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true, number: true, status: true, createdAt: true, fulfillment: true, deliveryBy: true, pickupAt: true,
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true,
+        store: { select: { name: true, slug: true } },
+        _count: { select: { items: true } },
+      },
+    });
+    return orders.map(({ subtotalTiyn, deliveryFeeTiyn, finalTiyn, _count, ...o }) => ({
+      ...o, itemCount: _count.items, totalTiyn: finalTiyn ?? subtotalTiyn + deliveryFeeTiyn, final: finalTiyn != null,
+    }));
+  }
+
   async track(orderId: string) {
     const o = await this.prisma.order.findUnique({
       where: { id: orderId },
       select: {
         id: true, number: true, status: true, createdAt: true,
-        subtotalTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
-        fulfillment: true, pickupAt: true,
-        store: { select: { name: true, slug: true, address: true } },
+        subtotalTiyn: true, deliveryFeeTiyn: true, finalTiyn: true, payMethod: true, deliveryCode: true,
+        fulfillment: true, deliveryBy: true, pickupAt: true,
+        store: { select: { name: true, slug: true, address: true, kaspiPhone: true } },
         events: { orderBy: { at: 'asc' }, select: { to: true, at: true } },
-        items: { select: { status: true } },
+        items: { select: { id: true, storeProductId: true, qtyRequestedG: true, qtyRequested: true, qtyActualG: true, priceSnapTiyn: true, status: true } },
         review: { select: { rating: true, comment: true } },
       },
     });
     if (!o) throw new NotFoundException('Заказ не найден');
     const CLOSED: OrderStatus[] = ['DELIVERED', 'COMPLETED', 'CANCELLED'];
+    // Состав для покупателя: что заказал, что взвесили, что убрали — чтобы было видно, откуда изменилась сумма.
+    const items = (await this.itemsWithNames(o.items)).map((i) => {
+      const weighted = i.qtyRequestedG != null;
+      const orderedTiyn = weighted ? Math.round((i.priceSnapTiyn * (i.qtyRequestedG ?? 0)) / 1000) : i.priceSnapTiyn * (i.qtyRequested ?? 1);
+      const actualTiyn = i.status === 'missing' ? 0
+        : weighted && i.qtyActualG != null ? Math.round((i.priceSnapTiyn * i.qtyActualG) / 1000) : orderedTiyn;
+      return {
+        id: i.id, names: i.names, unit: i.unit, status: i.status,
+        qtyRequestedG: i.qtyRequestedG, qtyRequested: i.qtyRequested, qtyActualG: i.qtyActualG,
+        priceTiyn: i.priceSnapTiyn, orderedTiyn, actualTiyn,
+      };
+    });
     return {
       id: o.id,
       number: o.number,
       status: o.status,
       createdAt: o.createdAt,
-      store: o.store,
+      // Номер Kaspi магазина показываем только тем, кто платит переводом, и пока заказ не закрыт.
+      store: {
+        name: o.store.name, slug: o.store.slug, address: o.store.address,
+        kaspiPhone: o.payMethod === 'KASPI_TRANSFER' && !CLOSED.includes(o.status) ? o.store.kaspiPhone : null,
+      },
       payMethod: o.payMethod,
       fulfillment: o.fulfillment,
+      deliveryBy: o.deliveryBy,
       pickupAt: o.pickupAt,
-      estimatedTiyn: o.subtotalTiyn,
+      estimatedTiyn: o.subtotalTiyn + o.deliveryFeeTiyn,
+      deliveryFeeTiyn: o.deliveryFeeTiyn,
       finalTiyn: o.finalTiyn,
       itemCount: o.items.length,
       missingCount: o.items.filter((i) => i.status === 'missing').length,
+      items,
       timeline: o.events,
       // Код скрываем после закрытия заказа — он уже сыграл свою роль.
       deliveryCode: CLOSED.includes(o.status) ? null : o.deliveryCode,
@@ -300,15 +393,42 @@ export class OrderingService {
     };
   }
   cancel(id: string, userId: string) { return this.transition(id, 'CANCELLED', 'merchant', userId); }
+  /** Сборка на паузе: магазин ждёт ответа покупателя (например, вес вне допуска). Возврат — startPicking. */
+  awaitCustomer(id: string, userId: string) { return this.transition(id, 'AWAITING_CUSTOMER', 'merchant', userId); }
 
-  /** Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог. */
-  async weighItem(orderId: string, itemId: string, qtyActualG: number, userId: string) {
+  /**
+   * Взвешивание позиции при сборке: фиксируем фактический вес и пересчитываем итог.
+   * Вес вне допуска (weightRange) принимается только с customerApproved — магазин согласовал с покупателем;
+   * такое отклонение пишется в outbox (order.weight_override) для разбора.
+   */
+  async weighItem(orderId: string, itemId: string, qtyActualG: number, userId: string, customerApproved = false) {
     await this.authorizeStore(await this.orderStoreId(orderId), userId);
+    if (!Number.isInteger(qtyActualG) || qtyActualG <= 0) throw new BadRequestException('Укажите вес в граммах');
     const item = await this.prisma.orderItem.findFirst({
       where: { id: itemId, orderId },
-      select: { id: true, priceSnapTiyn: true },
+      select: { id: true, priceSnapTiyn: true, qtyRequestedG: true },
     });
     if (!item) throw new NotFoundException('Позиция не найдена');
+    if (item.qtyRequestedG != null) {
+      const { minG, maxG } = weightRange(item.qtyRequestedG);
+      const outside = qtyActualG < minG || qtyActualG > maxG;
+      if (outside && !customerApproved) {
+        throw new BadRequestException({
+          message: `Вес вне допуска: от ${minG} до ${maxG} г. Согласуйте с покупателем или отметьте «нет в наличии».`,
+          code: 'WEIGHT_OUT_OF_RANGE',
+          minG,
+          maxG,
+        });
+      }
+      if (outside) {
+        await this.prisma.outboxEvent.create({
+          data: {
+            type: 'order.weight_override', aggregateType: 'order', aggregateId: orderId,
+            payload: { itemId, requestedG: item.qtyRequestedG, actualG: qtyActualG, userId },
+          },
+        });
+      }
+    }
     await this.prisma.orderItem.update({ where: { id: itemId }, data: { qtyActualG, status: 'ok' } });
     return this.recalcFinal(orderId);
   }
@@ -318,9 +438,19 @@ export class OrderingService {
     await this.authorizeStore(await this.orderStoreId(orderId), userId);
     await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId }, data: { status: 'missing' } });
     const ord = await this.prisma.order.findUnique({ where: { id: orderId }, select: { number: true } });
+    const it = await this.prisma.orderItem.findFirst({ where: { id: itemId, orderId }, select: { storeProductId: true } });
+    const sp = it ? await this.prisma.storeProduct.findUnique({ where: { id: it.storeProductId }, select: { master: { select: { name: true } } } }) : null;
+    const item = (sp?.master.name as any)?.ru as string | undefined;
     await this.prisma.outboxEvent.create({
-      data: { type: 'order.substitution_needed', aggregateType: 'order', aggregateId: orderId, payload: { number: ord?.number } },
+      data: { type: 'order.substitution_needed', aggregateType: 'order', aggregateId: orderId, payload: { number: ord?.number, item } },
     });
+    return this.recalcFinal(orderId);
+  }
+
+  /** Вернуть позицию в заказ (отметили «нет в наличии» по ошибке). */
+  async restoreItem(orderId: string, itemId: string, userId: string) {
+    await this.authorizeStore(await this.orderStoreId(orderId), userId);
+    await this.prisma.orderItem.updateMany({ where: { id: itemId, orderId, status: 'missing' }, data: { status: 'ok' } });
     return this.recalcFinal(orderId);
   }
 
@@ -337,6 +467,8 @@ export class OrderingService {
       else if (it.qtyRequestedG != null) final += Math.round((it.priceSnapTiyn * it.qtyRequestedG) / 1000);
       else if (it.qtyRequested != null) final += it.priceSnapTiyn * it.qtyRequested;
     }
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, select: { deliveryFeeTiyn: true } });
+    final += o?.deliveryFeeTiyn ?? 0;
     await this.prisma.order.update({ where: { id: orderId }, data: { finalTiyn: final } });
     return { orderId, finalTiyn: final };
   }

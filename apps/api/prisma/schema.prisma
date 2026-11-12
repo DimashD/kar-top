@@ -123,6 +123,8 @@ model PushToken {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   platform  String   // android | ios | web
+  // Приложение: merchant (приложение магазина) | customer (приложение покупателя) — у одного номера могут быть оба.
+  app       String   @default("merchant")
   token     String   @unique
   createdAt DateTime @default(now())
   @@index([userId])
@@ -185,13 +187,26 @@ model Store {
   kaspiPhone String?
   address   String?
   geom      Json?       // точка магазина
-  deliveryMode DeliveryMode @default(OWN)
+  // Какие доставки есть у магазина: OWN — своя (по зонам), SERVICE — курьерская служба (Яндекс и др., за счёт покупателя), BOTH — обе.
+  deliveryMode DeliveryMode @default(BOTH)
   // Самовывоз: клиент забирает сам. pickupLeadMinutes — минимум времени от оформления до готовности к выдаче.
   pickupEnabled     Boolean @default(true)
   pickupLeadMinutes Int     @default(60)
+  // Своя доставка магазина включена (выключена — только самовывоз).
+  deliveryEnabled Boolean @default(true)
+  // Доставка курьерской службой: через сколько минут после оформления заказ готов к передаче курьеру.
+  courierHandoverMinutes Int @default(30)
+  // Своя доставка магазина: средняя продолжительность от оформления до вручения (минуты).
+  ownDeliveryMinutes Int @default(60)
+  // Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' по Алматы или null — выходной. Пусто — 08:00–22:00.
+  hours Json?
   rating    Float    @default(0)
   reviewCount Int    @default(0)
   settings  Json?
+  // Фото магазина (витрина/вход) — доверие покупателя. JPEG до ~1 МБ прямо в БД; photoAt — версия для кэша.
+  photo     Bytes?
+  photoType String?
+  photoAt   DateTime?
   createdAt DateTime @default(now())
   members   StoreMember[]
   products  StoreProduct[]
@@ -246,7 +261,9 @@ model Order {
   deliveryCode  String?
   // Способ получения: доставка или самовывоз. pickupAt — выбранное время самовывоза.
   fulfillment   Fulfillment @default(DELIVERY)
-  pickupAt      DateTime?
+  // Кто везёт: OWN — магазин (цена по зоне), SERVICE — курьерская служба, оплачивает покупатель отдельно. null — самовывоз.
+  deliveryBy    DeliveryMode?
+  pickupAt      DateTime? // желаемое время получения: самовывоз — когда заберёт, доставка — к какому времени привезти
   // ПДн доступны магазину только после ACCEPTED (фильтрация в DTO по статусу)
   address       Json?
   payMethod     PayMethod @default(CASH)
@@ -352,4 +369,57 @@ model CatalogRequest {
   createdAt    DateTime             @default(now())
   @@index([status, createdAt])
   @@index([storeId])
+}
+
+// Отзывы о работе сервиса: покупатели (сайт/приложение) и магазины (приложение магазина).
+// Предложения новых товаров магазинами — отдельно, CatalogRequest.
+enum FeedbackSource {
+  CUSTOMER
+  MERCHANT
+}
+
+enum FeedbackKind {
+  IDEA
+  PROBLEM
+  COMPLAINT
+  PRAISE
+  OTHER
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+}
+
+model Feedback {
+  id        String         @id @default(uuid())
+  source    FeedbackSource
+  kind      FeedbackKind
+  text      String
+  phone     String?        // как связаться (покупатель может оставить номер)
+  userId    String?        // автор, если вошёл (магазин — всегда)
+  storeId   String?        // магазин, о котором/от которого отзыв
+  storeSlug String?
+  page      String?        // страница, откуда написали
+  status    FeedbackStatus @default(NEW)
+  note      String?        // заметка команды
+  createdAt DateTime       @default(now())
+  @@index([status, createdAt])
+}
+
+// Центр уведомлений: всё, что отправлено пользователю (магазину или покупателю), с отметкой «прочитано».
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String    // order.placed, order.ready, …
+  refId     String?   // id заказа/счёта
+  title     String
+  body      String
+  url       String?   // куда вести покупателя (страница заказа)
+  // Кому: merchant — в приложении магазина, customer — покупателю (сайт/приложение покупателя).
+  app       String    @default("merchant")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  @@index([userId, createdAt])
 }

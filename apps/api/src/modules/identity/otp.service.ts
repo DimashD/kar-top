@@ -42,6 +42,18 @@ export class OtpService {
     return digits;
   }
 
+  /** Счётчик попыток (вход по паролю): false — лимит исчерпан. */
+  async attempt(key: string, max: number, ttlSec: number): Promise<boolean> {
+    const k = `rl:${key}`;
+    const n = await this.redis.incr(k);
+    if (n === 1) await this.redis.expire(k, ttlSec);
+    return n <= max;
+  }
+
+  async resetAttempts(key: string) {
+    await this.redis.del(`rl:${key}`);
+  }
+
   private async rateLimit(phone: string) {
     const k15 = `otp:rl:15m:${phone}`;
     const kDay = `otp:rl:day:${phone}`;
@@ -59,9 +71,9 @@ export class OtpService {
    * `email` можно передать для привязки email↔телефон; тогда код пойдёт на почту (дёшево).
    * Приоритет каналов (docs/20 §3): email → Telegram → WhatsApp → SMS.
    */
-  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<void> {
+  async request(rawPhone: string, preferred: OtpChannelName = 'telegram'): Promise<OtpChannelName | 'test' | null> {
     const phone = this.normalize(rawPhone);
-    const fixed = this.testOtpCode();
+    const fixed = this.testOtpCode(phone);
     // Лимит защищает от SMS-pumping; в тестовой среде с фиксированным кодом SMS не отправляются — лимит не нужен.
     if (!fixed) await this.rateLimit(phone);
 
@@ -76,7 +88,7 @@ export class OtpService {
     if (fixed) {
       // Тестовая среда: никуда не отправляем (не тратим SMS), код фиксированный.
       this.log.log('OTP (staging): используется фиксированный тестовый код');
-      return;
+      return 'test';
     }
 
     // Только УЖЕ ПОДТВЕРЖДЁННЫЙ (спаренный) email — код пойдёт на почту. Непроверенный email не используется.
@@ -84,28 +96,32 @@ export class OtpService {
 
     // Порядок каналов: email (если есть) → предпочитаемый (telegram) → whatsapp → sms.
     const order: OtpChannelName[] = [...new Set(
-      [emailTarget ? 'email' : null, preferred, 'whatsapp', 'sms'].filter(Boolean) as OtpChannelName[],
+      [emailTarget ? 'email' : null, preferred, 'sms', 'whatsapp'].filter(Boolean) as OtpChannelName[],
     )];
     for (const name of order) {
       const to = name === 'email' ? emailTarget! : rawPhone;
       try {
         if (await this.channels[name].send(to, code)) {
           this.log.log(`OTP отправлен каналом ${name}`);
-          return;
+          return name;
         }
       } catch (e) {
         this.log.warn(`Канал ${name} упал: ${(e as Error).message}`);
       }
     }
     this.log.error('Ни один канал не доставил код');
+    return null;
   }
 
   /**
    * Фиксированный OTP-код — ТОЛЬКО в тестовой среде (APP_ENV=staging + TEST_OTP_CODE из 6 цифр).
    * На проде (APP_ENV=production или не задан) всегда null, даже если TEST_OTP_CODE задан по ошибке.
    */
-  private testOtpCode(): string | null {
+  private testOtpCode(phone?: string): string | null {
     if (this.config.get<string>('APP_ENV') !== 'staging') return null;
+    // OTP_REAL_PHONES — номера, которым и на тесте шлём настоящий код (проверка Telegram/SMS/WhatsApp).
+    const real = (this.config.get<string>('OTP_REAL_PHONES') || '').split(',').map((p) => p.replace(/\D/g, '')).filter(Boolean);
+    if (phone && real.includes(phone.replace(/\D/g, ''))) return null;
     const code = this.config.get<string>('TEST_OTP_CODE');
     return code && /^\d{6}$/.test(code) ? code : null;
   }

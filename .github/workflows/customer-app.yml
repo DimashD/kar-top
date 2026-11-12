@@ -1,0 +1,101 @@
+name: Customer app
+
+# Приложение покупателя (apps/customer, Flutter — витрина сайта + нативные голос, ссылки, диплинки):
+#   каждый push/PR с изменениями приложения — анализ и тесты;
+#   push в develop — ТЕСТОВОЕ приложение «Kartop ТЕСТ клиент» (flavor staging, сайт test.kar-top.kz) → .apk в артефактах;
+#   ручной запуск — боевой .apk/.aab (flavor prod, сайт kar-top.kz).
+on:
+  push:
+    branches: [main, develop]
+    paths: ['apps/customer/**', '.github/workflows/customer-app.yml']
+  pull_request:
+    paths: ['apps/customer/**', '.github/workflows/customer-app.yml']
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: apps/customer
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: 3.50.0, cache: true }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  android-staging:
+    needs: analyze
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: 3.50.0, cache: true }
+      - run: flutter pub get
+      # Тестовую сборку подписываем тем же постоянным ключом, что и боевую: иначе отпечаток подписи
+      # каждый раз новый и Android не подтверждает ссылки (assetlinks.json) — они открываются в браузере.
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
+          echo "Отпечаток подписи (для assetlinks.json):"
+          keytool -list -v -keystore android/kartop.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | grep 'SHA256:'
+      - run: >-
+          flutter build apk --release --flavor staging
+          --build-number=${{ github.run_number }}
+          --dart-define=WEB_BASE=https://${{ vars.STAGING_DOMAIN || 'test.kar-top.kz' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-customer-TEST-apk
+          path: apps/customer/build/app/outputs/flutter-apk/app-staging-release.apk
+          retention-days: 30
+
+  android-release:
+    needs: analyze
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: 3.50.0, cache: true }
+      - run: flutter pub get
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          keytool -list -keystore android/kartop.jks -storepass "$STORE_PASSWORD" >/dev/null \
+            || { echo "::error::Keystore invalid or wrong password"; exit 1; }
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
+      - run: flutter build appbundle --release --flavor prod --dart-define=WEB_BASE=${{ vars.WEB_BASE || 'https://kar-top.kz' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-customer-aab
+          path: apps/customer/build/app/outputs/bundle/prodRelease/app-prod-release.aab
+          retention-days: 14

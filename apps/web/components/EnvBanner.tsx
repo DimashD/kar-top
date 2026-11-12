@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useT } from './LangProvider';
 
 /**
  * Красная плашка «ТЕСТОВАЯ СРЕДА» на test.* (staging), чтобы не перепутать с продом.
  * Определяем по домену в браузере: один и тот же образ работает и на staging, и на проде.
  */
 export function EnvBanner() {
+  const t = useT();
   const [isTest, setIsTest] = useState(false);
   useEffect(() => {
     const h = window.location.hostname;
@@ -20,7 +22,7 @@ export function EnvBanner() {
         textAlign: 'center', font: '600 13px/1.4 system-ui, sans-serif', padding: '6px 12px',
       }}
     >
-      ТЕСТОВАЯ СРЕДА — данные ненастоящие, заказы не исполняются. Код входа: 111111
+      {t.testEnv}
     </div>
   );
 }

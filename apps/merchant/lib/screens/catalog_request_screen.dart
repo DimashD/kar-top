@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import '../format.dart';
+import '../l10n.dart';
 import '../session.dart';
 import '../theme.dart';
 
@@ -21,10 +23,10 @@ class _CatalogRequestScreenState extends State<CatalogRequestScreen> {
   bool _done = false;
   String? _error;
 
-  static const _units = {'KG': 'кг', 'G': 'г', 'PCS': 'шт', 'BUNCH': 'пучок', 'PACK': 'упак.'};
+  static const _units = ['KG', 'G', 'PCS', 'BUNCH', 'PACK'];
 
   Future<void> _submit() async {
-    if (_name.text.trim().length < 2) { setState(() => _error = 'Укажите название'); return; }
+    if (_name.text.trim().length < 2) { setState(() => _error = context.read<Lang>().s.enterName); return; }
     setState(() { _busy = true; _error = null; });
     final s = context.read<Session>();
     try {
@@ -48,71 +50,72 @@ class _CatalogRequestScreenState extends State<CatalogRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Заявка в каталог')),
-      body: SafeArea(child: _done ? _success() : _form()),
+      appBar: AppBar(title: Text(s.catalogRequestTitle)),
+      body: SafeArea(child: _done ? _success(s) : _form(s)),
     );
   }
 
-  Widget _success() => Center(
+  Widget _success(S s) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('✅', style: TextStyle(fontSize: 56)),
             const SizedBox(height: 12),
-            const Text('Заявка отправлена!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            Text(s.requestSent, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            const Text('Платформа рассмотрит её. После одобрения позиция появится в каталоге, и вы сможете добавить её в свой ассортимент.',
-                textAlign: TextAlign.center, style: TextStyle(color: AppColors.ink60)),
+            Text(s.requestSentText,
+                textAlign: TextAlign.center, style: const TextStyle(color: AppColors.ink60)),
             const SizedBox(height: 24),
-            OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Готово')),
+            OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: Text(s.done)),
           ]),
         ),
       );
 
-  Widget _form() => SingleChildScrollView(
+  Widget _form(S s) => SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Предложите позицию для общего каталога', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Text(s.proposeTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 16),
           SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'PRODUCT', label: Text('Товар')),
-              ButtonSegment(value: 'CATEGORY', label: Text('Категория')),
+            segments: [
+              ButtonSegment(value: 'PRODUCT', label: Text(s.product)),
+              ButtonSegment(value: 'CATEGORY', label: Text(s.category)),
             ],
             selected: {_type},
             onSelectionChanged: (s) => setState(() => _type = s.first),
           ),
           const SizedBox(height: 16),
-          Text(_type == 'PRODUCT' ? 'Название товара' : 'Название категории',
+          Text(_type == 'PRODUCT' ? s.productName : s.categoryName,
               style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
           const SizedBox(height: 6),
           TextField(controller: _name, decoration: InputDecoration(
-              hintText: _type == 'PRODUCT' ? 'Напр. «Яблоко Фуджи»' : 'Напр. «Орехи»')),
+              hintText: _type == 'PRODUCT' ? s.productHint : s.categoryHint)),
           if (_type == 'PRODUCT') ...[
             const SizedBox(height: 16),
-            const Text('Единица измерения', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
+            Text(s.unit, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
               initialValue: _unit,
-              items: _units.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+              items: _units.map((u) => DropdownMenuItem(value: u, child: Text(unitLabel(s, u)))).toList(),
               onChanged: (v) => setState(() => _unit = v ?? 'KG'),
             ),
             const SizedBox(height: 16),
-            const Text('Категория (если знаете)', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
+            Text(s.categoryIfKnown, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
             const SizedBox(height: 6),
-            TextField(controller: _category, decoration: const InputDecoration(hintText: 'Напр. «Яблоки» — необязательно')),
+            TextField(controller: _category, decoration: InputDecoration(hintText: s.categoryOptHint)),
           ],
           const SizedBox(height: 16),
-          const Text('Комментарий', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
+          Text(s.comment, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.ink60)),
           const SizedBox(height: 6),
-          TextField(controller: _note, maxLines: 2, decoration: const InputDecoration(hintText: 'Необязательно')),
+          TextField(controller: _note, maxLines: 2, decoration: InputDecoration(hintText: s.optional)),
           if (_error != null) ...[
             const SizedBox(height: 14),
             Text(_error!, style: const TextStyle(color: AppColors.sale)),
           ],
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: _busy ? null : _submit, child: Text(_busy ? 'Отправляем…' : 'Отправить заявку')),
+          ElevatedButton(onPressed: _busy ? null : _submit, child: Text(_busy ? s.sending : s.sendApplication)),
         ]),
       );
 }

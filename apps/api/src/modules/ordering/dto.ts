@@ -4,7 +4,8 @@ import { Type } from 'class-transformer';
 export class OrderItemDto {
   @IsString() storeProductId!: string;
   // Для весовых — граммы, для штучных — qty. Указывается одно из двух.
-  @IsOptional() @IsInt() @Min(1) qtyG?: number;
+  // Весовой товар — не больше 20 кг в одной позиции.
+  @IsOptional() @IsInt() @Min(1) @Max(20000, { message: 'Не больше 20 кг одного товара' }) qtyG?: number;
   @IsOptional() @IsInt() @Min(1) qty?: number;
 }
 
@@ -24,11 +25,15 @@ export class AddressDto {
 
 export class CreateOrderDto {
   @IsString() storeSlug!: string;
-  @IsString() phone!: string;
+  // Номер берётся из подтверждённого аккаунта (createForUser); в форме — не обязателен.
+  @IsOptional() @IsString() phone?: string;
   @IsArray() @ArrayNotEmpty() @ValidateNested({ each: true }) @Type(() => OrderItemDto) items!: OrderItemDto[];
   @IsOptional() @ValidateNested() @Type(() => AddressDto) address?: AddressDto;
   @IsIn(['CASH', 'CARD_COURIER', 'KASPI_TRANSFER']) payMethod!: 'CASH' | 'CARD_COURIER' | 'KASPI_TRANSFER';
   @IsOptional() @IsIn(['DELIVERY', 'PICKUP']) fulfillment?: 'DELIVERY' | 'PICKUP';
-  // Желаемое время самовывоза (ISO). Должно быть не раньше, чем оформление + pickupLeadMinutes магазина.
+  // Доставка: OWN — магазин сам (по зонам), SERVICE — сторонняя курьерская служба, оплачивает покупатель отдельно.
+  @IsOptional() @IsIn(['OWN', 'SERVICE']) deliveryBy?: 'OWN' | 'SERVICE';
+  // Желаемое время получения (ISO): самовывоз — не раньше оформление + pickupLeadMinutes;
+  // доставка — не раньше оформление + срок доставки магазина (своя: ownDeliveryMinutes, служба: courierHandoverMinutes).
   @IsOptional() @IsString() pickupAt?: string;
 }

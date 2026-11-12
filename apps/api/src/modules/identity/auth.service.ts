@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OtpService } from './otp.service';
@@ -24,7 +24,11 @@ export class AuthService {
     const normalized = await this.otp.verify(phone, code);
     if (!normalized) throw new UnauthorizedException('Неверный или просроченный код.');
 
-    const e164 = '+' + normalized;
+    return this.loginVerifiedPhone('+' + normalized, deviceLabel);
+  }
+
+  /** Номер уже подтверждён (кодом или Telegram): находим/создаём пользователя, доверенное устройство, токены. */
+  async loginVerifiedPhone(e164: string, deviceLabel?: string): Promise<TokenPair & { userId: string }> {
     const user = await this.prisma.user.upsert({
       where: { phone: e164 },
       update: {},
@@ -39,6 +43,37 @@ export class AuthService {
 
     const pair = await this.tokens.issue(user.id);
     return { ...pair, userId: user.id };
+  }
+
+  /**
+   * Вход сотрудника магазина по номеру и паролю (пароль он задаёт сам после первого входа по коду).
+   * 5 неверных попыток — пауза 15 минут.
+   */
+  async loginMerchant(rawPhone: string, password: string): Promise<TokenPair & { userId: string }> {
+    const phone = toE164(rawPhone);
+    if (!(await this.otp.attempt(`pwd:${phone}`, 5, 15 * 60))) {
+      throw new HttpException('Слишком много попыток. Подождите 15 минут или войдите по коду.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+      select: { id: true, passwordHash: true, _count: { select: { members: true } } },
+    });
+    const ok = !!user?.passwordHash && user._count.members > 0 && (await bcrypt.compare(password, user.passwordHash));
+    if (!ok) throw new UnauthorizedException('Неверный номер или пароль');
+    await this.otp.resetAttempts(`pwd:${phone}`);
+    const pair = await this.tokens.issue(user!.id);
+    return { ...pair, userId: user!.id };
+  }
+
+  /** Пароль задаёт сам пользователь (уже вошедший по коду) — дальше вход без SMS. */
+  async setPassword(userId: string, password: string) {
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(password, 10) } });
+    return { ok: true };
+  }
+
+  async profile(userId: string) {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { phone: true, name: true, passwordHash: true } });
+    return { phone: u?.phone, name: u?.name ?? null, hasPassword: !!u?.passwordHash };
   }
 
   /** Вход сотрудника платформы по телефону ИЛИ email + пароль (без OTP — для админки, дешевле). */
