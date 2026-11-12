@@ -591,6 +591,57 @@ function QtyInput({ unit, qty, onSet }: { unit: CatalogProduct['unit']; qty: num
  * Карточка товара: большое фото и выбор количества. Весовой — лента 0,5 · 1 · 1,5 · 2… кг (шаг полкило),
  * точная подстройка «−/+» по 100 г, подсказка про взвешивание; штучный — «−/+» по одной.
  */
+/**
+ * Как закрывается шторка, кроме кнопки: «Назад» на телефоне/в браузере (в приложении иначе уходит со страницы магазина) и Esc.
+ * Своя запись в истории: закрыли другим способом — убираем её.
+ */
+function useSheetDismiss(onClose: () => void) {
+  const ref = useRef(onClose);
+  ref.current = onClose;
+  useEffect(() => {
+    // Уровень вложенности: карточка товара поверх корзины — «Назад» закрывает только верхнюю.
+    const level = (history.state?.kartopSheet ?? 0) + 1;
+    let pushed = true;
+    history.pushState({ ...(history.state ?? {}), kartopSheet: level }, '');
+    const onPop = () => { if ((history.state?.kartopSheet ?? 0) < level) { pushed = false; ref.current(); } };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') ref.current(); };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('keydown', onKey);
+      if (pushed && history.state?.kartopSheet === level) history.back();
+    };
+  }, []);
+}
+
+/** Свайп вниз по шторке (когда она прокручена в самый верх) — закрыть. */
+function useSwipeDown(onClose: () => void) {
+  const [dy, setDy] = useState(0);
+  const start = useRef<number | null>(null);
+  return {
+    style: { transform: dy ? `translateY(${dy}px)` : undefined, transition: start.current == null ? 'transform .2s' : 'none' } as React.CSSProperties,
+    handlers: {
+      onTouchStart: (e: React.TouchEvent<HTMLElement>) => { start.current = e.currentTarget.scrollTop <= 0 ? e.touches[0].clientY : null; },
+      onTouchMove: (e: React.TouchEvent<HTMLElement>) => { if (start.current != null) setDy(Math.max(0, e.touches[0].clientY - start.current)); },
+      onTouchEnd: () => { const d = dy; start.current = null; setDy(0); if (d > 90) onClose(); },
+    },
+  };
+}
+
+/** Верх шторки: полоска «потяни вниз» и крестик — всегда видны при прокрутке. */
+function SheetTop({ onClose, label }: { onClose: () => void; label: string }) {
+  return (
+    <div style={{ position: 'sticky', top: -18, zIndex: 2, margin: '-18px -20px -6px', padding: '8px 12px 4px', background: 'var(--card)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 44 }}>
+      <span aria-hidden="true" style={{ position: 'absolute', left: '50%', top: 8, transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 99, background: 'var(--line)' }} />
+      <button type="button" aria-label={label} onClick={onClose}
+        style={{ width: 36, height: 36, borderRadius: 999, border: 'none', background: '#F4F2F0', color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <Icon name="close" size={20} />
+      </button>
+    </div>
+  );
+}
+
 function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct; look?: Look; initial: number; onClose: () => void; onSave: (g: number) => void }) {
   const t = useT();
   const lang = useLang();
@@ -607,10 +658,13 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
     strip.current?.querySelector<HTMLElement>(`[data-g="${near}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [g]);
   const pieces = p.avgPieceG ? Math.max(1, Math.round(g / p.avgPieceG)) : null;
+  useSheetDismiss(onClose);
+  const swipe = useSwipeDown(onClose);
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.45)', zIndex: 25, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div role="dialog" aria-label={localized(p.name, lang)} onClick={(e) => e.stopPropagation()}
-        style={{ background: 'var(--card)', width: '100%', maxWidth: 520, maxHeight: '94vh', overflowY: 'auto', borderRadius: '22px 22px 0 0', padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div role="dialog" aria-modal="true" aria-label={localized(p.name, lang)} onClick={(e) => e.stopPropagation()} {...swipe.handlers}
+        style={{ background: 'var(--card)', width: '100%', maxWidth: 520, maxHeight: '94vh', overflowY: 'auto', borderRadius: '22px 22px 0 0', padding: '18px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14, ...swipe.style }}>
+        <SheetTop onClose={onClose} label={t.close} />
         <div style={{ background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0', borderRadius: 18, height: p.photo ? 'min(320px, 38vh)' : 140, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flex: 'none' }}>
           {p.photo ? <img src={p.photo} alt={localized(p.name, lang)} style={{ height: '100%', maxWidth: '100%', objectFit: 'contain' }} />
             : look?.pic ? <span aria-hidden="true" style={{ fontSize: 72, lineHeight: 1 }}>{look.pic}</span>
@@ -833,6 +887,7 @@ function CheckoutDrawer(props: {
 }) {
   const { slug, store, lines, subtotal, looks, onClose, onSet, onEdit, onDone } = props;
   const t = useT();
+  useSheetDismiss(onClose);
   const lang = useLang();
   // Два вида доставки: магазин сам (по своим зонам; цена и «бесплатно от» — у зоны) и курьерская служба
   // (сторонняя) — по всему городу, за счёт покупателя, в сумму заказа не входит. Доставка может быть выключена.
