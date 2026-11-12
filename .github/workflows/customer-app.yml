@@ -99,3 +99,10 @@ jobs:
           name: kartop-customer-aab
           path: apps/customer/build/app/outputs/bundle/prodRelease/app-prod-release.aab
           retention-days: 14
+      # Боевой .apk — поставить на телефон напрямую, без Google Play.
+      - run: flutter build apk --release --flavor prod --dart-define=WEB_BASE=${{ vars.WEB_BASE || 'https://kar-top.kz' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-customer-apk
+          path: apps/customer/build/app/outputs/flutter-apk/app-prod-release.apk
+          retention-days: 14
