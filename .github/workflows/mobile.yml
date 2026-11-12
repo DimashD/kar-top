@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.47.9, cache: true }
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.47.9, cache: true }
       - run: flutter pub get
       # Без key.properties сборка подписывается debug-ключом — для тестового .apk это нормально.
       - run: >-
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: subosito/flutter-action@v2
-        with: { channel: stable, cache: true }
+        with: { channel: stable, flutter-version: 3.47.9, cache: true }
       - run: flutter pub get
       # Ключ подписи и пароли — из секретов репозитория (Settings → Secrets → Actions).
       - name: Keystore
