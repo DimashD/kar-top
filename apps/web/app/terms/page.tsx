@@ -1,3 +1,4 @@
+import Logo from '../../components/Logo';
 import Link from 'next/link';
 
 export const metadata = { title: 'Пользовательское соглашение — Kartop', robots: { index: true } };
@@ -8,7 +9,7 @@ export default function TermsPage() {
     <main>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: 64 }}>
-          <Link href="/" style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)' }}>Kartop</Link>
+          <Logo size={28} />
         </div>
       </header>
       <article className="container" style={{ maxWidth: 760, padding: '32px 20px', lineHeight: 1.65 }}>

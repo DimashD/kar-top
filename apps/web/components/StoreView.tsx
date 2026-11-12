@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from './Logo';
 import FeedbackButton from './FeedbackButton';
 import StoreMenu from './StoreMenu';
 import BottomNav, { BOTTOM_NAV_H } from './BottomNav';
@@ -508,6 +509,7 @@ function Header({ name, rating, reviewCount, address, slug, photo }: { name: str
             ★ {rating.toFixed(1)}{reviewCount ? ` · ${t.reviewsShort(reviewCount)}` : ''}{address ? ` · ${address}` : ''}
           </div>
         </Link>
+        <span className="store-logo"><Logo size={20} /></span>
       </div>
     </header>
   );

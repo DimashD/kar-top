@@ -1,3 +1,4 @@
+import Logo from '../../components/Logo';
 import Link from 'next/link';
 import PartnerForm from '../../components/PartnerForm';
 import { LangSwitcher } from '../../components/LangProvider';
@@ -16,7 +17,7 @@ export default function PartnerPage() {
     <main>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          <Link href="/" style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)', textDecoration: 'none' }}>Kartop</Link>
+          <Logo size={28} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <LangSwitcher />
             <Link className="btn btn-ghost" href="/">{t.toHome}</Link>

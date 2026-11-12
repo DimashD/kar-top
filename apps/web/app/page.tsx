@@ -1,3 +1,4 @@
+import Logo from '../components/Logo';
 import Link from 'next/link';
 import StoreMenu from '../components/StoreMenu';
 import StoreList from '../components/StoreList';
@@ -17,7 +18,7 @@ export default async function Home() {
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px' }}>
           <StoreMenu />
-          <div style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)', flex: 1 }}>Kartop</div>
+          <div style={{ flex: 1 }}><Logo size={30} /></div>
         </div>
       </header>
 

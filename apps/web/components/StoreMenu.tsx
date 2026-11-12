@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from './Logo';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
@@ -35,7 +36,7 @@ export default function StoreMenu() {
           <nav aria-label={t.menu} onClick={(e) => e.stopPropagation()}
             style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 'min(300px, 85vw)', background: 'var(--card)', padding: '16px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', padding: '0 20px 12px' }}>
-              <span style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)', flex: 1 }}>Kartop</span>
+              <span style={{ flex: 1 }}><Logo size={24} /></span>
               <button type="button" aria-label={t.close} onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer', color: 'var(--ink-60)' }}>✕</button>
             </div>
             <Link href="/" style={item}>🏪 {t.navStores}</Link>

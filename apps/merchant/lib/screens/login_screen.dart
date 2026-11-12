@@ -4,6 +4,7 @@ import '../l10n.dart';
 import '../phone.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/kartop_logo.dart';
 import '../widgets/language_picker.dart';
 import 'partner_screen.dart';
 
@@ -158,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text('Kartop', style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.carrot)),
+                      const Align(alignment: Alignment.centerLeft, child: KartopLogo(size: 40)),
                       const SizedBox(height: 4),
                       Text(s.merchantCabinet, style: const TextStyle(fontSize: 16, color: AppColors.ink60)),
                       const SizedBox(height: 32),
