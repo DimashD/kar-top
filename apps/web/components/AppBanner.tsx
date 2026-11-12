@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ANDROID_URL, APP_SCHEME, detectPlatform, inKartopApp, Platform } from '../lib/app-links';
 import { useT } from './LangProvider';
+import { LogoMark } from './Logo';
 
 // Иконка Google Play — простой inline-SVG (без официальных ассетов).
 function Play() {
@@ -63,7 +64,7 @@ export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: s
   if (variant === 'full') {
     return (
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 56 }}>🧺</div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}><LogoMark size={72} /></div>
         <h1 style={{ fontSize: 32, margin: '12px 0 8px' }}>{t.appTitle}</h1>
         <p className="muted" style={{ fontSize: 18, maxWidth: 440, margin: '0 auto 24px' }}>{t.appText}</p>
         <div style={{ maxWidth: 360, margin: '0 auto 16px' }}><StoreActions platform={platform} orderId={orderId} /></div>
@@ -75,7 +76,7 @@ export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: s
   return (
     <div className="card" style={{ padding: 18, marginBottom: 20, background: 'var(--carrot-50)', borderColor: 'var(--carrot)' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ fontSize: 30 }}>🧺</div>
+        <LogoMark size={40} />
         <div>
           <div style={{ fontWeight: 800, fontSize: 16 }}>{t.trackTitle}</div>
           <div className="muted" style={{ fontSize: 14 }}>{t.trackText}</div>

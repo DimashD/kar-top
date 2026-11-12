@@ -61,7 +61,7 @@ class _CatalogRequestScreenState extends State<CatalogRequestScreen> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('✅', style: TextStyle(fontSize: 56)),
+            const Icon(Icons.check_circle_outline_rounded, size: 64, color: AppColors.leaf),
             const SizedBox(height: 12),
             Text(s.requestSent, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),

@@ -10,6 +10,7 @@ import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
+import { IconTile } from './Icon';
 
 type MyOrder = {
   id: string; number: number; status: string; createdAt: string; fulfillment: 'DELIVERY' | 'PICKUP'; pickupAt: string | null;
@@ -77,13 +78,13 @@ export default function MyOrders() {
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         {orders === null ? <p className="muted">…</p> : needLogin ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>🧾</div>
+            <IconTile name="receipt" size={56} round />
             <p style={{ margin: '8px 0 16px' }}>{t.loginToSeeOrders}</p>
             <button className="btn btn-primary" onClick={() => setAuth(true)} style={{ height: 48, padding: '0 28px' }}>{t.loginBtn}</button>
           </div>
         ) : orders.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>🛒</div>
+            <IconTile name="cart" size={56} round />
             <p style={{ margin: '8px 0 16px' }}>{t.noOrders}</p>
             <Link className="btn btn-primary" href="/" style={{ padding: '12px 24px' }}>{t.navStores}</Link>
           </div>

@@ -5,6 +5,7 @@ import { getDict, getLang } from '../../../lib/i18n-server';
 import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
+import Icon from '../../../components/Icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,9 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
   const photo = s.photoVersion ? `/api/shops/${encodeURIComponent(s.slug)}/photo?v=${s.photoVersion}` : null;
   const phone = s.phone?.replace(/\D/g, '');
   const loc = s.location;
-  const btn: React.CSSProperties = { flex: '1 1 0', minWidth: 0, padding: '12px 8px', fontSize: 14, textAlign: 'center' };
+  const btn: React.CSSProperties = { flex: '1 1 0', minWidth: 0, padding: '10px 6px', fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' };
+  const way: React.CSSProperties = { display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 6 };
+  const wayIc: React.CSSProperties = { marginTop: 1, color: 'var(--carrot)' };
   const card: React.CSSProperties = { padding: 16, marginTop: 12 };
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
@@ -44,12 +47,12 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
       <div className="container" style={{ padding: '16px 20px 40px', maxWidth: 760 }}>
         <h1 style={{ fontSize: 26, margin: 0 }}>{s.name}</h1>
         <div className="muted" style={{ marginTop: 4 }}>★ {s.rating.toFixed(1)}{s.reviewCount ? ` · ${t.reviewsShort(s.reviewCount)}` : ''}</div>
-        {s.address ? <div style={{ marginTop: 8, fontSize: 15 }}>📍 {s.address}</div> : null}
+        {s.address ? <div style={{ marginTop: 8, fontSize: 15, display: 'flex', gap: 6, alignItems: 'flex-start' }}><Icon name="pin" size={18} style={{ marginTop: 1, color: 'var(--carrot)' }} />{s.address}</div> : null}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-          {phone ? <a className="btn btn-ghost" style={btn} href={`tel:+${phone}`}>📞 {t.storeCall}</a> : null}
-          {phone ? <a className="btn btn-ghost" style={btn} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer">💬 {t.storeWhatsapp}</a> : null}
-          {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer">🧭 {t.storeRoute}</a> : null}
+          {phone ? <a className="btn btn-ghost" style={btn} href={`tel:+${phone}`}><Icon name="phone" size={22} />{t.storeCall}</a> : null}
+          {phone ? <a className="btn btn-ghost" style={btn} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><Icon name="chat" size={22} />{t.storeWhatsapp}</a> : null}
+          {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
         </div>
 
         {s.hours?.length === 7 ? (
@@ -69,10 +72,10 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
 
         <div className="card" style={card}>
           <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.howToGet}</div>
-          {s.pickupEnabled ? <div>🛍️ {t.pickupIn(s.pickupLeadMinutes)}</div> : null}
+          {s.pickupEnabled ? <div style={way}><Icon name="bag" style={wayIc} />{t.pickupIn(s.pickupLeadMinutes)}</div> : null}
           {s.deliveryEnabled !== false ? (<>
-            <div style={{ marginTop: 4 }}>🚚 {s.deliveryMode === 'SERVICE' ? t.courierDeliveryNote : t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60)}</div>
-            {s.deliveryMode === 'BOTH' ? <div style={{ marginTop: 4 }}>🚕 {t.courierDelivery} · {t.deliveryPaidSeparately}</div> : null}
+            <div style={way}><Icon name={s.deliveryMode === 'SERVICE' ? 'car' : 'scooter'} style={wayIc} />{s.deliveryMode === 'SERVICE' ? t.courierDeliveryNote : t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60)}</div>
+            {s.deliveryMode === 'BOTH' ? <div style={way}><Icon name="car" style={wayIc} /><span>{t.courierDelivery} · {t.deliveryPaidSeparately}</span></div> : null}
           </>) : null}
         </div>
 

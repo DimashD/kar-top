@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { useT } from './LangProvider';
+import Icon from './Icon';
 
 type Kind = 'IDEA' | 'PROBLEM' | 'COMPLAINT' | 'PRAISE';
 const KINDS: Kind[] = ['IDEA', 'PROBLEM', 'COMPLAINT', 'PRAISE'];
@@ -50,7 +51,7 @@ export default function FeedbackButton({ storeSlug, hideLink }: { storeSlug?: st
     <>
       {hideLink ? null : <p style={{ textAlign: 'center', margin: '28px 0 8px' }}>
         <button type="button" onClick={show} style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 14, color: 'var(--ink-60)', textDecoration: 'underline', cursor: 'pointer' }}>
-          💬 {t.feedbackLink}
+          <Icon name="chat" size={16} style={{ marginRight: 6 }} />{t.feedbackLink}
         </button>
       </p>}
       {open ? (

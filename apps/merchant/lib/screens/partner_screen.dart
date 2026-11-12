@@ -67,7 +67,7 @@ class _PartnerScreenState extends State<PartnerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('✅', style: TextStyle(fontSize: 56)),
+              const Icon(Icons.check_circle_outline_rounded, size: 64, color: AppColors.leaf),
               const SizedBox(height: 12),
               Text(s.applicationAccepted, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),

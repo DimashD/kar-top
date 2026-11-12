@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang, useT } from './LangProvider';
+import Icon from './Icon';
 
 // Карта — Leaflet с CDN и тайлы OpenStreetMap: без новых зависимостей в сборке.
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -107,7 +108,7 @@ export default function MapPicker({ initial, fallback, onPick, onClose }: {
       </div>
       <div style={{ padding: '12px 16px calc(18px + env(safe-area-inset-bottom))', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {err ? <div style={{ color: 'var(--sale)', fontSize: 13 }}>{err}</div> : null}
-        <button className="btn btn-ghost btn-block" onClick={locate} disabled={busy || !ready} style={{ height: 46, justifyContent: 'center' }}>📍 {t.myLocation}</button>
+        <button className="btn btn-ghost btn-block" onClick={locate} disabled={busy || !ready} style={{ height: 46, justifyContent: 'center' }}><Icon name="pin" size={18} />{t.myLocation}</button>
         <button className="btn btn-primary btn-block" onClick={pick} disabled={busy || !ready} style={{ height: 52, fontSize: 16 }}>{busy ? t.locating : t.deliverHere}</button>
       </div>
     </div>,

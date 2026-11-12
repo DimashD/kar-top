@@ -61,7 +61,7 @@ class _StoresScreenState extends State<StoresScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: const CircleAvatar(backgroundColor: AppColors.carrot50, child: Text('🏪')),
+                  leading: const CircleAvatar(backgroundColor: AppColors.carrot50, child: Icon(Icons.storefront_outlined, color: AppColors.carrot)),
                   title: Text(st.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                   // Роль — на языке интерфейса; статус показываем, только если магазин не активен.
                   subtitle: Row(children: [

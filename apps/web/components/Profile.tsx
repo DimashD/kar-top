@@ -8,6 +8,7 @@ import { AuthSheet, logout, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
 import FeedbackButton from './FeedbackButton';
+import Icon from './Icon';
 
 /** Профиль покупателя: под каким номером вошёл, выход, заказы, уведомления, язык, поддержка, удаление аккаунта. */
 export default function Profile() {
@@ -33,7 +34,7 @@ export default function Profile() {
       </header>
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gap: 14 }}>
         <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 999, background: 'var(--carrot-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>👤</div>
+          <div style={{ width: 52, height: 52, borderRadius: 999, background: 'var(--carrot-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--carrot)' }}><Icon name="user" size={26} /></div>
           {phone === undefined ? <span className="muted">…</span> : phone ? (
             <div style={{ flex: 1 }}>
               <div className="muted" style={{ fontSize: 13 }}>{t.signedInAs}</div>
@@ -48,15 +49,15 @@ export default function Profile() {
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <Link href="/orders" style={{ ...row, borderTop: 'none' }}>🧾 <span style={{ flex: 1 }}>{t.myOrders}</span> ›</Link>
-          <Link href="/notifications" style={row}>🔔 <span style={{ flex: 1 }}>{t.navNotifications}</span> ›</Link>
-          <div style={{ ...row, cursor: 'default' }}>🌐 <span style={{ flex: 1 }}><LangSwitcher /></span></div>
-          <button type="button" style={row} onClick={() => window.dispatchEvent(new Event('kartop-feedback'))}>💬 <span style={{ flex: 1 }}>{t.support}</span> ›</button>
+          <Link href="/orders" style={{ ...row, borderTop: 'none' }}><Icon name="receipt" size={20} style={{ color: 'var(--ink-60)' }} /> <span style={{ flex: 1 }}>{t.myOrders}</span><Icon name="chevron" size={18} style={{ color: 'var(--ink-40)' }} /></Link>
+          <Link href="/notifications" style={row}><Icon name="bell" size={20} style={{ color: 'var(--ink-60)' }} /> <span style={{ flex: 1 }}>{t.navNotifications}</span><Icon name="chevron" size={18} style={{ color: 'var(--ink-40)' }} /></Link>
+          <div style={{ ...row, cursor: 'default' }}><Icon name="globe" size={20} style={{ color: 'var(--ink-60)' }} /> <span style={{ flex: 1 }}><LangSwitcher /></span></div>
+          <button type="button" style={row} onClick={() => window.dispatchEvent(new Event('kartop-feedback'))}><Icon name="chat" size={20} style={{ color: 'var(--ink-60)' }} /> <span style={{ flex: 1 }}>{t.support}</span><Icon name="chevron" size={18} style={{ color: 'var(--ink-40)' }} /></button>
         </div>
 
         {phone ? (
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <button type="button" style={{ ...row, borderTop: 'none', color: 'var(--sale)' }} onClick={signOut}>↩ <span style={{ flex: 1 }}>{t.logout}</span></button>
+            <button type="button" style={{ ...row, borderTop: 'none', color: 'var(--sale)' }} onClick={signOut}><Icon name="logout" size={20} /> <span style={{ flex: 1 }}>{t.logout}</span></button>
             <Link href="/delete-account" style={{ ...row, color: 'var(--ink-40)', fontWeight: 500, fontSize: 14 }}>{t.deleteAccount}</Link>
           </div>
         ) : null}

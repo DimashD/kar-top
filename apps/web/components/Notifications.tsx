@@ -9,16 +9,17 @@ import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
 import BottomNav from './BottomNav';
+import { IconName, IconTile } from './Icon';
 
 /** Значок и цвет по событию: сразу видно, что случилось с заказом. */
-function lookOf(type: string): { icon: string; bg: string } {
-  const m: Record<string, [string, string]> = {
-    'order.placed_customer': ['✅', '#E9F2EB'], 'order.accepted': ['👍', '#E7F0FD'], 'order.picking': ['🧺', '#E7F0FD'],
-    'order.awaiting_customer': ['📞', '#FFF4D6'], 'order.substitution_needed': ['⚠️', '#FFF4D6'], 'order.ready': ['📦', '#F0EAFB'],
-    'order.delivering': ['🚚', '#F0EAFB'], 'order.delivered': ['🙏', '#E9F2EB'], 'order.price_updated': ['💰', '#FCF4E6'], 'order.cancelled': ['❌', '#F4F2F0'],
+function lookOf(type: string): { icon: IconName; bg: string; fg: string } {
+  const m: Record<string, [IconName, string, string]> = {
+    'order.placed_customer': ['checkCircle', '#E9F2EB', '#2F7A4D'], 'order.accepted': ['thumb', '#E7F0FD', '#2A5DB0'], 'order.picking': ['basket', '#E7F0FD', '#2A5DB0'],
+    'order.awaiting_customer': ['phone', '#FFF4D6', '#8A5A00'], 'order.substitution_needed': ['alert', '#FFF4D6', '#8A5A00'], 'order.ready': ['package', '#F0EAFB', '#6B3FB5'],
+    'order.delivering': ['scooter', '#F0EAFB', '#6B3FB5'], 'order.delivered': ['heart', '#E9F2EB', '#2F7A4D'], 'order.price_updated': ['tenge', '#FCF4E6', '#8A5A00'], 'order.cancelled': ['xCircle', '#F4F2F0', '#6B625C'],
   };
-  const [icon, bg] = m[type] ?? ['🔔', '#F4F2F0'];
-  return { icon, bg };
+  const [icon, bg, fg] = m[type] ?? ['bell', '#F4F2F0', '#6B625C'];
+  return { icon, bg, fg };
 }
 /** Заголовок без значка в начале (значок уже слева в кружке). */
 const plain = (s: string) => s.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
@@ -67,12 +68,12 @@ export default function Notifications() {
       <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
         {items === null ? <p className="muted">…</p> : needLogin ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>🔔</div>
+            <IconTile name="bell" size={56} round />
             <p style={{ margin: '8px 0 16px' }}>{t.loginToSeeOrders}</p>
             <button className="btn btn-primary" onClick={() => setAuth(true)} style={{ height: 48, padding: '0 28px' }}>{t.loginBtn}</button>
           </div>
         ) : items.length === 0 ? (
-          <div className="card" style={{ padding: 24, textAlign: 'center' }}><div style={{ fontSize: 40 }}>🔔</div><p>{t.noNotifications}</p></div>
+          <div className="card" style={{ padding: 24, textAlign: 'center' }}><IconTile name="bell" size={56} round /><p>{t.noNotifications}</p></div>
         ) : groups(items, lang, t).map(([day, list]) => (
           <section key={day}>
             <div className="muted" style={{ fontSize: 13, fontWeight: 700, margin: '6px 4px 8px' }}>{day}</div>
@@ -82,7 +83,7 @@ export default function Notifications() {
                 const href = n.type.startsWith('order.') && n.refId ? `/order/${n.refId}` : null;
                 const row = (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: i ? '1px solid var(--line)' : 'none', background: n.readAt ? 'transparent' : 'var(--carrot-50)' }}>
-                    <span style={{ width: 40, height: 40, borderRadius: 12, background: look.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flex: 'none' }}>{look.icon}</span>
+                    <IconTile name={look.icon} size={40} bg={look.bg} color={look.fg} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontWeight: n.readAt ? 700 : 800, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{plain(n.title)}</span>
                       <span className="muted" style={{ display: 'block', fontSize: 13, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</span>

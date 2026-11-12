@@ -53,7 +53,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, i) {
                         final n = items[i];
-                        final (icon, bg) = _look(n.type);
+                        final (icon, bg, fg) = _look(n.type);
                         return ListTile(
                           tileColor: n.read ? null : AppColors.carrot50,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -61,7 +61,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             width: 42, height: 42,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-                            child: Text(icon, style: const TextStyle(fontSize: 20)),
+                            child: Icon(icon, size: 22, color: fg),
                           ),
                           title: Text(_plain(n.title), maxLines: 1, overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontWeight: n.read ? FontWeight.w600 : FontWeight.w800)),
@@ -87,13 +87,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 }
 
 /// Значок и фон по событию.
-(String, Color) _look(String type) => switch (type) {
-      'order.placed' => ('🛒', const Color(0xFFFCEDE6)),
-      'order.reviewed' => ('⭐', const Color(0xFFFFF4D6)),
-      'order.cancelled' => ('❌', const Color(0xFFF4F2F0)),
-      'billing.invoice_issued' || 'billing.invoice_paid' => ('🧾', const Color(0xFFE9F2EB)),
-      'store.update_reminder' => ('🌅', const Color(0xFFFFF4D6)),
-      _ => ('🔔', const Color(0xFFF4F2F0)),
+(IconData, Color, Color) _look(String type) => switch (type) {
+      'order.placed' => (Icons.shopping_cart_outlined, const Color(0xFFFCEDE6), AppColors.carrot),
+      'order.reviewed' => (Icons.star_outline_rounded, const Color(0xFFFFF4D6), const Color(0xFF8A5A00)),
+      'order.cancelled' => (Icons.cancel_outlined, const Color(0xFFF4F2F0), AppColors.ink60),
+      'billing.invoice_issued' || 'billing.invoice_paid' => (Icons.receipt_long_outlined, const Color(0xFFE9F2EB), AppColors.leaf),
+      'store.update_reminder' => (Icons.wb_twilight_outlined, const Color(0xFFFFF4D6), const Color(0xFF8A5A00)),
+      _ => (Icons.notifications_none_rounded, const Color(0xFFF4F2F0), AppColors.ink60),
     };
 
 /// Заголовок без значка в начале (значок уже слева).

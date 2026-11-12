@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Point } from './MapPicker';
+import Icon from './Icon';
 
 type Suggestion = { label: string; sub: string; point: Point; km: number | null };
 
@@ -110,7 +111,7 @@ export default function AddressInput({ value, onChange, onPick, near, placeholde
               onClick={() => { typed.current = false; setOpen(false); setItems([]); onPick(s.label, s.point); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderTop: i ? '1px solid var(--line)' : 'none', background: 'transparent', font: 'inherit', cursor: 'pointer', color: 'var(--ink)' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>📍 {s.label}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, flex: 1 }}><Icon name="pin" size={16} style={{ marginRight: 6, color: 'var(--carrot)' }} />{s.label}</div>
                 {s.km != null ? <span className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmtKm(s.km)}</span> : null}
               </div>
               {s.sub ? <div className="muted" style={{ fontSize: 12 }}>{s.sub}</div> : null}

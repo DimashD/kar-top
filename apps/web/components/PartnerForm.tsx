@@ -5,6 +5,7 @@ import { CLIENT_API } from '../lib/api';
 import { isValidKzPhone, kzPhoneE164 } from '../lib/phone';
 import PhoneInput from './PhoneInput';
 import { useT } from './LangProvider';
+import { IconTile } from './Icon';
 
 /** Заявка «Стать партнёром». Телефон и имя — обязательны; 2ГИС и компания — нет. */
 export default function PartnerForm() {
@@ -48,7 +49,7 @@ export default function PartnerForm() {
   if (done) {
     return (
       <div className="card" style={{ padding: 28, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ fontSize: 44, marginBottom: 8 }}>✅</div>
+        <div style={{ marginBottom: 8 }}><IconTile name="checkCircle" size={60} round bg="var(--leaf-50)" color="var(--leaf)" /></div>
         <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>{t.applicationAccepted}</div>
         <p className="muted" style={{ margin: 0 }}>{t.partnerSuccess}</p>
       </div>
