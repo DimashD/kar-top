@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { CLIENT_API, StoreCard } from '../lib/api';
 import { tenge } from '../lib/format';
 import { useT } from './LangProvider';
+import Icon, { IconName } from './Icon';
+import { LogoMark } from './Logo';
 
 type Point = { lat: number; lng: number };
 type Kind = 'own' | 'courier' | 'pickup';
@@ -74,8 +76,8 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
     return list;
   }, [stores, q, me, kinds]);
 
-  const chip = { padding: '3px 8px', borderRadius: 999, background: '#F4F2F0' } as const;
-  const filters: [Kind, string][] = [['own', `🛵 ${t.ownDelivery}`], ['courier', `🚕 ${t.courierShort}`], ['pickup', `🛍️ ${t.pickup}`]];
+  const chip = { padding: '3px 8px', borderRadius: 999, background: '#F4F2F0', display: 'inline-flex', alignItems: 'center', gap: 4 } as const;
+  const filters: [Kind, IconName, string][] = [['own', 'scooter', t.ownDelivery], ['courier', 'car', t.courierShort], ['pickup', 'bag', t.pickup]];
 
   return (
     <div>
@@ -83,13 +85,13 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t.findStore} type="search"
           style={{ flex: '1 1 240px', minWidth: 0, height: 48, padding: '0 16px', fontSize: 16, borderRadius: 14, border: '1px solid var(--line)', background: 'var(--card)', font: 'inherit' }} />
         <button type="button" onClick={locate} className={me ? 'btn btn-primary' : 'btn btn-ghost'} style={{ height: 48, padding: '0 16px' }}>
-          📍 {locating ? '…' : t.nearMe}
+          <Icon name="pin" size={18} />{locating ? '…' : t.nearMe}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        {filters.map(([k, label]) => (
+        {filters.map(([k, ic, label]) => (
           <button key={k} type="button" onClick={() => toggle(k)} className={kinds.includes(k) ? 'btn btn-primary' : 'btn btn-ghost'}
-            style={{ padding: '8px 12px', fontSize: 14, whiteSpace: 'nowrap' }}>{label}</button>
+            style={{ padding: '8px 12px', fontSize: 14, whiteSpace: 'nowrap', gap: 6 }}><Icon name={ic} size={17} />{label}</button>
         ))}
       </div>
       {!me ? <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>{t.locateToCheck}</p> : null}
@@ -104,7 +106,7 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
                 <div style={{ height: 140, background: 'var(--carrot-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>
                   {s.photoVersion
                     ? <img src={`${CLIENT_API}/shops/${encodeURIComponent(s.slug)}/photo?v=${s.photoVersion}`} alt={s.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : '🧺'}
+                    : <LogoMark size={64} />}
                 </div>
                 <div style={{ padding: '12px 14px 14px' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -121,12 +123,12 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
                   {/* Способы получения: довезёт ли магазин сам (с условиями зоны), курьер за счёт покупателя, самовывоз. */}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, fontSize: 13, fontWeight: 700 }}>
                     {own(s) ? (
-                      s.ownHere === true ? <span style={{ ...chip, background: 'var(--leaf-50)', color: 'var(--leaf)' }}>🛵 {t.ownWillDeliver}{ownTerms}</span>
-                        : s.ownHere === false ? <span style={{ ...chip, color: 'var(--ink-60)' }}>🛵 {t.ownNotHere}</span>
-                        : <span style={chip}>🛵 {t.ownDelivery}</span>
+                      s.ownHere === true ? <span style={{ ...chip, background: 'var(--leaf-50)', color: 'var(--leaf)' }}><Icon name="scooter" size={15} />{t.ownWillDeliver}{ownTerms}</span>
+                        : s.ownHere === false ? <span style={{ ...chip, color: 'var(--ink-60)' }}><Icon name="scooter" size={15} />{t.ownNotHere}</span>
+                        : <span style={chip}><Icon name="scooter" size={15} />{t.ownDelivery}</span>
                     ) : null}
-                    {courier(s) ? <span style={chip}>🚕 {t.courierShort} · {t.atYourCost}</span> : null}
-                    {s.pickupEnabled ? <span style={chip}>🛍️ {t.pickup}</span> : null}
+                    {courier(s) ? <span style={chip}><Icon name="car" size={15} />{t.courierShort} · {t.atYourCost}</span> : null}
+                    {s.pickupEnabled ? <span style={chip}><Icon name="bag" size={15} />{t.pickup}</span> : null}
                   </div>
                 </div>
               </Link>

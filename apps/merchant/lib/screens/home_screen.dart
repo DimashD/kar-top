@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
 import '../session.dart';
+import '../widgets/kartop_logo.dart';
 import '../push.dart';
 import '../widgets/share_store.dart';
 import 'orders_screen.dart';
@@ -32,7 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final pages = const [OrdersScreen(), CatalogScreen(), SettingsScreen()];
     return Scaffold(
       appBar: AppBar(
-        title: Text(store?.name ?? s.store),
+        title: Row(children: [
+          const KartopLogo(size: 22, showWord: false),
+          const SizedBox(width: 10),
+          Flexible(child: Text(store?.name ?? s.store, overflow: TextOverflow.ellipsis)),
+        ]),
         actions: [
           const NotificationBell(),
           if (store != null)

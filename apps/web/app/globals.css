@@ -72,3 +72,9 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
 
 .muted { color: var(--ink-60); }
 .hr { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+/* Витрина магазина: на узком экране в шапке — только значок Kartop, чтобы хватило места названию магазина. */
+@media (max-width: 340px) { .store-logo .logo-word { display: none; } }
+
+/* Иконка + текст: одинаковый отступ и выравнивание по центру. */
+.with-icon { display: inline-flex; align-items: center; gap: 6px; }

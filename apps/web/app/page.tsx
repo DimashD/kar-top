@@ -1,3 +1,4 @@
+import Logo from '../components/Logo';
 import Link from 'next/link';
 import StoreMenu from '../components/StoreMenu';
 import StoreList from '../components/StoreList';
@@ -5,6 +6,7 @@ import FeedbackButton from '../components/FeedbackButton';
 import BottomNav from '../components/BottomNav';
 import { fetchStores } from '../lib/api';
 import { getDict } from '../lib/i18n-server';
+import { IconTile } from '../components/Icon';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +19,7 @@ export default async function Home() {
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px' }}>
           <StoreMenu />
-          <div style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)', flex: 1 }}>Kartop</div>
+          <div style={{ flex: 1 }}><Logo size={30} /></div>
         </div>
       </header>
 
@@ -35,7 +37,7 @@ export default async function Home() {
 
       <section className="container" style={{ padding: '0 20px 24px' }}>
         <Link href="/partner" className="card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, color: 'var(--ink)', textDecoration: 'none' }}>
-          <span style={{ fontSize: 26 }}>🏪</span>
+          <IconTile name="store" size={44} />
           <span style={{ fontWeight: 700, flex: 1 }}>{t.sellerCta}</span>
           <span style={{ color: 'var(--carrot)', fontWeight: 800 }}>→</span>
         </Link>

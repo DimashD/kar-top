@@ -1,3 +1,4 @@
+import Logo from '../../../components/Logo';
 import Link from 'next/link';
 import { fetchTrack, OrderStatus } from '../../../lib/api';
 import { grams, tenge } from '../../../lib/format';
@@ -9,6 +10,7 @@ import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
 import AutoRefresh from '../../../components/AutoRefresh';
 import StoreMenu from '../../../components/StoreMenu';
+import Icon, { IconName, IconTile } from '../../../components/Icon';
 
 export const dynamic = 'force-dynamic';
 export function generateMetadata() {
@@ -18,12 +20,12 @@ export function generateMetadata() {
 // Этапы для покупателя (CANCELLED показываем отдельно).
 // pickup — подпись для самовывоза, если отличается.
 const STEPS: { key: OrderStatus[]; label: keyof Dict; pickup?: keyof Dict; icon: string }[] = [
-  { key: ['PLACED'], label: 'stepPlaced', icon: '📝' },
-  { key: ['ACCEPTED'], label: 'stepAccepted', icon: '✅' },
-  { key: ['PICKING', 'AWAITING_CUSTOMER'], label: 'stepPicking', icon: '🧺' },
-  { key: ['READY', 'COURIER_ASSIGNED'], label: 'stepReady', icon: '📦' },
-  { key: ['DELIVERING'], label: 'stepDelivering', pickup: 'stepReadyForPickup', icon: '🚗' },
-  { key: ['DELIVERED', 'COMPLETED'], label: 'stepDelivered', pickup: 'stepPickedUp', icon: '🎉' },
+  { key: ['PLACED'], label: 'stepPlaced', icon: 'receipt' as IconName },
+  { key: ['ACCEPTED'], label: 'stepAccepted', icon: 'thumb' as IconName },
+  { key: ['PICKING', 'AWAITING_CUSTOMER'], label: 'stepPicking', icon: 'basket' as IconName },
+  { key: ['READY', 'COURIER_ASSIGNED'], label: 'stepReady', icon: 'package' as IconName },
+  { key: ['DELIVERING'], label: 'stepDelivering', pickup: 'stepReadyForPickup', icon: 'scooter' as IconName },
+  { key: ['DELIVERED', 'COMPLETED'], label: 'stepDelivered', pickup: 'stepPickedUp', icon: 'heart' as IconName },
 ];
 const ORDER: OrderStatus[] = ['PLACED', 'ACCEPTED', 'PICKING', 'AWAITING_CUSTOMER', 'READY', 'COURIER_ASSIGNED', 'DELIVERING', 'DELIVERED', 'COMPLETED'];
 
@@ -57,7 +59,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
       <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <StoreMenu />
-          <Link href={`/${o.store.slug}`} style={{ fontWeight: 900, fontSize: 20, color: 'var(--carrot)' }}>Kartop</Link>
+          <Logo size={24} href={`/${o.store.slug}`} />
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 17 }}>{t.orderNo(o.number)}</div>
@@ -81,7 +83,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
 
         {cancelled ? (
           <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center' }}>
-            <div style={{ fontSize: 40 }}>✖️</div>
+            <IconTile name="xCircle" size={56} round bg="#F4F2F0" color="var(--ink-60)" />
             <h2 style={{ fontSize: 20, margin: '8px 0' }}>{t.orderCancelled}</h2>
           </div>
         ) : (
@@ -91,8 +93,8 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
               const label = t[o.fulfillment === 'PICKUP' && s.pickup ? s.pickup : s.label] as string;
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < STEPS.length - 1 ? '1px solid var(--line)' : 'none', opacity: st === 'todo' ? 0.45 : 1 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, background: st === 'done' ? 'var(--leaf-50)' : st === 'active' ? 'var(--carrot-50)' : '#F1EAE4' }}>
-                    {st === 'done' ? '✓' : s.icon}
+                  <div style={{ width: 40, height: 40, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', color: st === 'done' ? 'var(--leaf)' : st === 'active' ? 'var(--carrot)' : 'var(--ink-60)', background: st === 'done' ? 'var(--leaf-50)' : st === 'active' ? 'var(--carrot-50)' : '#F1EAE4' }}>
+                    <Icon name={st === 'done' ? 'check' : o.fulfillment === 'PICKUP' && s.icon === 'scooter' ? 'bag' : s.icon} size={20} />
                   </div>
                   <div style={{ fontWeight: st === 'active' ? 800 : 600 }}>{label}</div>
                   {st === 'active' ? <span className="badge badge-leaf" style={{ marginLeft: 'auto' }}>{t.now}</span> : null}

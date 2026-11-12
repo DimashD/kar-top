@@ -1,14 +1,16 @@
+import Logo from '../../components/Logo';
 import Link from 'next/link';
 import PartnerForm from '../../components/PartnerForm';
 import { LangSwitcher } from '../../components/LangProvider';
 import { getDict } from '../../lib/i18n-server';
+import { IconName, IconTile } from '../../components/Icon';
 
 export function generateMetadata() {
   const t = getDict();
   return { title: t.partnerMetaTitle, description: t.partnerMetaDescription };
 }
 
-const PERK_EMOJI = ['🛒', '📦', '💳'];
+const PERK_ICON: IconName[] = ['cart', 'package', 'card'];
 
 export default function PartnerPage() {
   const t = getDict();
@@ -16,7 +18,7 @@ export default function PartnerPage() {
     <main>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          <Link href="/" style={{ fontWeight: 900, fontSize: 24, color: 'var(--carrot)', textDecoration: 'none' }}>Kartop</Link>
+          <Logo size={28} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <LangSwitcher />
             <Link className="btn btn-ghost" href="/">{t.toHome}</Link>
@@ -38,7 +40,7 @@ export default function PartnerPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
           {t.perks.map((p, i) => (
             <div key={p.t} className="card" style={{ padding: 20 }}>
-              <div style={{ fontSize: 30, marginBottom: 8 }}>{PERK_EMOJI[i]}</div>
+              <div style={{ marginBottom: 10 }}><IconTile name={PERK_ICON[i]} size={48} /></div>
               <h3 style={{ fontSize: 17, marginBottom: 6 }}>{p.t}</h3>
               <p className="muted" style={{ margin: 0, fontSize: 15 }}>{p.d}</p>
             </div>

@@ -4,6 +4,7 @@ import '../l10n.dart';
 import '../lock.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/kartop_logo.dart';
 
 /// Экран блокировки: биометрия или PIN. Вызывается на холодном старте/возврате,
 /// если замок включён. onUnlocked — когда доступ подтверждён.
@@ -87,7 +88,7 @@ class _LockScreenState extends State<LockScreen> with WidgetsBindingObserver {
           child: Column(
             children: [
               const Spacer(),
-              const Text('Kartop', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: AppColors.carrot)),
+              const KartopLogo(size: 34),
               const SizedBox(height: 6),
               Text(s.enterPin, style: const TextStyle(color: AppColors.ink60)),
               const SizedBox(height: 24),
