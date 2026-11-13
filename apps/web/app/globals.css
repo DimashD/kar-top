@@ -78,3 +78,13 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
 
 /* Иконка + текст: одинаковый отступ и выравнивание по центру. */
 .with-icon { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Шапка админки: компактные пункты одной высоты, активный — мягкая подсветка, как фильтры. */
+.admin-nav { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.admin-nav::-webkit-scrollbar { display: none; }
+.admin-nav a {
+  padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; line-height: 20px;
+  white-space: nowrap; color: var(--ink-60); text-decoration: none; transition: background .15s, color .15s;
+}
+.admin-nav a:hover { background: var(--bg); color: var(--ink); }
+.admin-nav a[aria-current='page'] { background: var(--carrot-50); color: var(--carrot-600); }

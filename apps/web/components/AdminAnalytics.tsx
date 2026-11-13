@@ -59,7 +59,7 @@ export default function AdminAnalytics() {
   function custom(k: 'from' | 'to', v: string) { setPreset('custom'); setPeriod((cur) => ({ ...cur, [k]: v || undefined })); }
 
   return (
-    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 1000 }}>
+    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 1120 }}>
       <h1 style={{ fontSize: 26, margin: '0 0 16px' }}>Аналитика</h1>
 
       <div className="card" style={{ padding: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
@@ -261,7 +261,7 @@ function Totals({ sum, scope }: { sum: Summary | null; scope: 'platform' | 'stor
   cards.push(['Самовывоз', v(t && t.orders ? `${Math.round((t.pickup / t.orders) * 100)}%` : '—')]);
   cards.push(['Отмен', v(String(t?.cancelled ?? 0))]);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginBottom: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
       {cards.map(([l, val]) => (
         <div key={l} className="card" style={{ padding: '12px 16px' }}>
           <div className="muted" style={{ fontSize: 13 }}>{l}</div>
