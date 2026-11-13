@@ -8,6 +8,7 @@ import { fetchStores } from '../lib/api';
 import { getDict } from '../lib/i18n-server';
 import { IconTile } from '../components/Icon';
 
+import { LegalLinks } from '../components/LegalDoc';
 export const dynamic = 'force-dynamic';
 
 // Главная — для покупателя: магазины у дома (поиск, «рядом со мной»). Продавцам — одна строка внизу.
@@ -44,7 +45,7 @@ export default async function Home() {
       </section>
 
       <FeedbackButton />
-      <footer className="container" style={{ padding: '16px 20px 32px', color: 'var(--ink-40)', fontSize: 14 }}>{t.footer}</footer>
+      <footer className="container" style={{ padding: '16px 20px 32px', color: 'var(--ink-40)', fontSize: 14 }}>{t.footer}<LegalLinks /></footer>
       <BottomNav />
     </main>
   );

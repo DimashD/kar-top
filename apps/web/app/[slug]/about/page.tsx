@@ -79,6 +79,12 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           </>) : null}
         </div>
 
+        {s.legalName ? (
+          <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
+            {t.seller}: {s.legalName}{s.legalBin ? `, ${t.sellerBin} ${s.legalBin}` : ''}
+          </div>
+        ) : null}
+
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>
         <FeedbackButton storeSlug={s.slug} />
       </div>

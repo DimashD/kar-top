@@ -34,6 +34,8 @@ export interface Catalog {
     phone?: string | null; ownDeliveryMinutes?: number; courierHandoverMinutes?: number;
     /** Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' или null — выходной. */
     hours?: ({ open: string; close: string } | null)[];
+    // Продавец (ИП/ТОО и ИИН/БИН) — из принятой оферты; закон о защите прав потребителей.
+    legalName?: string | null; legalBin?: string | null;
   };
   categories: CatalogCategory[];
 }

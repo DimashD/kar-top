@@ -18,5 +18,6 @@ import { EmailChannel } from './identity/channels/email.channel';
   imports: [JwtModule.register({})],
   controllers: [OtpController, EmailController, StaffAuthController, PasswordController, TelegramLoginController],
   providers: [OtpService, AuthService, TokenService, TelegramLoginService, TelegramChannel, SmsChannel, WhatsappChannel, EmailChannel],
+  exports: [OtpService],
 })
 export class IdentityModule {}
