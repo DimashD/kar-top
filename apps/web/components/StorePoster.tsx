@@ -63,9 +63,11 @@ export default function StorePoster({ slug }: { slug: string }) {
       <style>{`
         @page { size: A4; margin: 0; }
         @media print {
-          html, body, main { background: #fff !important; padding: 0 !important; }
-          .no-print { display: none !important; }
-          .poster { box-shadow: none !important; margin: 0 !important; transform: none !important; }
+          /* Ровно один лист A4: без отступов, без минимальной высоты экрана (100dvh в печати = высота окна) и баннеров. */
+          html, body, main { background: #fff !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; height: auto !important; }
+          .no-print, [role="status"] { display: none !important; }
+          .poster-wrap { max-width: none !important; margin: 0 !important; }
+          .poster { box-shadow: none !important; margin: 0 !important; transform: none !important; zoom: 1 !important; height: 296mm !important; break-after: avoid; break-inside: avoid; page-break-after: avoid; }
         }
         .poster, .poster * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
         .poster-wrap { width: 100%; max-width: 210mm; margin: 0 auto; }
