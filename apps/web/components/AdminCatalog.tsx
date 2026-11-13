@@ -104,7 +104,7 @@ export default function AdminCatalog() {
   const weighted = pUnit === 'KG' || pUnit === 'G';
 
   return (
-    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 920 }}>
+    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 1120 }}>
       <h1 style={{ fontSize: 26, margin: '0 0 4px' }}>Мастер-каталог</h1>
       <p className="muted" style={{ margin: '0 0 20px', fontSize: 15 }}>
         Общий справочник товаров платформы. Магазины выбирают товары отсюда и ставят свои цены.
