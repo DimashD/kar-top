@@ -1375,7 +1375,7 @@ function ProductTile({ p, look, qty, onAdd, onInc, onDec, onSet, onEdit }: { p: 
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--carrot)', color: '#fff', borderRadius: 12, height: 40, marginTop: 'auto' }}>
           <button aria-label={t.remove} onClick={onDec} style={{ width: 40, height: 40, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#fff' }}>−</button>
-          <span style={{ fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty)}</span>
+          <span style={{ fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty, t)}</span>
           <button aria-label={t.add} onClick={onInc} style={{ width: 40, height: 40, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#fff' }}>+</button>
         </div>
       )}
