@@ -69,13 +69,13 @@ export default function MyOrders() {
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
+      <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
-          <StoreMenu />
+          <span className="m-only"><StoreMenu /></span>
           <h1 style={{ fontSize: 20, margin: 0, flex: 1 }}>{t.myOrders}</h1>
         </div>
       </header>
-      <div className="container" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
+      <div className="container dk-wide orders-grid" style={{ padding: '16px 20px', maxWidth: 760, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
         {orders === null ? <p className="muted">…</p> : needLogin ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <IconTile name="receipt" size={56} round />

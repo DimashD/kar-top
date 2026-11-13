@@ -56,9 +56,9 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
 
   return (
     <main style={{ paddingBottom: 32 }}>
-      <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
+      <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <StoreMenu />
+          <span className="m-only"><StoreMenu /></span>
           <Logo size={24} href={`/${o.store.slug}`} />
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
           <div style={{ flex: 1 }}>

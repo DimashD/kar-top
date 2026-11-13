@@ -17,7 +17,7 @@ export default async function Home() {
   const stores = await fetchStores();
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 5 }}>
+      <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px' }}>
           <StoreMenu />
           <div style={{ flex: 1 }}><Logo size={30} /></div>

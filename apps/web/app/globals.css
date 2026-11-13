@@ -132,3 +132,21 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
 .dk-cart { position: sticky; top: 90px; }
 .dk-cart-in { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 110px); }
 .dk-lines { overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+
+/* ── Компьютер (от 1100 px): шапка сайта вместо нижнего меню; мобильные шапки страниц прячем ── */
+.site-head { display: none; }
+@media (min-width: 1100px) {
+  .m-only { display: none !important; }
+  .site-head { display: block; position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); }
+  .dk-wide { max-width: 1040px !important; }
+  .page-head { position: static !important; background: transparent !important; border-bottom: none !important; }
+  .page-head > .container { padding-top: 22px !important; }
+  .page-head h1 { font-size: 26px !important; }
+  .orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-items: start; }
+}
+.site-head-in { max-width: 1440px; margin: 0 auto; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 22px; }
+.site-tabs { display: flex; gap: 4px; flex: 1; }
+.site-tab { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-size: 15px; font-weight: 700; color: var(--ink-60); text-decoration: none; white-space: nowrap; }
+.site-tab:hover { background: var(--bg); color: var(--ink); }
+.site-tab[aria-current='page'] { background: var(--carrot-50); color: var(--carrot-600); }
+.site-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--carrot); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }

@@ -37,9 +37,9 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
   const card: React.CSSProperties = { padding: 16, marginTop: 12 };
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
-      <header style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
+      <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
         <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
-          <StoreMenu />
+          <span className="m-only"><StoreMenu /></span>
           <Link href={`/${s.slug}`} style={{ flex: 1, fontWeight: 800, color: 'var(--ink)', textDecoration: 'none' }}>← {t.toProducts}</Link>
         </div>
       </header>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import './globals.css';
 import { EnvBanner } from '../components/EnvBanner';
+import SiteHeader from '../components/SiteHeader';
 import { LangProvider } from '../components/LangProvider';
 import { getDict, getLang } from '../lib/i18n-server';
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <LangProvider lang={lang}>
           <EnvBanner />
+          <SiteHeader />
           {children}
         </LangProvider>
       </body>
