@@ -79,7 +79,7 @@ export default function AdminStaff() {
 
   if (noAccess) {
     return (
-      <div className="container" style={{ padding: '40px 20px', maxWidth: 920 }}>
+      <div className="container" style={{ padding: '40px 20px', maxWidth: 1120 }}>
         <div className="card" style={{ padding: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🔒</div>
           <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 6 }}>Доступ только для администратора</div>
@@ -92,7 +92,7 @@ export default function AdminStaff() {
   const input: React.CSSProperties = { width: '100%', padding: '12px 14px', fontSize: 16, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--card)', color: 'var(--ink)', fontFamily: 'inherit' };
 
   return (
-    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 920 }}>
+    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 1120 }}>
       <h1 style={{ fontSize: 26, margin: '0 0 4px' }}>Сотрудники</h1>
       <p className="muted" style={{ margin: '0 0 20px', fontSize: 15 }}>
         Создайте доступ подчинённым. Вход — по их телефону (код в приложении/SMS), пароль не нужен.

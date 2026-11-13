@@ -38,23 +38,15 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{ signOut }}>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 16, height: 60, maxWidth: 920 }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 16, height: 60, maxWidth: 1120 }}>
           <Logo size={24} href="/admin" />
-          <nav style={{ display: 'flex', gap: 6 }}>
-            {NAV.map((n) => {
-              const active = pathname === n.href;
-              return (
-                <Link key={n.href} href={n.href}
-                  style={{
-                    padding: '8px 14px', borderRadius: 999, fontSize: 15, fontWeight: 700, textDecoration: 'none',
-                    color: active ? '#fff' : 'var(--ink-60)', background: active ? 'var(--carrot)' : 'transparent',
-                  }}>
-                  {n.label}
-                </Link>
-              );
-            })}
+          {/* Пункты в одну строку одинаковой высоты; на узком экране меню прокручивается вбок. */}
+          <nav className="admin-nav">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href} aria-current={pathname?.startsWith(n.href) ? 'page' : undefined}>{n.label}</Link>
+            ))}
           </nav>
-          <button className="btn btn-ghost" onClick={signOut} style={{ marginLeft: 'auto' }}>Выйти</button>
+          <button className="btn btn-ghost" onClick={signOut} style={{ padding: '8px 14px', fontSize: 14, flex: 'none' }}>Выйти</button>
         </div>
       </header>
       {children}

@@ -53,7 +53,7 @@ export default function AdminLeads() {
   }
 
   return (
-    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 920 }}>
+    <div className="container" style={{ padding: '24px 20px 56px', maxWidth: 1120 }}>
       <h1 style={{ fontSize: 26, margin: '0 0 16px' }}>Заявки партнёров</h1>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
