@@ -57,7 +57,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
   return (
     <main style={{ paddingBottom: 32 }}>
       <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="container dk-wide" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
           <span className="m-only"><StoreMenu /></span>
           <Logo size={24} href={`/${o.store.slug}`} />
           <div style={{ height: 24, width: 1, background: 'var(--line)' }} />
@@ -68,7 +68,9 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         </div>
       </header>
 
-      <div className="container" style={{ maxWidth: 640, paddingTop: 24 }}>
+      <div className="container dk-wide" style={{ maxWidth: 640, paddingTop: 24 }}>
+        {/* На компьютере: слева код и статус, справа способ получения, состав и сумма. */}
+        <div className="two-col"><div className="col">
         {/* Код получения */}
         {o.deliveryCode && !cancelled ? (
           <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center', borderColor: 'var(--carrot)', background: 'var(--carrot-50)' }}>
@@ -117,6 +119,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           </div>
         ) : null}
 
+        </div><div className="col">
         {/* Способ получения */}
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <Row label={t.fulfillment} value={o.fulfillment === 'PICKUP' ? t.pickup : o.deliveryBy === 'SERVICE' ? t.courierDelivery : o.deliveryBy === 'OWN' ? t.ownDelivery : t.delivery} />
@@ -184,6 +187,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           {!delivered ? <p className="muted" style={{ fontSize: 13, margin: '12px 0 0' }}>{t.exactSumNote}</p> : null}
         </div>
 
+        </div></div>
         <p style={{ textAlign: 'center', marginTop: 20 }}>
           <Link className="btn btn-ghost" href={`/${o.store.slug}`}>{t.backToStore}</Link>
         </p>
