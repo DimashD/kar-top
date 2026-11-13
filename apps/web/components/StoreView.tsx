@@ -1,6 +1,6 @@
 'use client';
 
-import Logo from './Logo';
+import Logo, { LogoMark } from './Logo';
 import FeedbackButton from './FeedbackButton';
 import StoreMenu from './StoreMenu';
 import BottomNav, { BOTTOM_NAV_H } from './BottomNav';
@@ -1060,7 +1060,7 @@ function CheckoutDrawer(props: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg)', width: '100%', maxWidth: 'var(--maxw)', borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflow: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg)', width: '100%', maxWidth: 680, borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflow: 'auto' }}>
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg)' }}>
           <h2 style={{ fontSize: 20 }}>{t.cart}</h2>
           <button className="btn btn-ghost" onClick={onClose} style={{ padding: '8px 12px' }}>{t.close}</button>
@@ -1452,7 +1452,7 @@ function DesktopStore(props: {
 
         <main className="dk-main">
           <div className="dk-store">
-            {photo ? <img src={photo} alt="" /> : <div className="dk-store-ph"><Logo size={34} href={null} /></div>}
+            {photo ? <img src={photo} alt="" /> : <div className="dk-store-ph"><LogoMark size={40} /></div>}
             <div style={{ minWidth: 0 }}>
               <h1>{s.name}</h1>
               <div className="dk-chips">
