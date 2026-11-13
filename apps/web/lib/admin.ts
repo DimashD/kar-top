@@ -276,3 +276,16 @@ export async function uploadStorePhoto(storeId: string, file: File): Promise<{ p
   const data = c.toDataURL('image/jpeg', 0.82).split(',')[1];
   return adminFetch(`/admin/stores/${storeId}/photo`, { method: 'PUT', body: JSON.stringify({ data, type: 'image/jpeg' }) });
 }
+
+// ── Договор с магазином (оферта): кто, когда, какую редакцию и как принял ──
+export type LegalMethod = 'CLICK' | 'SMS' | 'ECP' | 'PAPER';
+export interface StoreOffer {
+  version: string;
+  accepted: boolean;
+  legalName: string | null;
+  legalBin: string | null;
+  last: { version: string; method: LegalMethod; acceptedAt: string; by: { phone: string; name: string | null } | null; note: string | null } | null;
+}
+export const storeOffer = (id: string) => adminFetch<StoreOffer>(`/admin/stores/${id}/legal`);
+export const markStoreOffer = (id: string, b: { method: 'ECP' | 'PAPER'; legalName?: string; bin?: string; note?: string }) =>
+  adminFetch<StoreOffer>(`/admin/stores/${id}/legal/mark`, { method: 'POST', body: JSON.stringify(b) });

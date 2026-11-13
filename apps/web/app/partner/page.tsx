@@ -5,6 +5,7 @@ import { LangSwitcher } from '../../components/LangProvider';
 import { getDict } from '../../lib/i18n-server';
 import { IconName, IconTile } from '../../components/Icon';
 
+import { LegalLinks } from '../../components/LegalDoc';
 export function generateMetadata() {
   const t = getDict();
   return { title: t.partnerMetaTitle, description: t.partnerMetaDescription };
@@ -54,6 +55,7 @@ export default function PartnerPage() {
 
       <footer className="container" style={{ padding: '32px 20px', color: 'var(--ink-40)', fontSize: 14 }}>
         {t.footer}
+        <LegalLinks />
       </footer>
     </main>
   );

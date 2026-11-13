@@ -9,6 +9,7 @@ import 'orders_screen.dart';
 import 'catalog_screen.dart';
 import 'settings_screen.dart';
 import 'notifications_screen.dart';
+import 'contract_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,12 +19,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
+  // Документы: сотрудник не дал согласие на ПДн — экран согласия; владелец не принял оферту — экран договора.
+  // Нет связи — не блокируем работу, спросим при следующем входе.
+  bool _needConsent = false;
+  bool _needOffer = false;
 
   @override
   void initState() {
     super.initState();
     // Магазин выбран — открываем заказ из уведомления, если на него нажали до входа.
     PushService.instance.openPending();
+    _checkLegal();
+  }
+
+  Future<void> _checkLegal() async {
+    final session = context.read<Session>();
+    final store = session.store;
+    try {
+      final me = await session.api.legalStatus();
+      final consent = me['terms'] != true || me['pdConsent'] != true;
+      var offer = false;
+      if (store != null && store.myRole == 'OWNER') {
+        offer = (await session.api.offerStatus(store.id))['accepted'] != true;
+      }
+      if (mounted) setState(() { _needConsent = consent; _needOffer = offer; });
+    } catch (_) {/* нет связи — спросим позже */}
   }
 
   @override
@@ -53,8 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(index: _tab, children: pages),
-      bottomNavigationBar: NavigationBar(
+      body: _needConsent
+          ? ConsentView(onDone: () => setState(() => _needConsent = false))
+          : _needOffer && store != null
+              ? ContractView(storeId: store.id, onDone: () => setState(() => _needOffer = false))
+              : IndexedStack(index: _tab, children: pages),
+      bottomNavigationBar: _needConsent || _needOffer ? null : NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: [
