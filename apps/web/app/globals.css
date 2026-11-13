@@ -88,3 +88,66 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
 }
 .admin-nav a:hover { background: var(--bg); color: var(--ink); }
 .admin-nav a[aria-current='page'] { background: var(--carrot-50); color: var(--carrot-600); }
+
+/* ── Витрина на компьютере: «Супермаркет» (StoreView, ширина от 1100 px) ── */
+.dk-head { position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); }
+.dk-head-in { max-width: 1440px; margin: 0 auto; height: 68px; padding: 0 32px; display: flex; align-items: center; gap: 18px; }
+.dk-search { flex: 1; height: 44px; border-radius: 12px; background: #F4F2F0; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: var(--ink-60); }
+.dk-search input { flex: 1; border: none; background: transparent; font: inherit; font-size: 15px; outline: none; color: var(--ink); min-width: 0; }
+.dk-nav { display: flex; gap: 4px; }
+.dk-nav a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 10px; font-size: 12px; color: var(--ink-60); text-decoration: none; border-radius: 10px; }
+.dk-nav a:hover { background: var(--bg); color: var(--ink); }
+.dk-body { max-width: 1440px; margin: 0 auto; padding: 22px 32px 48px; display: grid; grid-template-columns: 230px minmax(0, 1fr) 340px; gap: 26px; align-items: start; }
+.dk-side { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; }
+.dk-label { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-40); padding: 0 12px 8px; }
+.dk-cat { width: 100%; display: flex; justify-content: space-between; gap: 8px; padding: 9px 12px; border: none; border-radius: 10px; background: transparent; font: inherit; font-size: 14.5px; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer; }
+.dk-cat .n { color: var(--ink-40); font-weight: 500; font-size: 13px; }
+.dk-cat:hover { background: var(--card); }
+.dk-cat.on { background: var(--carrot-50); color: var(--carrot-600); }
+.dk-sub { display: flex; flex-direction: column; padding: 2px 0 8px 14px; }
+.dk-sub a { padding: 5px 12px; font-size: 13.5px; color: var(--ink-60); text-decoration: none; border-radius: 8px; }
+.dk-sub a:hover { color: var(--carrot-600); }
+.dk-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.dk-store { display: flex; align-items: center; gap: 16px; }
+.dk-store img, .dk-store-ph { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; flex: none; background: var(--carrot-50); display: grid; place-items: center; }
+.dk-store h1 { margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
+.dk-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.dk-chips .chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: #F4F2F0; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.dk-chips .chip.ok { background: var(--leaf-50); color: var(--leaf); }
+.dk-repeat { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--ink); color: #fff; }
+.dk-panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.dk-tool { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dk-tool h2 { margin: 0; font-size: 22px; }
+.dk-grp { margin: 14px 0 10px; font-size: 16px; color: var(--ink-60); }
+.seg { display: flex; background: #F4F2F0; border-radius: 10px; padding: 3px; }
+.seg button { display: flex; align-items: center; gap: 6px; border: none; background: transparent; padding: 6px 12px; border-radius: 8px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink-60); cursor: pointer; }
+.seg button[aria-pressed='true'] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(26,21,18,.1); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .15s; }
+.tile:hover { box-shadow: 0 6px 20px rgba(26,21,18,.08); }
+.tile-pic { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: none; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.tile-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile-sale { position: absolute; left: 8px; top: 8px; background: var(--sale); color: #fff; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 8px; }
+.tile-name { border: none; background: none; padding: 0; text-align: left; font: inherit; font-size: 14px; font-weight: 600; line-height: 1.3; min-height: 36px; color: var(--ink); cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-cart { position: sticky; top: 90px; }
+.dk-cart-in { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 110px); }
+.dk-lines { overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+
+/* ── Компьютер (от 1100 px): шапка сайта вместо нижнего меню; мобильные шапки страниц прячем ── */
+.site-head { display: none; }
+@media (min-width: 1100px) {
+  .m-only { display: none !important; }
+  .site-head { display: block; position: sticky; top: 0; z-index: 20; background: var(--card); border-bottom: 1px solid var(--line); }
+  .dk-wide { max-width: 1040px !important; }
+  .page-head { position: static !important; background: transparent !important; border-bottom: none !important; }
+  .page-head > .container { padding-top: 22px !important; }
+  .page-head h1 { font-size: 26px !important; }
+  .orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-items: start; }
+  .orders-grid > h2, .orders-grid > p, .orders-grid > .card:only-child { grid-column: 1 / -1; }
+}
+.site-head-in { max-width: 1440px; margin: 0 auto; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 22px; }
+.site-tabs { display: flex; gap: 4px; flex: 1; }
+.site-tab { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-size: 15px; font-weight: 700; color: var(--ink-60); text-decoration: none; white-space: nowrap; }
+.site-tab:hover { background: var(--bg); color: var(--ink); }
+.site-tab[aria-current='page'] { background: var(--carrot-50); color: var(--carrot-600); }
+.site-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--carrot); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; }

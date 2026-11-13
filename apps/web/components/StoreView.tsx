@@ -1,6 +1,6 @@
 'use client';
 
-import Logo from './Logo';
+import Logo, { LogoMark } from './Logo';
 import FeedbackButton from './FeedbackButton';
 import StoreMenu from './StoreMenu';
 import BottomNav, { BOTTOM_NAV_H } from './BottomNav';
@@ -426,9 +426,15 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
   // «Повторить заказ»: только товары, которые сейчас есть в витрине.
   const repeatable = (last?.lines ?? []).map((l) => ({ product: byId.get(l.id), qty: l.qty })).filter((l): l is Line => !!l.product);
+  const desktop = useIsDesktop();
 
   return (
-    <main style={{ paddingBottom: count ? 88 : 24 }}>
+    <main style={{ paddingBottom: desktop ? 0 : count ? 88 : 24 }}>
+      {desktop ? (
+        <DesktopStore catalog={catalog} slug={slug} secs={secs} all={all} found={found} query={query} setQuery={setQuery} mode={mode} setMode={setMode}
+          cart={cart} lines={lines} subtotal={subtotal} looks={looks} add={add} inc={inc} dec={dec} setQty={setQty} edit={(p) => setWeighing(p)}
+          checkout={() => setOpen(true)} addMany={addMany} repeat={repeatable} last={last} />
+      ) : (<>
       <StorePhoto slug={slug} version={catalog.store.photoVersion} name={catalog.store.name} />
       <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} slug={slug} photo={shopPhotoUrl(slug, catalog.store.photoVersion)} />
 
@@ -502,8 +508,9 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
           </>
         )}
       </div>
+      </>)}
 
-      {count > 0 && !open && (
+      {count > 0 && !open && !desktop && (
         <button className="btn btn-primary" onClick={() => setOpen(true)}
           style={{ position: 'fixed', left: 16, right: 16, bottom: `calc(${BOTTOM_NAV_H + 12}px + env(safe-area-inset-bottom))`, zIndex: 21, maxWidth: 'calc(var(--maxw) - 40px)', margin: '0 auto', height: 56, boxShadow: 'var(--shadow)', fontSize: 16 }}>
           <span>{t.cartButton(count)}</span>
@@ -533,9 +540,9 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
       {done && <OrderPlaced order={done} onClose={() => setDone(null)} />}
       <FeedbackButton storeSlug={slug} />
-      <div style={{ height: count > 0 ? 72 : 0 }} />
+      {desktop ? null : <div style={{ height: count > 0 ? 72 : 0 }} />}
       <LegalPrompt />
-      <BottomNav />
+      {desktop ? null : <BottomNav />}
     </main>
   );
 }
@@ -960,7 +967,8 @@ function CheckoutDrawer(props: {
   const deliveryOn = store.deliveryEnabled !== false;
   const ownOn = deliveryOn && store.deliveryMode !== 'SERVICE';
   const courierOn = deliveryOn && store.deliveryMode !== 'OWN';
-  const [mode, setMode] = useState<'OWN' | 'SERVICE' | 'PICKUP'>(ownOn ? 'OWN' : store.pickupEnabled ? 'PICKUP' : 'SERVICE');
+  // По умолчанию самовывоз — меньше рисков для магазина и покупателя; доставку выбирают сами.
+  const [mode, setMode] = useState<'OWN' | 'SERVICE' | 'PICKUP'>(store.pickupEnabled ? 'PICKUP' : ownOn ? 'OWN' : 'SERVICE');
   // Номер — не в форме: его спрашивает шторка после «Оформить заказ» (если устройство ещё не подтверждено).
   const [knownPhone, setKnownPhone] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
@@ -1052,7 +1060,7 @@ function CheckoutDrawer(props: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,21,18,0.4)', zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg)', width: '100%', maxWidth: 'var(--maxw)', borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflow: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg)', width: '100%', maxWidth: 680, borderRadius: '20px 20px 0 0', maxHeight: '92vh', overflow: 'auto' }}>
         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg)' }}>
           <h2 style={{ fontSize: 20 }}>{t.cart}</h2>
           <button className="btn btn-ghost" onClick={onClose} style={{ padding: '8px 12px' }}>{t.close}</button>
@@ -1066,9 +1074,9 @@ function CheckoutDrawer(props: {
           {/* Способ получения */}
           <Field label={t.fulfillment}>
             <div style={{ display: 'grid', gap: 8 }}>
+              {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="bag" title={t.pickup} /> : null}
               {ownOn ? <ModeBtn active={mode === 'OWN'} onClick={() => setMode('OWN')} icon="scooter" title={t.ownDelivery} sub={t.ownDeliverySub} /> : null}
               {courierOn ? <ModeBtn active={mode === 'SERVICE'} onClick={() => setMode('SERVICE')} icon="car" title={t.courierDelivery} sub={t.deliveryCourierSub} /> : null}
-              {store.pickupEnabled ? <ModeBtn active={mode === 'PICKUP'} onClick={() => setMode('PICKUP')} icon="bag" title={t.pickup} /> : null}
             </div>
           </Field>
 
@@ -1315,4 +1323,204 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 function inputStyle(ok: boolean): React.CSSProperties {
   return { width: '100%', padding: '12px 14px', fontSize: 15, border: `1px solid ${ok ? 'var(--line)' : 'var(--sale)'}`, borderRadius: 'var(--radius-sm)', background: 'var(--card)', color: 'var(--ink)', outline: 'none' };
+}
+
+// ───────────── Компьютер: витрина «Супермаркет» (категории слева, плитки в центре, корзина справа) ─────────────
+
+const DESKTOP_MQ = '(min-width: 1100px)';
+/** Широкий экран — раскладка «Супермаркет»; на телефоне и планшете — привычная колонка. */
+function useIsDesktop(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_MQ);
+    const upd = () => setOn(mq.matches);
+    upd();
+    mq.addEventListener('change', upd);
+    return () => mq.removeEventListener('change', upd);
+  }, []);
+  return on;
+}
+
+/** Вид каталога на компьютере: плитка или список; выбор запоминается на устройстве. */
+function useView(): ['grid' | 'list', (v: 'grid' | 'list') => void] {
+  const [v, setV] = useState<'grid' | 'list'>('grid');
+  useEffect(() => { try { if (localStorage.getItem('kartop:view') === 'list') setV('list'); } catch { /* ок */ } }, []);
+  return [v, (x) => { setV(x); try { localStorage.setItem('kartop:view', x); } catch { /* ок */ } }];
+}
+
+type Qty = { qty: number; onAdd: () => void; onInc: () => void; onDec: () => void; onSet: (qty: number) => void; onEdit: () => void };
+
+/** Плитка товара: большое фото, цена, название; внизу «В корзину» или счётчик. */
+function ProductTile({ p, look, qty, onAdd, onInc, onDec, onSet, onEdit }: { p: SearchProduct; look?: Look } & Qty) {
+  const t = useT();
+  const lang = useLang();
+  const name = localized(p.name, lang);
+  const sale = p.oldPriceTiyn && p.oldPriceTiyn > p.priceTiyn;
+  return (
+    <div className="tile">
+      <button type="button" onClick={onEdit} aria-label={name} className="tile-pic" style={{ background: p.photo ? '#fff' : look?.tint ?? '#F4F2F0' }}>
+        {p.photo ? <img src={p.photo} alt={name} loading="lazy" />
+          : look?.pic ? <span aria-hidden="true" style={{ fontSize: 64, lineHeight: 1 }}>{look.pic}</span>
+          : <span aria-hidden="true" style={{ fontSize: 28, fontWeight: 900, color: 'var(--ink-60)' }}>{look?.initials}</span>}
+        {sale ? <span className="tile-sale">−{Math.round((1 - p.priceTiyn / p.oldPriceTiyn!) * 100)}%</span> : null}
+      </button>
+      <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 6 }}>
+        <span style={{ fontWeight: 800, fontSize: 16, color: sale ? 'var(--sale)' : undefined }}>{tenge(p.priceTiyn)}</span>
+        {sale ? <span className="price-old" style={{ fontSize: 12.5 }}>{tenge(p.oldPriceTiyn!)}</span> : null}
+        <span style={{ fontSize: 12, color: 'var(--ink-40)' }}>{perUnit(p.unit, t)}</span>
+      </div>
+      <button type="button" onClick={onEdit} className="tile-name">{name}</button>
+      {qty === 0 ? (
+        <button className="btn btn-ghost" onClick={onAdd} style={{ height: 40, padding: 0, fontSize: 14, marginTop: 'auto' }}>+ {t.addToCart}</button>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--carrot)', color: '#fff', borderRadius: 12, height: 40, marginTop: 'auto' }}>
+          <button aria-label={t.remove} onClick={onDec} style={{ width: 40, height: 40, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#fff' }}>−</button>
+          <span style={{ fontWeight: 800, fontSize: 14 }}>{qtyLabel(p.unit, qty, t)}</span>
+          <button aria-label={t.add} onClick={onInc} style={{ width: 40, height: 40, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#fff' }}>+</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DesktopStore(props: {
+  catalog: Catalog; slug: string; secs: Section[]; all: SearchProduct[]; found: SearchProduct[] | null;
+  query: string; setQuery: (q: string) => void; mode: 'catalog' | 'list'; setMode: (m: 'catalog' | 'list') => void;
+  cart: Record<string, Line>; lines: Line[]; subtotal: number; looks: Map<string, Look>;
+  add: (p: CatalogProduct) => void; inc: (p: CatalogProduct) => void; dec: (p: CatalogProduct) => void; setQty: (p: CatalogProduct, q: number) => void;
+  edit: (p: CatalogProduct) => void; checkout: () => void; addMany: (items: { product: CatalogProduct; qty: number }[]) => void;
+  repeat: Line[]; last: LastOrder | null;
+}) {
+  const { catalog, slug, secs, all, found, query, setQuery, mode, setMode, cart, lines, subtotal, looks } = props;
+  const t = useT();
+  const lang = useLang();
+  const s = catalog.store;
+  const [view, setView] = useView();
+  const [active, setActive] = useState(secs[0]?.id ?? '');
+  const sec = secs.find((x) => x.id === active) ?? secs[0];
+  const [openNow, setOpenNow] = useState<boolean | null>(null);
+  useEffect(() => { setOpenNow(openAt(s.hours?.length === 7 ? s.hours : DEFAULT_WEEK, new Date())); }, [s.hours]);
+  const photo = shopPhotoUrl(slug, s.photoVersion);
+  const q = (p: CatalogProduct): Qty => ({
+    qty: cart[p.id]?.qty ?? 0, onAdd: () => props.add(p), onInc: () => props.inc(p), onDec: () => props.dec(p),
+    onSet: (x) => props.setQty(p, x), onEdit: () => props.edit(p),
+  });
+  const items = (list: SearchProduct[], showCategory = false) => view === 'grid'
+    ? <div className="tiles">{list.map((p) => <ProductTile key={p.id} p={p} look={looks.get(p.id)} {...q(p)} />)}</div>
+    : <div>{list.map((p) => <ProductRow key={p.id} p={p} look={looks.get(p.id)} showCategory={showCategory} {...q(p)} />)}</div>;
+  const count = (x: Section) => x.groups.reduce((n, g) => n + g.items.length, 0);
+  const pickTab = (m: 'catalog' | 'list') => { setMode(m); if (m === 'list') setQuery(''); };
+  const repeatable = props.repeat;
+
+  return (
+    <div className="dk">
+      <header className="dk-head">
+        <div className="dk-head-in">
+          <Logo size={26} />
+          <div className="dk-search">
+            <Icon name="search" size={19} />
+            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setMode('catalog'); }} placeholder={t.searchInShop} aria-label={t.searchInShop} />
+          </div>
+          <button className={`btn ${mode === 'list' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => pickTab(mode === 'list' ? 'catalog' : 'list')} style={{ height: 44, padding: '0 14px', fontSize: 14, whiteSpace: 'nowrap' }}>
+            <Icon name="mic" size={18} />{t.listOrVoice}
+          </button>
+          <nav className="dk-nav">
+            <Link href="/"><Icon name="store" size={22} />{t.navStores}</Link>
+            <Link href="/orders"><Icon name="receipt" size={22} />{t.navOrders}</Link>
+            <Link href="/notifications"><Icon name="bell" size={22} />{t.navNotifications}</Link>
+            <Link href="/profile"><Icon name="user" size={22} />{t.navProfile}</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="dk-body">
+        <aside className="dk-side">
+          <div className="dk-label">{t.tabCatalog}</div>
+          {secs.map((x) => (
+            <div key={x.id}>
+              <button type="button" className={`dk-cat${x.id === sec?.id && mode === 'catalog' && !found ? ' on' : ''}`}
+                onClick={() => { setActive(x.id); setMode('catalog'); setQuery(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                <span>{x.title}</span><span className="n">{count(x)}</span>
+              </button>
+              {x.id === sec?.id && mode === 'catalog' && !found && x.groups.length > 1 ? (
+                <div className="dk-sub">
+                  {x.groups.map((g, gi) => <a key={gi} href={`#grp-${gi}`}>{g.title}</a>)}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </aside>
+
+        <main className="dk-main">
+          <div className="dk-store">
+            {photo ? <img src={photo} alt="" /> : <div className="dk-store-ph"><LogoMark size={40} /></div>}
+            <div style={{ minWidth: 0 }}>
+              <h1>{s.name}</h1>
+              <div className="dk-chips">
+                {openNow != null ? <span className={`chip${openNow ? ' ok' : ''}`}>{openNow ? t.openNow : t.closedNow}</span> : null}
+                <span className="chip">★ {s.rating.toFixed(1)}{s.reviewCount ? ` · ${t.reviewsShort(s.reviewCount)}` : ''}</span>
+                {s.pickupEnabled ? <span className="chip">{t.pickupIn(s.pickupLeadMinutes)}</span> : null}
+                {s.address ? <span className="chip">{s.address}</span> : null}
+                <Link href={`/${slug}/about`} className="chip" style={{ textDecoration: 'none', color: 'var(--carrot-600)' }}>{t.aboutStore} ›</Link>
+              </div>
+            </div>
+          </div>
+
+          {repeatable.length && props.last ? (
+            <div className="dk-repeat">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <b>{t.repeatTitle}</b>
+                <div style={{ fontSize: 13, opacity: 0.75 }}>{t.repeatMeta(repeatable.length, tenge(props.last.totalTiyn), new Date(props.last.at).toLocaleDateString(LOCALES[lang], { day: 'numeric', month: 'long' }))}</div>
+              </div>
+              <button className="btn" onClick={() => props.addMany(repeatable)} style={{ background: '#fff', color: 'var(--ink)', height: 40, padding: '0 14px' }}>{t.repeatAdd}</button>
+            </div>
+          ) : null}
+
+          {mode === 'list' ? (
+            <div className="dk-panel"><QuickList products={all} onAdd={(it) => { props.addMany(it); setMode('catalog'); }} /></div>
+          ) : (
+            <>
+              <div className="dk-tool">
+                <h2>{found ? `«${query.trim()}»` : sec?.title}</h2>
+                <div className="seg" role="group" aria-label={t.view}>
+                  <button type="button" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><Icon name="grid" size={16} />{t.viewTiles}</button>
+                  <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}><Icon name="list" size={16} />{t.viewList}</button>
+                </div>
+              </div>
+              {found ? (found.length ? items(found.slice(0, 60), true) : <p className="muted" style={{ padding: '24px 0' }}>{t.nothingFound}</p>)
+                : sec?.groups.map((g, gi) => (
+                  <section key={gi} id={`grp-${gi}`} style={{ scrollMarginTop: 90 }}>
+                    {sec.groups.length > 1 || g.title !== sec.title ? <h3 className="dk-grp">{g.title}</h3> : null}
+                    {items(g.items)}
+                  </section>
+                ))}
+            </>
+          )}
+        </main>
+
+        <aside className="dk-cart">
+          <div className="dk-cart-in">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <h2 style={{ margin: 0, fontSize: 20 }}>{t.cart}</h2>
+              {lines.length ? <span className="muted" style={{ fontSize: 13 }}>{t.cartButton(lines.length).split('·').pop()?.trim()}</span> : null}
+            </div>
+            {lines.length === 0 ? (
+              <p className="muted" style={{ fontSize: 14, margin: '8px 0 0' }}>{t.cartEmpty}</p>
+            ) : (
+              <>
+                <div className="dk-lines">
+                  {lines.map((l) => <CartLine key={l.product.id} l={l} look={looks.get(l.product.id)} onSet={props.setQty} onEdit={props.edit} />)}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 17 }}>
+                  <span>{t.goodsSum}</span><span>{tenge(subtotal)}</span>
+                </div>
+                <button className="btn btn-primary btn-block" onClick={props.checkout} style={{ height: 52, fontSize: 16 }}>{t.placeOrder}</button>
+                <div className="muted" style={{ fontSize: 12.5, textAlign: 'center' }}>{t.receiveNextStep}</div>
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
 }

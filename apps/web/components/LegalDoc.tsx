@@ -8,7 +8,7 @@ export type LegalSection = { h: string; p: (string | string[])[] };
 export default function LegalDoc({ title, lead, sections }: { title: string; lead?: string; sections: LegalSection[] }) {
   return (
     <main>
-      <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
+      <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: 64 }}>
           <Logo size={28} />
         </div>
