@@ -6,6 +6,7 @@ import { CLIENT_API } from '../lib/api';
 import { useAdmin } from './AdminShell';
 import { isValidKzPhone, kzPhoneE164, formatKzPhone } from '../lib/phone';
 import PhoneInput from './PhoneInput';
+import AdminStoreContract from './AdminStoreContract';
 
 const STATUS_META: Record<StoreStatus, { label: string; color: string; bg: string }> = {
   PENDING:   { label: 'На модерации', color: 'var(--carrot-600)', bg: 'var(--carrot-50)' },
@@ -164,6 +165,7 @@ export default function AdminStores() {
                   <a className="btn btn-ghost" href={`/admin/poster/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13, marginLeft: 'auto' }}>🖨️ QR-постер</a>
                   <a className="btn btn-ghost" href={`/${s.slug}`} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', fontSize: 13 }}>Витрина ↗</a>
                 </div>
+                <AdminStoreContract storeId={s.id} />
               </div>
             );
           })}

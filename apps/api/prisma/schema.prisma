@@ -102,6 +102,7 @@ model User {
   orders       Order[]
   devices      Device[]
   pushTokens   PushToken[]
+  legalAcceptances LegalAcceptance[]
 }
 
 // Transactional outbox: доменные события пишутся в одной транзакции с изменением состояния.
@@ -215,6 +216,10 @@ model Store {
   reviews   Review[]
   subscription Subscription?
   catalogRequests CatalogRequest[]
+  // Продавец для покупателя (закон о защите прав потребителей): ИП/ТОО и ИИН/БИН — из принятой оферты.
+  legalName String?
+  legalBin  String?
+  legalAcceptances LegalAcceptance[]
 }
 
 model StoreMember {
@@ -422,4 +427,37 @@ model Notification {
   readAt    DateTime?
   createdAt DateTime  @default(now())
   @@index([userId, createdAt])
+}
+
+// Юридические документы: пользовательское соглашение, согласие на ПДн, оферта для магазинов.
+enum LegalDoc {
+  TERMS
+  PD_CONSENT
+  MERCHANT_OFFER
+}
+
+// Как принят документ: нажатием, кодом из SMS, ЭЦП, на бумаге (последние два отмечает админ).
+enum LegalMethod {
+  CLICK
+  SMS
+  ECP
+  PAPER
+}
+
+// Журнал принятия документов — доказательство согласия (кто, что, какую редакцию, когда, откуда).
+model LegalAcceptance {
+  id         String      @id @default(uuid())
+  userId     String?
+  storeId    String?
+  doc        LegalDoc
+  version    String
+  method     LegalMethod
+  ip         String?
+  userAgent  String?
+  meta       Json?
+  acceptedAt DateTime    @default(now())
+  user       User?       @relation(fields: [userId], references: [id])
+  store      Store?      @relation(fields: [storeId], references: [id])
+  @@index([userId, doc])
+  @@index([storeId, doc])
 }

@@ -101,3 +101,10 @@ jobs:
           name: kartop-merchant-aab
           path: apps/merchant/build/app/outputs/bundle/prodRelease/app-prod-release.aab
           retention-days: 14
+      # Боевой .apk — поставить на телефон напрямую, без Google Play.
+      - run: flutter build apk --release --flavor prod --split-per-abi --dart-define=APP_ENV=prod --dart-define=API_BASE=${{ vars.API_BASE || 'https://kar-top.kz/api' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kartop-merchant-apk
+          path: apps/merchant/build/app/outputs/flutter-apk/app-arm64-v8a-prod-release.apk
+          retention-days: 14

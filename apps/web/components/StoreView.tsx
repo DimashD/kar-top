@@ -93,6 +93,60 @@ async function registerAppPush() {
   }).catch(() => null);
   if (r?.ok) try { localStorage.setItem('kartop:push', mark); } catch { /* ок */ }
 }
+/** Покупатель принял соглашение и согласие на ПДн (отметка на экране входа) — пишем в журнал согласий. */
+async function acceptLegal(s: Session) {
+  await fetch(`${CLIENT_API}/me/legal/accept`, {
+    method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${s.access}` },
+    body: JSON.stringify({ docs: ['TERMS', 'PD_CONSENT'] }),
+  }).catch(() => {});
+  try { localStorage.removeItem('kartop:legal'); } catch { /* ок */ }
+}
+
+/**
+ * Уже вошедшие покупатели, не принявшие действующую редакцию документов: внизу экрана просьба принять.
+ * Ответ сервера кэшируем на устройстве (номер + редакции), чтобы не спрашивать каждый раз.
+ */
+function LegalPrompt() {
+  const t = useT();
+  const [need, setNeed] = useState(false);
+  useEffect(() => {
+    const s = readSession();
+    if (!s) return;
+    let cached: string | null = null;
+    try { cached = localStorage.getItem('kartop:legal'); } catch { /* ок */ }
+    if (cached === s.phone) return;
+    (async () => {
+      const token = await accessToken();
+      if (!token) return;
+      const r = await fetch(`${CLIENT_API}/me/legal`, { headers: { authorization: `Bearer ${token}` } }).catch(() => null);
+      const d = r?.ok ? await r.json() : null;
+      if (!d) return;
+      if (d.terms && d.pdConsent) { try { localStorage.setItem('kartop:legal', s.phone); } catch { /* ок */ } } else setNeed(true);
+    })();
+  }, []);
+  if (!need) return null;
+  async function accept() {
+    const s = readSession();
+    const token = s ? await accessToken() : null;
+    if (s && token) await acceptLegal({ ...s, access: token });
+    try { if (s) localStorage.setItem('kartop:legal', s.phone); } catch { /* ок */ }
+    setNeed(false);
+  }
+  return (
+    <div role="region" aria-label={t.acceptLegal} style={{ position: 'fixed', left: 12, right: 12, bottom: 84, zIndex: 9000, maxWidth: 520, margin: '0 auto', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 16, padding: 14, boxShadow: '0 8px 24px rgba(26,21,18,0.16)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 14 }}>{t.legalUpdated} <LegalLine /></div>
+      <button className="btn btn-primary btn-block" onClick={accept} style={{ height: 46 }}>{t.acceptLegal}</button>
+    </div>
+  );
+}
+
+/** «Соглашение · согласие на ПДн» ссылками — в просьбе принять новую редакцию. */
+function LegalLine() {
+  const t = useT();
+  const a: React.CSSProperties = { color: 'var(--carrot-600)', fontWeight: 700 };
+  return <><a href="/terms" target="_blank" style={a}>{t.acceptTerms[1]}</a> · <a href="/consent" target="_blank" style={a}>{t.agreePd[1]}</a></>;
+}
+
 /** Выход на этом устройстве: телефон перестаёт получать пуши этого покупателя, сессия удаляется. */
 export async function logout() {
   const push = (window as any).kartopPushToken as string | undefined;
@@ -141,6 +195,8 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
   const [sentVia, setSentVia] = useState<string | null>(null);
   // Вход через Telegram-бот: ссылка на бота, ждём, пока покупатель поделится номером.
   const [tg, setTg] = useState<{ token: string; botUrl: string } | null>(null);
+  // Согласие на ПДн — отдельная отметка, не предотмечена; без неё код не отправляем.
+  const [agree, setAgree] = useState(false);
   const openBot = (url: string) => { if (inKartopApp()) location.href = url; else window.open(url, '_blank'); };
   async function loginTelegram() {
     setErr(null);
@@ -161,6 +217,7 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
         clearInterval(id);
         const s = sessionFrom(d, d.phone);
         saveSession(s);
+        await acceptLegal(s);
         registerAppPush();
         onDone(s);
       } else if (d?.status === 'expired') {
@@ -204,6 +261,7 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
       if (!r.ok || !data.accessToken) throw new Error();
       const s = sessionFrom(data, kzPhoneE164(phone));
       saveSession(s);
+      await acceptLegal(s);
       registerAppPush();
       onDone(s);
     } catch {
@@ -230,15 +288,22 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
           <>
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
             {/* Быстрее всего — через бот Kartop в Telegram: номер подтверждает Telegram, код не нужен. */}
-            <button className="btn btn-primary btn-block" disabled={busy} onClick={loginTelegram} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
+            <button className="btn btn-primary btn-block" disabled={busy || !agree} onClick={loginTelegram} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
               <Icon name="send" size={20} />{t.loginTelegram}
             </button>
             <div className="muted" style={{ textAlign: 'center', fontSize: 13 }}>{t.orByCode}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             {/* Telegram — бесплатно для покупателя и дешевле для нас; SMS — для всех. */}
-            <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
+            <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy || !agree} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
               {busy ? t.sendingCode : <><Icon name="chat" size={19} />{t.codeSms}</>}
             </button>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer' }}>
+              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ width: 20, height: 20, marginTop: 1, accentColor: 'var(--carrot)', flex: 'none' }} />
+              <span>{t.agreePd[0]}<a href="/consent" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreePd[1]}</a>{t.agreePd[2]}</span>
+            </label>
+            <div className="muted" style={{ fontSize: 13 }}>
+              {t.acceptTerms[0]}<a href="/terms" target="_blank" style={{ color: 'inherit', textDecoration: 'underline' }}>{t.acceptTerms[1]}</a>{t.acceptTerms[2]}
+            </div>
           </>
         ) : (
           <>
@@ -469,6 +534,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
       {done && <OrderPlaced order={done} onClose={() => setDone(null)} />}
       <FeedbackButton storeSlug={slug} />
       <div style={{ height: count > 0 ? 72 : 0 }} />
+      <LegalPrompt />
       <BottomNav />
     </main>
   );

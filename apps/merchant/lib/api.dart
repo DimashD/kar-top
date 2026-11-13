@@ -126,6 +126,14 @@ class Api {
   /// Есть ли у пользователя пароль.
   Future<bool> hasPassword() async => ((await _get('/me')) as Map<String, dynamic>)['hasPassword'] == true;
 
+  // --- Документы: соглашение и согласие на ПДн (сотрудник), оферта (владелец магазина) ---
+  Future<Map<String, dynamic>> legalStatus() async => await _get('/me/legal') as Map<String, dynamic>;
+  Future<void> acceptDocs() => _post('/me/legal/accept', {'docs': ['TERMS', 'PD_CONSENT']});
+  Future<Map<String, dynamic>> offerStatus(String storeId) async => await _get('/merchant/stores/$storeId/offer') as Map<String, dynamic>;
+  Future<void> requestOfferCode(String storeId) => _post('/merchant/stores/$storeId/offer/request-code');
+  Future<void> acceptOffer(String storeId, String legalName, String bin, String code) =>
+      _post('/merchant/stores/$storeId/offer/accept', {'legalName': legalName, 'bin': bin, 'code': code});
+
   // --- Stores ---
   Future<List<StoreSummary>> myStores() async {
     final r = await _get('/merchant/stores') as List;

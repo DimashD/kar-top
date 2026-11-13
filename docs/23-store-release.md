@@ -20,7 +20,7 @@
 
 ### Общее
 - Домены/URL для сторов: Privacy `https://kartop.kz/privacy`, Terms `https://kartop.kz/terms`,
-  поддержка `support@kartop.kz`.
+  поддержка `kartop.shop@gmail.com`.
 - Скриншоты: минимум 2–4 телефонных (есть готовые экраны — заказы, карточка, курьер, товары).
 
 ### Google Play (Android)
