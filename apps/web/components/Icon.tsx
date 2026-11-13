@@ -38,6 +38,10 @@ const P: Record<string, ReactNode> = {
   tenge: <><path d="M9 8h6M9 11h6M12 11v6" />{c(12, 12, 9)}</>,
   xCircle: <><path d="M9 9l6 6M15 9l-6 6" />{c(12, 12, 9)}</>,
   edit: <path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4" />,
+  search: <>{c(11, 11, 7)}<path d="M20 20l-3.5-3.5" /></>,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0014 0M12 18v3" /></>,
+  grid: <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
   heart: <path d="M12 20s-8-4.7-8-10.5A4.5 4.5 0 0112 7a4.5 4.5 0 018 2.5C20 15.3 12 20 12 20z" />,
 };
 export type IconName = keyof typeof P;
