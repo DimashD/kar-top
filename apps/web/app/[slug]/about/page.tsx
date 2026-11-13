@@ -38,13 +38,14 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
+        <div className="container dk-wide" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <span className="m-only"><StoreMenu /></span>
           <Link href={`/${s.slug}`} style={{ flex: 1, fontWeight: 800, color: 'var(--ink)', textDecoration: 'none' }}>← {t.toProducts}</Link>
         </div>
       </header>
-      {photo ? <img src={photo} alt={s.name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 220, objectFit: 'cover', margin: '0 auto' }} /> : null}
-      <div className="container" style={{ padding: '16px 20px 40px', maxWidth: 760 }}>
+      {photo ? <img className="about-photo" src={photo} alt={s.name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 220, objectFit: 'cover', margin: '0 auto' }} /> : null}
+      <div className="container dk-wide" style={{ padding: '16px 20px 40px', maxWidth: 760 }}>
+        <div className="two-col"><div className="col">
         <h1 style={{ fontSize: 26, margin: 0 }}>{s.name}</h1>
         <div className="muted" style={{ marginTop: 4 }}>★ {s.rating.toFixed(1)}{s.reviewCount ? ` · ${t.reviewsShort(s.reviewCount)}` : ''}</div>
         {s.address ? <div style={{ marginTop: 8, fontSize: 15, display: 'flex', gap: 6, alignItems: 'flex-start' }}><Icon name="pin" size={18} style={{ marginTop: 1, color: 'var(--carrot)' }} />{s.address}</div> : null}
@@ -55,6 +56,7 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
         </div>
 
+        </div><div className="col">
         {s.hours?.length === 7 ? (
           <div className="card" style={card}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.workHours}</div>
@@ -85,6 +87,7 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           </div>
         ) : null}
 
+        </div></div>
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>
         <FeedbackButton storeSlug={s.slug} />
       </div>
