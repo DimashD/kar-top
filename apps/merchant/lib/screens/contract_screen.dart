@@ -138,9 +138,9 @@ class _ContractViewState extends State<ContractView> {
         FilledButton(
           onPressed: _code.text.length == 6 && !_busy
               ? () => _run(() async {
+                    final messenger = ScaffoldMessenger.of(context);
                     await api.acceptOffer(widget.storeId, _name.text.trim(), _bin.text, _code.text);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.contractDone)));
+                    messenger.showSnackBar(SnackBar(content: Text(s.contractDone)));
                     widget.onDone();
                   })
               : null,
