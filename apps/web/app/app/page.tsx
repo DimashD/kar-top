@@ -12,7 +12,7 @@ export function generateMetadata() {
 export default function AppPage() {
   return (
     <main>
-      <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
+      <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <Logo size={28} />
           <LangSwitcher />

@@ -13,7 +13,7 @@ export default function DeleteAccountPage() {
   const mail = <a href="mailto:kartop.shop@gmail.com" style={{ color: 'var(--carrot-600)' }}>kartop.shop@gmail.com</a>;
   return (
     <main>
-      <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
+      <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <Logo size={28} />
           <LangSwitcher />

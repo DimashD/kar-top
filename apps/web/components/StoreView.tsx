@@ -1425,6 +1425,7 @@ function DesktopStore(props: {
             <Icon name="mic" size={18} />{t.listOrVoice}
           </button>
           <nav className="dk-nav">
+            <Link href="/"><Icon name="store" size={22} />{t.navStores}</Link>
             <Link href="/orders"><Icon name="receipt" size={22} />{t.navOrders}</Link>
             <Link href="/notifications"><Icon name="bell" size={22} />{t.navNotifications}</Link>
             <Link href="/profile"><Icon name="user" size={22} />{t.navProfile}</Link>

@@ -19,8 +19,7 @@ function distKm(a: Point, b: Point) {
 }
 
 /** Открыт ли магазин сейчас (время покупателя — в Казахстане совпадает с магазином). */
-function openNow(s: StoreCard): boolean {
-  const now = new Date();
+function openNow(s: StoreCard, now: Date): boolean {
   const d = s.hours?.[(now.getDay() + 6) % 7];
   if (!d) return false;
   const m = now.getHours() * 60 + now.getMinutes();
@@ -42,6 +41,9 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
   const [kinds, setKinds] = useState<Kind[]>([]);
   const [me, setMe] = useState<Point | null>(null);
   const [locating, setLocating] = useState(false);
+  // «Открыто/Закрыто» считаем только в браузере: на сервере другое время (UTC), иначе текст расходится при загрузке.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => { setNow(new Date()); }, []);
 
   function locate() {
     if (!navigator.geolocation) return;
@@ -98,7 +100,7 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
       {shown.length === 0 ? <p className="muted">{t.noStores}</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {shown.map(({ s, km }) => {
-            const open = openNow(s);
+            const open = now ? openNow(s, now) : null;
             const z = s.ownZone;
             const ownTerms = !z ? '' : z.freeFromTiyn != null && z.feeTiyn ? ` · ${t.freeFromShort(tenge(z.freeFromTiyn))}` : z.feeTiyn ? ` · ${tenge(z.feeTiyn)}` : ` · ${t.freeShort}`;
             return (
@@ -115,9 +117,11 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
                   </div>
                   {s.address ? <div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.address}</div> : null}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, fontSize: 13, fontWeight: 700 }}>
-                    <span style={{ ...chip, background: open ? 'var(--leaf-50)' : 'var(--line)', color: open ? 'var(--leaf)' : 'var(--ink-60)' }}>
-                      {open ? t.openNow : t.closedNow}
-                    </span>
+                    {open != null ? (
+                      <span style={{ ...chip, background: open ? 'var(--leaf-50)' : 'var(--line)', color: open ? 'var(--leaf)' : 'var(--ink-60)' }}>
+                        {open ? t.openNow : t.closedNow}
+                      </span>
+                    ) : null}
                     {s.reviewCount ? <span style={chip}>★ {s.rating.toFixed(1)}</span> : null}
                   </div>
                   {/* Способы получения: довезёт ли магазин сам (с условиями зоны), курьер за счёт покупателя, самовывоз. */}
