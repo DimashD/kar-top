@@ -10,7 +10,7 @@ export function generateMetadata() {
 
 export default function DeleteAccountPage() {
   const t = getDict();
-  const mail = <a href="mailto:support@kar-top.kz" style={{ color: 'var(--carrot-600)' }}>support@kar-top.kz</a>;
+  const mail = <a href="mailto:kartop.shop@gmail.com" style={{ color: 'var(--carrot-600)' }}>kartop.shop@gmail.com</a>;
   return (
     <main>
       <header style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>

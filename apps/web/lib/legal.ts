@@ -6,9 +6,9 @@ export const LEGAL = {
   address: '[юридический адрес]',
   bank: '[банк, БИК, IBAN]',
   phone: '[телефон поддержки]',
-  email: '[почта поддержки]',
+  email: 'kartop.shop@gmail.com',
   responsible: '[ФИО ответственного за персональные данные]',
-  hosting: '[хостинг в РК]',
+  hosting: 'hoster.kz, Казахстан',
   city: 'Алматы',
 };
 
