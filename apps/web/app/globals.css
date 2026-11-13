@@ -143,6 +143,7 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
   .page-head > .container { padding-top: 22px !important; }
   .page-head h1 { font-size: 26px !important; }
   .orders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-items: start; }
+  .orders-grid > h2, .orders-grid > p, .orders-grid > .card:only-child { grid-column: 1 / -1; }
 }
 .site-head-in { max-width: 1440px; margin: 0 auto; height: 64px; padding: 0 32px; display: flex; align-items: center; gap: 22px; }
 .site-tabs { display: flex; gap: 4px; flex: 1; }
