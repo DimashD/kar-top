@@ -167,7 +167,7 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
   .home-hero { background: linear-gradient(105deg, #FADCC8, #FCEBDF 60%, #FDF3EC); margin-bottom: 28px; }
   .home-cta { display: inline-flex !important; margin-top: 22px; height: 52px; padding: 0 26px; font-size: 17px; }
   .home-how { display: block !important; margin-bottom: 8px; }
-  .home-stores { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 28px 28px 32px !important; margin-top: 24px; margin-bottom: 28px; scroll-margin-top: 80px; }
+  .home-stores { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 24px 24px 28px; }
   .home-hero-in { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; padding: 48px 20px !important; }
   .home-hero h1 { font-size: 46px !important; letter-spacing: -0.02em; }
   .home-collage { grid-template-columns: repeat(3, 1fr); gap: 12px; }

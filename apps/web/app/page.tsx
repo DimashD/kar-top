@@ -56,9 +56,11 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="stores" className="container home-stores" style={{ padding: '20px 20px 32px' }}>
-        <h2 style={{ fontSize: 22, margin: '0 0 12px' }}>{t.storesTitle}</h2>
-        <StoreList stores={stores} />
+      <section id="stores" className="container" style={{ padding: '20px 20px 32px', scrollMarginTop: 80 }}>
+        <div className="home-stores">
+          <h2 style={{ fontSize: 22, margin: '0 0 12px' }}>{t.storesTitle}</h2>
+          <StoreList stores={stores} />
+        </div>
       </section>
 
       <section className="container m-only" style={{ padding: '8px 20px 28px' }}>
