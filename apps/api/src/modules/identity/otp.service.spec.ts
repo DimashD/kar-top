@@ -130,24 +130,42 @@ describe('OtpService: защита от SMS-pumping (прод)', () => {
     await expect(svc.request('+77011234567', 'sms', '1.1.1.1')).resolves.toBe('sms');
   });
 
-  it('номер: 4-й запрос за 15 минут → 429 (даже с паузами и с разных IP)', async () => {
+  it('номер: 4-й запрос за час → 429 (даже с паузами и с разных IP)', async () => {
     const { svc, skipCooldown } = make();
     for (let i = 0; i < 3; i++) { await svc.request('+77011234567', 'sms', `2.2.2.${i}`); skipCooldown(); }
     await expect(svc.request('+77011234567', 'sms', '2.2.2.9')).rejects.toMatchObject({ status: 429 });
   });
 
-  it('IP: 11-й номер с одного адреса за час → 429; другой адрес работает', async () => {
+  it('IP: 6-й номер с одного адреса за час → 429; другой адрес работает', async () => {
     const { svc, sms } = make();
-    for (let i = 0; i < 10; i++) await svc.request(phone(i), 'sms', '3.3.3.3');
-    await expect(svc.request(phone(10), 'sms', '3.3.3.3')).rejects.toMatchObject({ status: 429 });
-    expect(sms.send).toHaveBeenCalledTimes(10);
-    await expect(svc.request(phone(11), 'sms', '4.4.4.4')).resolves.toBe('sms');
+    // Номера из разных блоков, чтобы сработал именно лимит IP.
+    const far = (i: number) => `+770${i}1234567`;
+    for (let i = 0; i < 5; i++) await svc.request(far(i), 'sms', '3.3.3.3');
+    await expect(svc.request(far(5), 'sms', '3.3.3.3')).rejects.toMatchObject({ status: 429 });
+    expect(sms.send).toHaveBeenCalledTimes(5);
+    await expect(svc.request(far(6), 'sms', '4.4.4.4')).resolves.toBe('sms');
+  });
+
+  it('блок соседних номеров: 6-й номер из одной тысячи за час → 429, даже с разных IP', async () => {
+    const { svc, sms } = make();
+    for (let i = 0; i < 5; i++) await svc.request(phone(i), 'sms', `7.7.7.${i}`);
+    await expect(svc.request(phone(5), 'sms', '7.7.7.99')).rejects.toMatchObject({ status: 429 });
+    expect(sms.send).toHaveBeenCalledTimes(5);
+  });
+
+  it('по умолчанию бюджет платных отправок — 20 в час', async () => {
+    const { svc, sms } = make();
+    const n = (i: number) => `+77${String(10 + i).padStart(2, '0')}5550000`;
+    for (let i = 0; i < 20; i++) await svc.request(n(i), 'sms', `8.8.${i}.1`);
+    await expect(svc.request(n(20), 'sms', '8.8.20.1')).rejects.toMatchObject({ status: 429 });
+    expect(sms.send).toHaveBeenCalledTimes(20);
   });
 
   it('общий бюджет: после лимита платные каналы не вызываются, ответ 429', async () => {
     const { svc, sms, tg, wa } = make({ OTP_PAID_PER_HOUR: '3' });
-    for (let i = 0; i < 3; i++) await svc.request(phone(i), 'sms', `5.5.5.${i}`);
-    await expect(svc.request(phone(3), 'sms', '5.5.5.3')).rejects.toMatchObject({ status: 429 });
+    const far = (i: number) => `+770${i}7654321`;
+    for (let i = 0; i < 3; i++) await svc.request(far(i), 'sms', `5.5.5.${i}`);
+    await expect(svc.request(far(3), 'sms', '5.5.5.3')).rejects.toMatchObject({ status: 429 });
     expect(sms.send).toHaveBeenCalledTimes(3);
     expect(tg.send).not.toHaveBeenCalled();
     expect(wa.send).not.toHaveBeenCalled();

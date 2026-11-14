@@ -12,16 +12,21 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 const CODE_TTL_SEC = 5 * 60;
 const MAX_ATTEMPTS = 5;
-const RATE_PER_15MIN = 3;
-const RATE_PER_DAY = 10;
+/** Один номер: 3 кода в час, 5 в сутки. */
+const RATE_PER_HOUR = 3;
+const RATE_PER_DAY = 5;
+/** Коды на почту (привязка email): 3 за 15 минут на пользователя. */
+const EMAIL_PER_15MIN = 3;
 /** Пауза между запросами кода на один номер (кнопка «Отправить ещё раз»). */
 const COOLDOWN_SEC = 60;
 /** С одного IP: бот перебирает разные номера с одного адреса. Не слишком жёстко: у мобильных операторов много абонентов за одним IP. */
-const IP_PER_HOUR = 10;
-const IP_PER_DAY = 40;
+const IP_PER_HOUR = 5;
+const IP_PER_DAY = 15;
+/** Блок из 1000 соседних номеров (+7 7XX XXX X***): боты перебирают номера подряд. */
+const BLOCK_PER_HOUR = 5;
 /** Платные каналы (SMS, WhatsApp, Telegram Gateway) — общий бюджет на весь сервис, если не задан в env. */
-const PAID_PER_HOUR = 50;
-const PAID_PER_DAY = 300;
+const PAID_PER_HOUR = 20;
+const PAID_PER_DAY = 100;
 const PAID_CHANNELS: OtpChannelName[] = ['sms', 'whatsapp', 'telegram'];
 
 const tooMany = (msg = 'Слишком много запросов кода. Попробуйте позже.') =>
@@ -75,15 +80,20 @@ export class OtpService {
 
   /**
    * Защита от SMS-pumping (бот перебирает номера и сжигает баланс SMS):
-   * пауза 60 с на номер, лимиты на номер (3/15 мин, 10/сутки) и на IP (10/час, 40/сутки; OTP_IP_PER_*).
+   * пауза 60 с на номер; номер — 3/час, 5/сутки; блок 1000 соседних номеров — 5/час; IP — 5/час, 15/сутки (OTP_*).
    */
   private async rateLimit(phone: string, ip: string | null) {
     // Пауза: SET NX — первый запрос проходит, повтор в течение 60 с — отказ (счётчики не трогаем).
     const fresh = await this.redis.set(`otp:cd:${phone}`, '1', 'EX', COOLDOWN_SEC, 'NX');
     if (fresh !== 'OK') throw tooMany('Код уже отправлен. Повторить можно через минуту.');
-    const c15 = await this.hit(`otp:rl:15m:${phone}`, 15 * 60);
+    const cHour = await this.hit(`otp:rl:1h:${phone}`, 60 * 60);
     const cDay = await this.hit(`otp:rl:day:${phone}`, 24 * 60 * 60);
-    if (c15 > RATE_PER_15MIN || cDay > RATE_PER_DAY) throw tooMany();
+    if (cHour > RATE_PER_HOUR || cDay > RATE_PER_DAY) throw tooMany();
+    const block = await this.hit(`otp:blk:1h:${phone.slice(0, 8)}`, 60 * 60);
+    if (block > this.num('OTP_BLOCK_PER_HOUR', BLOCK_PER_HOUR)) {
+      this.log.warn(`OTP: много запросов на номера +${phone.slice(0, 8)}*** (${block}/час) — похоже на перебор`);
+      throw tooMany();
+    }
     if (ip) {
       const h = await this.hit(`otp:ip:1h:${ip}`, 60 * 60);
       const d = await this.hit(`otp:ip:day:${ip}`, 24 * 60 * 60);
@@ -198,7 +208,7 @@ export class OtpService {
     const rlKey = `email:rl:${userId}`;
     const c = await this.redis.incr(rlKey);
     if (c === 1) await this.redis.expire(rlKey, 15 * 60);
-    if (c > RATE_PER_15MIN) throw new HttpException('Слишком много запросов. Попробуйте позже.', HttpStatus.TOO_MANY_REQUESTS);
+    if (c > EMAIL_PER_15MIN) throw new HttpException('Слишком много запросов. Попробуйте позже.', HttpStatus.TOO_MANY_REQUESTS);
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const codeHash = await bcrypt.hash(code, 10);

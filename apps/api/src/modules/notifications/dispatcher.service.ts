@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TEMPLATES, Audience } from './templates';
 import { PushRegistry, Platform } from './push-provider';
-import { SmsChannel } from '../identity/channels/sms.channel';
 
 type Recipient = { userId: string; role: 'customer' | 'merchant' };
 
@@ -16,7 +15,6 @@ export class NotificationDispatcher {
   constructor(
     private readonly prisma: PrismaService,
     private readonly push: PushRegistry,
-    private readonly sms: SmsChannel,
   ) {}
 
   /** Обрабатывает пачку необработанных outbox-событий. Вызывается планировщиком/воркером. */
@@ -70,12 +68,8 @@ export class NotificationDispatcher {
         const provider = this.push.get(t.platform as Platform);
         if (provider && (await provider.send(t.token, msg))) delivered++;
       }
+      // Уведомления о заказах — ТОЛЬКО пуш и центр уведомлений. SMS не шлём никогда (платно и уязвимо для атак).
       sent += delivered;
-      // Покупатель без приложения (заказал на сайте): критичное — коротким SMS, если включено.
-      if (!delivered && tpl.critical && r.role === 'customer' && process.env.NOTIFY_SMS_FALLBACK === '1') {
-        const user = await this.prisma.user.findUnique({ where: { id: r.userId }, select: { phone: true } });
-        if (user?.phone) await this.sms.sendText(user.phone, `Kartop: ${body}`);
-      }
     }
     return sent;
   }
