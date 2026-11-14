@@ -11,6 +11,12 @@ import { tenge } from '../../../lib/format';
 
 export const dynamic = 'force-dynamic';
 
+/** 2ГИС: поиск по адресу магазина, карта — у его точки (так 2ГИС сам находит дом и строит маршрут). */
+function route2gis(address: string | null, loc: { lat: number; lng: number } | null | undefined) {
+  if (!address && loc) return `https://2gis.kz/geo/${loc.lng},${loc.lat}`;
+  return `https://2gis.kz/search/${encodeURIComponent(address!)}${loc ? `?m=${loc.lng},${loc.lat}/17` : ''}`;
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const c = await fetchCatalog(params.slug);
   return { title: c ? `${c.store.name} — ${getDict().aboutStore}` : getDict().storeNotFoundTitle };
@@ -55,7 +61,7 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           {phone ? <a className="btn btn-ghost" style={btn} href={`tel:+${phone}`}><Icon name="phone" size={22} />{t.storeCall}</a> : null}
           {phone ? <a className="btn btn-ghost" style={btn} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><Icon name="chat" size={22} />{t.storeWhatsapp}</a> : null}
-          {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
+          {loc || s.address ? <a className="btn btn-ghost" style={btn} href={route2gis(s.address, loc)} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
         </div>
 
         </div><div className="col">
