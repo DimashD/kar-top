@@ -88,6 +88,10 @@ async function main() {
     await sleep(3000);
     await enableSemantics();
 
+    // 0. Первый запуск: выбор языка (если экран есть)
+    try { await tapText('Русский', { exact: true, timeout: 6000 }); await sleep(2500); await enableSemantics(); }
+    catch { /* экрана выбора языка нет */ }
+
     // 1. Вход
     await typeInto(0, PHONE);
     await shot('login', 9); // экран входа — последним
