@@ -6,6 +6,7 @@ import { useLang, useT } from './LangProvider';
 import Icon from './Icon';
 import type { DeliveryZone } from '../lib/api';
 import { tenge } from '../lib/format';
+import { reverseGeocode } from '../lib/geocode';
 
 // Карта — Leaflet с CDN и тайлы OpenStreetMap: без новых зависимостей в сборке.
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -37,7 +38,8 @@ export function loadLeaflet(): Promise<any> {
   return leafletLoading;
 }
 
-export type Point = { lat: number; lng: number };
+export type { Point } from '../lib/geocode';
+import type { Point } from '../lib/geocode';
 
 /** Точка внутри кольца [lat, lng] (лучом). */
 function inRing(p: Point, ring: [number, number][]) {
@@ -125,15 +127,8 @@ export default function MapPicker({ initial, fallback, zones, onPick, onClose }:
     const c = map.current.getCenter();
     const point = { lat: Number(c.lat.toFixed(6)), lng: Number(c.lng.toFixed(6)) };
     setBusy(true);
-    let address: string | null = null;
-    try {
-      // Адрес по точке — чтобы не вводить вручную (если не найдём — покупатель допишет сам).
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${point.lat}&lon=${point.lng}&zoom=18&accept-language=${lang === 'en' ? 'en' : 'ru'}`);
-      const d = await r.json();
-      const a = d.address ?? {};
-      const street = a.road ?? a.pedestrian ?? a.residential ?? a.neighbourhood ?? null;
-      address = street ? [street, a.house_number].filter(Boolean).join(', ') : null;
-    } catch { /* без адреса — не страшно */ }
+    // Адрес по точке — подставляется в поле адреса (если не найдём — покупатель допишет сам).
+    const address = await reverseGeocode(point, lang).catch(() => null);
     setBusy(false);
     onPick(point, address);
   }
