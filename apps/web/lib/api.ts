@@ -22,12 +22,16 @@ export interface CatalogCategory {
   group?: { id: string; name: I18nName } | null;
   items: CatalogProduct[];
 }
+export type DeliveryZone = { ring: [number, number][]; feeTiyn: number; minOrderTiyn: number; freeFromTiyn: number | null };
+
 export interface Catalog {
   store: {
     id: string; slug: string; name: string; rating: number; address: string | null;
     deliveryMode: string; deliveryEnabled?: boolean; pickupEnabled: boolean;
     /** Точка магазина — карта выбора адреса открывается рядом с ним. */
     location?: { lat: number; lng: number } | null; pickupLeadMinutes: number; reviewCount?: number;
+    /** Зоны своей доставки магазина: кольцо точек [lat, lng] и условия. Пусто — зона не задана. */
+    deliveryZones?: DeliveryZone[];
     /** Версия фото магазина (null — фото нет): /shops/<slug>/photo?v=<версия>. */
     photoVersion?: number | null;
     /** Телефон магазина и средний срок своей доставки (мин) — для страницы «О магазине». */

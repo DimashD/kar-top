@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang, useT } from './LangProvider';
 import Icon from './Icon';
+import type { DeliveryZone } from '../lib/api';
 
 // Карта — Leaflet с CDN и тайлы OpenStreetMap: без новых зависимостей в сборке.
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
@@ -11,7 +12,7 @@ const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const ALMATY = { lat: 43.238, lng: 76.889 };
 
 let leafletLoading: Promise<any> | null = null;
-function loadLeaflet(): Promise<any> {
+export function loadLeaflet(): Promise<any> {
   if ((window as any).L) return Promise.resolve((window as any).L);
   if (!leafletLoading) {
     leafletLoading = new Promise((resolve, reject) => {
@@ -31,12 +32,19 @@ function loadLeaflet(): Promise<any> {
 
 export type Point = { lat: number; lng: number };
 
+/** Зоны доставки на карте: закрашенные области цвета Kartop (не мешают двигать карту). */
+export function drawZones(L: any, m: any, zones: DeliveryZone[] | undefined) {
+  if (!zones?.length) return null;
+  const layer = L.featureGroup(zones.map((z) => L.polygon(z.ring, { color: '#D9531E', weight: 2, fillColor: '#D9531E', fillOpacity: 0.12, interactive: false }))).addTo(m);
+  return layer;
+}
+
 /**
  * Выбор точки доставки: карта на весь экран, булавка в центре — покупатель двигает карту под неё.
  * «Моё местоположение» переносит карту к нему; «Доставить сюда» возвращает точку и (если найдём) адрес.
  */
-export default function MapPicker({ initial, fallback, onPick, onClose }: {
-  initial: Point | null; fallback: Point | null; onPick: (p: Point, address: string | null) => void; onClose: () => void;
+export default function MapPicker({ initial, fallback, zones, onPick, onClose }: {
+  initial: Point | null; fallback: Point | null; zones?: DeliveryZone[]; onPick: (p: Point, address: string | null) => void; onClose: () => void;
 }) {
   const t = useT();
   const lang = useLang();
@@ -53,6 +61,7 @@ export default function MapPicker({ initial, fallback, onPick, onClose }: {
       const start = initial ?? fallback ?? ALMATY;
       const m = L.map(box.current, { zoomControl: false, attributionControl: true }).setView([start.lat, start.lng], initial ? 17 : 15);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
+      drawZones(L, m, zones);
       map.current = m;
       setReady(true);
       if (!initial) locate();
@@ -93,7 +102,12 @@ export default function MapPicker({ initial, fallback, onPick, onClose }: {
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'var(--bg)', display: 'flex', flexDirection: 'column', height: '100dvh' }}>
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ flex: 1, fontWeight: 800 }}>{t.mapHint}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800 }}>{t.mapHint}</div>
+          {zones?.length ? <div className="muted" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(217,83,30,.18)', border: '2px solid #D9531E', flex: 'none' }} />{t.zoneLegend}
+          </div> : null}
+        </div>
         <button className="btn btn-ghost" onClick={onClose} style={{ padding: '8px 12px' }}>{t.close}</button>
       </div>
       <div style={{ position: 'relative', flex: 1 }}>
