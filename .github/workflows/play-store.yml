@@ -36,7 +36,19 @@ permissions:
   contents: write   # служебная ветка store-screenshots (просмотр снимков без скачивания артефакта)
 
 jobs:
+  # Ключа Google Play нет — сразу понятная ошибка, а не через 10 минут после скриншотов и сборки.
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Play API key
+        if: ${{ github.event_name == 'workflow_dispatch' && !inputs.screenshots_only }}
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          [ -n "$PLAY_JSON" ] || { echo "::error::Нет секрета PLAY_SERVICE_ACCOUNT_JSON (см. docs/29-google-play.md)."; exit 1; }
+
   screenshots:
+    needs: preflight
     runs-on: ubuntu-latest
     defaults:
       run:
