@@ -16,6 +16,7 @@ import PhoneInput from './PhoneInput';
 import { useLang, useT } from './LangProvider';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
 import MapPicker from './MapPicker';
+import PointMap from './PointMap';
 import AddressInput from './AddressInput';
 import Icon, { IconName, IconTile } from './Icon';
 
@@ -1106,11 +1107,16 @@ function CheckoutDrawer(props: {
             )}
             <Field label={t.deliveryAddress}>
               <AddressInput value={line} onChange={setLine} placeholder={t.addressPlaceholder} style={inputStyle(true)} near={store.location ?? null}
-                onPick={(address, pt) => { setLine(address); setGeo(pt); }} />
-              <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
-                style={{ marginTop: 8, width: '100%', justifyContent: 'center', ...(geo ? { borderColor: 'var(--leaf)', color: 'var(--leaf)' } : {}) }}>
-                <Icon name="pin" size={18} />{geo ? t.changePoint : t.addLocation}
-              </button>
+                onPick={(address, pt) => { setLine(address); setGeo(pt); }} onLocate={setGeo} />
+              {/* Точка есть (из адреса или с карты) — показываем её на мини-карте; нажатие — уточнить на большой. */}
+              {geo ? (
+                <PointMap point={geo} zones={store.deliveryZones} onOpen={() => setMapOpen(true)} label={t.changePoint} />
+              ) : (
+                <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
+                  style={{ marginTop: 8, width: '100%', justifyContent: 'center' }}>
+                  <Icon name="pin" size={18} />{t.addLocation}
+                </button>
+              )}
               {outOfZone ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FBEAEA', color: 'var(--sale)', fontWeight: 700, fontSize: 14 }}>
                   {t.outOfZone}
@@ -1152,7 +1158,7 @@ function CheckoutDrawer(props: {
 
           {mapOpen ? (
             <MapPicker initial={geo} fallback={store.location ?? null} zones={store.deliveryZones} onClose={() => setMapOpen(false)}
-              onPick={(pt, address) => { setGeo(pt); if (address && !line.trim()) setLine(address); setMapOpen(false); }} />
+              onPick={(pt, address) => { setGeo(pt); if (address) setLine(address); setMapOpen(false); }} />
           ) : null}
 
           <Field label={t.payment}>
