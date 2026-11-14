@@ -197,6 +197,9 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
   const [tg, setTg] = useState<{ token: string; botUrl: string } | null>(null);
   // Согласие на ПДн — отдельная отметка, не предотмечена; без неё код не отправляем.
   const [agree, setAgree] = useState(false);
+  const [nudge, setNudge] = useState(false);
+  // Без отметки — не молчим: подсвечиваем согласие и подсказываем, что сделать.
+  const needAgree = () => { if (agree) return false; setNudge(true); return true; };
   const openBot = (url: string) => { if (inKartopApp()) location.href = url; else window.open(url, '_blank'); };
   async function loginTelegram() {
     setErr(null);
@@ -287,20 +290,22 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
         ) : step === 'phone' ? (
           <>
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer',
+              ...(nudge && !agree ? { padding: 10, borderRadius: 10, border: '2px solid var(--sale)', background: '#FBEAEA' } : {}) }}>
+              <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); if (e.target.checked) setNudge(false); }} style={{ width: 20, height: 20, marginTop: 1, accentColor: 'var(--carrot)', flex: 'none' }} />
+              <span>{t.agreePd[0]}<a href="/consent" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreePd[1]}</a>{t.agreePd[2]}
+                {nudge && !agree ? <span style={{ display: 'block', color: 'var(--sale)', fontWeight: 700, marginTop: 4 }}>{t.agreeNeeded}</span> : null}</span>
+            </label>
             {/* Быстрее всего — через бот Kartop в Telegram: номер подтверждает Telegram, код не нужен. */}
-            <button className="btn btn-primary btn-block" disabled={busy || !agree} onClick={loginTelegram} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
+            <button className="btn btn-primary btn-block" disabled={busy} onClick={() => { if (!needAgree()) loginTelegram(); }} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
               <Icon name="send" size={20} />{t.loginTelegram}
             </button>
             <div className="muted" style={{ textAlign: 'center', fontSize: 13 }}>{t.orByCode}</div>
             <PhoneInput value={phone} onChange={setPhone} style={big} />
             {/* Telegram — бесплатно для покупателя и дешевле для нас; SMS — для всех. */}
-            <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy || !agree} onClick={() => send('sms')} style={{ height: 50, fontSize: 16 }}>
+            <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => { if (!needAgree()) send('sms'); }} style={{ height: 50, fontSize: 16 }}>
               {busy ? t.sendingCode : <><Icon name="chat" size={19} />{t.codeSms}</>}
             </button>
-            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer' }}>
-              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} style={{ width: 20, height: 20, marginTop: 1, accentColor: 'var(--carrot)', flex: 'none' }} />
-              <span>{t.agreePd[0]}<a href="/consent" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreePd[1]}</a>{t.agreePd[2]}</span>
-            </label>
             <div className="muted" style={{ fontSize: 13 }}>
               {t.acceptTerms[0]}<a href="/terms" target="_blank" style={{ color: 'inherit', textDecoration: 'underline' }}>{t.acceptTerms[1]}</a>{t.acceptTerms[2]}
             </div>
@@ -439,6 +444,12 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
       <Header name={catalog.store.name} rating={catalog.store.rating} reviewCount={catalog.store.reviewCount} address={catalog.store.address} slug={slug} photo={shopPhotoUrl(slug, catalog.store.photoVersion)} />
 
       <div className="container" style={{ paddingTop: 14, maxWidth: 760 }}>
+        {/* Зона своей доставки — сразу видно, довезут ли до покупателя. */}
+        {catalog.store.deliveryZones?.length && catalog.store.deliveryMode !== 'SERVICE' && catalog.store.deliveryEnabled !== false ? (
+          <Link href={`/${slug}/about#zone`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', marginBottom: 12, borderRadius: 12, background: 'var(--carrot-50)', color: 'var(--carrot-600)', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+            <Icon name="scooter" size={18} /><span style={{ flex: 1 }}>{t.deliveryZone}</span><span>›</span>
+          </Link>
+        ) : null}
         {/* Каталог / Списком */}
         <div role="tablist" style={{ display: 'flex', background: '#F4F2F0', borderRadius: 12, padding: 4, marginBottom: 12 }}>
           {(['catalog', 'list'] as const).map((m) => (
@@ -1103,6 +1114,10 @@ function CheckoutDrawer(props: {
               {outOfZone ? (
                 <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#FBEAEA', color: 'var(--sale)', fontWeight: 700, fontSize: 14 }}>
                   {t.outOfZone}
+                  {store.deliveryZones?.length ? (
+                    <button type="button" onClick={() => setMapOpen(true)} className="btn btn-ghost"
+                      style={{ marginTop: 8, width: '100%', justifyContent: 'center', fontSize: 14 }}><Icon name="pin" size={18} />{t.seeZone}</button>
+                  ) : null}
                   {courierOn ? (
                     <button type="button" onClick={() => setMode('SERVICE')} className="btn btn-ghost"
                       style={{ marginTop: 8, width: '100%', justifyContent: 'center', fontSize: 14 }}><Icon name="car" size={18} />{t.chooseCourier}</button>
@@ -1136,7 +1151,7 @@ function CheckoutDrawer(props: {
           ) : null}
 
           {mapOpen ? (
-            <MapPicker initial={geo} fallback={store.location ?? null} onClose={() => setMapOpen(false)}
+            <MapPicker initial={geo} fallback={store.location ?? null} zones={store.deliveryZones} onClose={() => setMapOpen(false)}
               onPick={(pt, address) => { setGeo(pt); if (address && !line.trim()) setLine(address); setMapOpen(false); }} />
           ) : null}
 
@@ -1461,6 +1476,8 @@ function DesktopStore(props: {
                 <span className="chip">★ {s.rating.toFixed(1)}{s.reviewCount ? ` · ${t.reviewsShort(s.reviewCount)}` : ''}</span>
                 {s.pickupEnabled ? <span className="chip">{t.pickupIn(s.pickupLeadMinutes)}</span> : null}
                 {s.address ? <span className="chip">{s.address}</span> : null}
+                {s.deliveryZones?.length && s.deliveryMode !== 'SERVICE' && s.deliveryEnabled !== false
+                  ? <Link href={`/${slug}/about#zone`} className="chip" style={{ textDecoration: 'none', color: 'var(--carrot-600)' }}>{t.deliveryZone} ›</Link> : null}
                 <Link href={`/${slug}/about`} className="chip" style={{ textDecoration: 'none', color: 'var(--carrot-600)' }}>{t.aboutStore} ›</Link>
               </div>
             </div>

@@ -6,6 +6,8 @@ import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
 import Icon from '../../../components/Icon';
+import ZoneMap from '../../../components/ZoneMap';
+import { tenge } from '../../../lib/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +82,21 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
             {s.deliveryMode === 'BOTH' ? <div style={way}><Icon name="car" style={wayIc} /><span>{t.courierDelivery} · {t.deliveryPaidSeparately}</span></div> : null}
           </>) : null}
         </div>
+
+        {/* Зона своей доставки — на карте и с условиями, чтобы покупатель сразу видел, довезут ли до него. */}
+        {s.deliveryEnabled !== false && s.deliveryMode !== 'SERVICE' && s.deliveryZones?.length ? (
+          <div id="zone" className="card" style={card}>
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>{t.deliveryZone}</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 10 }}>{t.zoneLegend}</div>
+            <ZoneMap zones={s.deliveryZones} store={loc ?? null} />
+            {s.deliveryZones.map((z, i) => (
+              <div key={i} style={{ ...way, fontSize: 14 }}>
+                <Icon name="scooter" style={wayIc} />
+                <span>{s.deliveryZones!.length > 1 ? `${t.deliveryZone} ${i + 1}: ` : ''}{t.zoneFee(z.feeTiyn ? tenge(z.feeTiyn) : null, z.minOrderTiyn ? tenge(z.minOrderTiyn) : null, z.freeFromTiyn != null && z.feeTiyn ? tenge(z.freeFromTiyn) : null)}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {s.legalName ? (
           <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
