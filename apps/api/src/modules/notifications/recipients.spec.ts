@@ -21,7 +21,7 @@ describe('Кому уходят пуши о заказе', () => {
       }),
     },
   };
-  const svc = new NotificationDispatcher(prisma, {} as any, {} as any);
+  const svc = new NotificationDispatcher(prisma, {} as any);
   const who = async (audience: string, orderId: string) =>
     ((await (svc as any).recipients(audience, 'order', orderId)) as { userId: string; role: string }[])
       .map((r) => `${r.userId}:${r.role}`).sort();
