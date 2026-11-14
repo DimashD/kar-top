@@ -88,32 +88,35 @@ async function main() {
     await sleep(3000);
     await enableSemantics();
 
-    // 1. Вход
-    await typeInto(0, PHONE);
+    // 0. Первый запуск: выбор языка (если экран есть)
+    try { await tapText('Русский', { exact: true, timeout: 6000 }); await sleep(2500); await enableSemantics(); }
+    catch { /* экрана выбора языка нет */ }
+
+    // 1. Вход по коду: «Войти по коду» → номер (поле держит «+7», набираем без него) → код
+    try { await tapText('Войти по коду', { timeout: 8000 }); await sleep(1500); await enableSemantics(); } catch { /* старый экран входа — сразу номер */ }
+    await typeInto(0, PHONE.replace(/^\+?7/, ''));
     await shot('login', 9); // экран входа — последним
     await tapText('Получить код');
-    await sleep(2000);
+    await sleep(2500);
+    await enableSemantics();
     await typeInto('last', CODE);
     await tapText('Войти', { exact: true });
     await sleep(4000);
     await enableSemantics();
+    // Предложение придумать пароль — пропускаем
+    try { await tapText('Пропустить', { exact: true, timeout: 5000 }); await sleep(3000); await enableSemantics(); } catch { /* не предлагали */ }
 
     // 2. Выбор магазина (если их несколько) → главный экран
     try { await tapText('Руслана', { timeout: 8000 }); await sleep(3000); } catch { /* сразу главный экран */ }
     await enableSemantics();
     await shot('orders');
 
-    // 3. Карточка нового заказа → принять → экран сборки (взвешивание)
+    // 3. Карточка нового заказа (данные клиента скрыты до принятия)
     try {
       await tapText('№', { timeout: 8000 });
       await sleep(2500);
       await shot('order');
-      try {
-        await tapText('Принять заказ', { timeout: 8000 });
-        await sleep(3000);
-        await enableSemantics();
-        await shot('picking');
-      } catch (e) { console.warn('принять:', e.message); await debug('picking'); }
+      // Заказ НЕ принимаем: после принятия видны имя и телефон клиента — им не место в скриншотах Google Play.
       await page.goBack().catch(() => {});
       await sleep(2000);
       await enableSemantics();

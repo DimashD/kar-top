@@ -213,7 +213,6 @@ jobs:
           K_SMTP_USER: ${{ secrets.SMTP_USER }}
           K_SMTP_PASS: ${{ secrets.SMTP_PASS }}
           K_EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-          K_NOTIFY_SMS_FALLBACK: ${{ secrets.NOTIFY_SMS_FALLBACK }}
           K_OTP_REAL_PHONES: ${{ secrets.OTP_REAL_PHONES }}
           K_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         with:
@@ -222,13 +221,13 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 10m
-          envs: K_SMSC_LOGIN,K_SMSC_PASSWORD,K_SMS_SENDER_NAME,K_TELEGRAM_GATEWAY_TOKEN,K_WHATSAPP_TOKEN,K_WHATSAPP_PHONE_NUMBER_ID,K_SMTP_HOST,K_SMTP_PORT,K_SMTP_USER,K_SMTP_PASS,K_EMAIL_FROM,K_NOTIFY_SMS_FALLBACK,K_OTP_REAL_PHONES,K_TELEGRAM_BOT_TOKEN
+          envs: K_SMSC_LOGIN,K_SMSC_PASSWORD,K_SMS_SENDER_NAME,K_TELEGRAM_GATEWAY_TOKEN,K_WHATSAPP_TOKEN,K_WHATSAPP_PHONE_NUMBER_ID,K_SMTP_HOST,K_SMTP_PORT,K_SMTP_USER,K_SMTP_PASS,K_EMAIL_FROM,K_OTP_REAL_PHONES,K_TELEGRAM_BOT_TOKEN
           script: |
             set -e
             cd /opt/kar-top
             cp .env.prod ".env.prod.bak-$(date +%Y%m%d%H%M%S)"
             changed=""
-            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN TELEGRAM_BOT_TOKEN WHATSAPP_TOKEN WHATSAPP_PHONE_NUMBER_ID SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS EMAIL_FROM NOTIFY_SMS_FALLBACK; do
+            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN TELEGRAM_BOT_TOKEN WHATSAPP_TOKEN WHATSAPP_PHONE_NUMBER_ID SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS EMAIL_FROM; do
               v="$(printenv "K_$k" || true)"
               [ -z "$v" ] && continue
               esc=$(printf '%s' "$v" | sed "s/'/'\\\\''/g")
