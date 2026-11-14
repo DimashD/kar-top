@@ -35,6 +35,8 @@ export default async function Home() {
             <ul className="home-trust">
               {t.trust.map((x) => <li key={x}><Icon name="checkCircle" size={18} />{x}</li>)}
             </ul>
+            {/* Что делать дальше — сразу к магазинам. */}
+            <a href="#stores" className="btn btn-primary d-only home-cta">{t.heroCta} ↓</a>
           </div>
           <div className="home-collage d-only" aria-hidden="true">
             {['0008', '0021', '0068', '0134', '0041', '0074'].map((n) => <img key={n} src={`/p/${n}.jpg`} alt="" />)}
@@ -42,12 +44,24 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="container" style={{ padding: '20px 20px 32px' }}>
+      <section className="container d-only home-how" style={{ padding: '0 20px' }}>
+        <h2 style={{ fontSize: 22, margin: '0 0 12px' }}>{t.howTitle}</h2>
+        <div className="home-steps">
+          {t.howSteps.map(([h, d], i) => (
+            <div key={h} className="card" style={{ padding: 18, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <span className="home-step-n">{i + 1}</span>
+              <div><div style={{ fontWeight: 800 }}>{h}</div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{d}</div></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="stores" className="container home-stores" style={{ padding: '20px 20px 32px' }}>
         <h2 style={{ fontSize: 22, margin: '0 0 12px' }}>{t.storesTitle}</h2>
         <StoreList stores={stores} />
       </section>
 
-      <section className="container" style={{ padding: '8px 20px 28px' }}>
+      <section className="container m-only" style={{ padding: '8px 20px 28px' }}>
         <h2 style={{ fontSize: 22, margin: '0 0 12px' }}>{t.howTitle}</h2>
         <div className="home-steps">
           {t.howSteps.map(([h, d], i) => (
