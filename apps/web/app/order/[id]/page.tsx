@@ -9,6 +9,7 @@ import AppBanner from '../../../components/AppBanner';
 import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
 import AutoRefresh from '../../../components/AutoRefresh';
+import AppOnly from '../../../components/AppOnly';
 import StoreMenu from '../../../components/StoreMenu';
 import Icon, { IconName, IconTile } from '../../../components/Icon';
 
@@ -80,9 +81,8 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
           </div>
         ) : null}
 
-        {/* Стимул скачать приложение: живой статус и пуши — в приложении. */}
-        {!cancelled && !delivered ? <AppBanner orderId={o.id} /> : null}
-
+        {/* Статус заказа — только в приложении Kartop (там же пуши). В браузере — приглашение открыть/скачать приложение. */}
+        <AppOnly fallback={<AppBanner orderId={o.id} />}>
         {cancelled ? (
           <div className="card" style={{ padding: 20, marginBottom: 20, textAlign: 'center' }}>
             <IconTile name="xCircle" size={56} round bg="#F4F2F0" color="var(--ink-60)" />
@@ -105,6 +105,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
             })}
           </div>
         )}
+        </AppOnly>
 
         {/* Оценка заказа */}
         {o.canReview ? <ReviewForm orderId={o.id} /> : null}
@@ -193,7 +194,7 @@ export default async function OrderTrackPage({ params }: { params: { id: string 
         </p>
         <FeedbackButton storeSlug={o.store.slug} />
       </div>
-      {!cancelled && !delivered ? <AutoRefresh seconds={15} /> : null}
+      {!cancelled && !delivered ? <AppOnly><AutoRefresh seconds={15} /></AppOnly> : null}
       <BottomNav />
     </main>
   );

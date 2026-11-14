@@ -192,8 +192,8 @@ const ru = {
   appTitle: 'Kartop — в браузере и в приложении',
   appText: 'Заказывайте прямо в браузере — ничего ставить не нужно. А для живого статуса заказа и пуш-уведомлений есть приложение для Android.',
   continueInBrowser: 'Продолжить в браузере →',
-  trackTitle: 'Следите за заказом',
-  trackText: 'Здесь, в браузере — или в приложении для Android: живой статус, пуши и код получения.',
+  trackTitle: 'Статус заказа — в приложении',
+  trackText: 'Где сейчас заказ, когда его соберут и привезут — смотрите в приложении Kartop. Туда же придут уведомления.',
 
   // Партнёрам
   partnerMetaTitle: 'Стать партнёром — Kartop',
@@ -544,8 +544,8 @@ const kk: Dict = {
   appTitle: 'Kartop — браузерде және қосымшада',
   appText: 'Тікелей браузерде тапсырыс беріңіз — ештеңе орнатудың қажеті жоқ. Ал тапсырыстың тірі мәртебесі мен push-хабарламалар үшін Android қосымшасы бар.',
   continueInBrowser: 'Браузерде жалғастыру →',
-  trackTitle: 'Тапсырысты бақылаңыз',
-  trackText: 'Осында, браузерде — немесе Android қосымшасында: тірі мәртебе, хабарламалар және алу коды.',
+  trackTitle: 'Тапсырыс мәртебесі — қосымшада',
+  trackText: 'Тапсырыс қазір қай кезеңде, қашан жиналып, жеткізіледі — Kartop қосымшасында қараңыз. Хабарламалар да сонда келеді.',
 
   partnerMetaTitle: 'Серіктес болу — Kartop',
   partnerMetaDescription: 'Дүкеніңізді Kartop-қа қосыңыз: онлайн-витрина, тапсырыстар және жеткізу. Өтінім қалдырыңыз — біз сізге хабарласамыз.',
@@ -891,8 +891,8 @@ const en: Dict = {
   appTitle: 'Kartop — in the browser and in the app',
   appText: 'Order right in your browser — nothing to install. For live order status and push notifications there is an Android app.',
   continueInBrowser: 'Continue in the browser →',
-  trackTitle: 'Track your order',
-  trackText: 'Right here in the browser — or in the Android app: live status, push notifications and the pickup code.',
+  trackTitle: 'Order status is in the app',
+  trackText: 'Where your order is, when it will be packed and delivered — see it in the Kartop app. Notifications arrive there too.',
 
   partnerMetaTitle: 'Become a partner — Kartop',
   partnerMetaDescription: 'Connect your shop to Kartop: an online storefront, orders and delivery. Leave a request and we will get in touch.',

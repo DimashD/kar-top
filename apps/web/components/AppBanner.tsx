@@ -50,8 +50,8 @@ function StoreActions({ platform, orderId }: { platform: Platform; orderId?: str
 }
 
 /**
- * Баннер «следите за заказом». Основной способ — браузер (эта же страница);
- * приложение — только Android (Google Play), опционально.
+ * Баннер «статус заказа — в приложении»: в браузере статус не показываем, только в приложении (Android, Google Play).
+ * variant="full" — страница /app.
  */
 export default function AppBanner({ orderId, variant = 'banner' }: { orderId?: string; variant?: 'banner' | 'full' }) {
   const t = useT();

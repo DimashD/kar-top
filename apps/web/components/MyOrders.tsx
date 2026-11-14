@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import AppOnly from './AppOnly';
 import { useCallback, useEffect, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { tenge } from '../lib/format';
@@ -54,7 +55,8 @@ export default function MyOrders() {
       <Link key={o.id} href={`/order/${o.id}`} className="card" style={{ display: 'block', padding: 16, color: 'var(--ink)', textDecoration: 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ fontWeight: 800, fontSize: 16, flex: 1, minWidth: 0 }}>{o.store.name}</div>
-          <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, color: c.fg, background: c.bg, whiteSpace: 'nowrap' }}>{t.orderStatus[o.status] ?? o.status}</span>
+          {/* Статус заказа — только в приложении. */}
+          <AppOnly><span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, color: c.fg, background: c.bg, whiteSpace: 'nowrap' }}>{t.orderStatus[o.status] ?? o.status}</span></AppOnly>
         </div>
         <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>
           {t.orderNo(o.number)} · {new Date(o.createdAt).toLocaleString(LOCALES[lang], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
