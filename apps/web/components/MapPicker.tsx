@@ -16,17 +16,23 @@ let leafletLoading: Promise<any> | null = null;
 export function loadLeaflet(): Promise<any> {
   if ((window as any).L) return Promise.resolve((window as any).L);
   if (!leafletLoading) {
-    leafletLoading = new Promise((resolve, reject) => {
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = LEAFLET_CSS;
-      document.head.appendChild(css);
+    // Ждём и скрипт, и стили: без стилей Leaflet считает размеры неверно — плитки съезжают, зоны не видно.
+    const css = new Promise((resolve) => {
+      const l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = LEAFLET_CSS;
+      l.onload = resolve;
+      l.onerror = resolve;
+      document.head.appendChild(l);
+    });
+    const js = new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = LEAFLET_JS;
       s.onload = () => resolve((window as any).L);
       s.onerror = reject;
       document.head.appendChild(s);
     });
+    leafletLoading = Promise.all([js, css]).then(([L]) => L);
   }
   return leafletLoading;
 }
@@ -82,7 +88,7 @@ export default function MapPicker({ initial, fallback, zones, onPick, onClose }:
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
       zoneLayer.current = drawZones(L, m, zones);
       // Точки ещё нет — сначала показываем всю зону доставки целиком.
-      if (!initial && zoneLayer.current) m.fitBounds(zoneLayer.current.getBounds(), { padding: [24, 24] });
+      if (!initial && zoneLayer.current) m.fitBounds(zoneLayer.current.getBounds(), { padding: [24, 24], maxZoom: 16 });
       if (zones?.length) {
         const check = () => { const c = m.getCenter(); const z = zoneAt(zones, { lat: c.lat, lng: c.lng }); setHere(z ? { in: true, fee: z.feeTiyn, free: z.freeFromTiyn } : { in: false, fee: 0, free: null }); };
         m.on('move', check);

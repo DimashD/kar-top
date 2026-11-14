@@ -15,7 +15,8 @@ export default function ZoneMap({ zones, store }: { zones: DeliveryZone[]; store
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
       const layer = drawZones(L, m, zones);
       if (store) L.circleMarker([store.lat, store.lng], { radius: 7, color: '#fff', weight: 3, fillColor: '#D9531E', fillOpacity: 1 }).addTo(m);
-      if (layer) m.fitBounds(layer.getBounds(), { padding: [16, 16] });
+      m.invalidateSize();
+      if (layer) m.fitBounds(layer.getBounds(), { padding: [16, 16], maxZoom: 16 });
       else if (store) m.setView([store.lat, store.lng], 14);
     }).catch(() => {});
     return () => { m?.remove(); };
