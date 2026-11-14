@@ -761,7 +761,8 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
         </div>
         {weighted ? (<>
         <div style={{ fontWeight: 800 }}>{t.howMuch}</div>
-        <div ref={strip} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', scrollbarWidth: 'none', margin: '0 -20px', padding: '2px 20px' }}>
+        {/* flex: none — на невысоком экране окно-столбик сжимало этот ряд до полоски и кнопки веса «пропадали»; пусть лучше окно прокрутится. */}
+        <div ref={strip} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x proximity', scrollbarWidth: 'none', margin: '0 -20px', padding: '2px 20px', flex: 'none' }}>
           {presets.map((v) => (
             <button key={v} data-g={v} onClick={() => setG(v)}
               style={{ flex: '0 0 auto', minWidth: 76, height: 50, borderRadius: 12, font: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer', scrollSnapAlign: 'center',
@@ -770,7 +771,7 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F4F2F0', borderRadius: 14, padding: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F4F2F0', borderRadius: 14, padding: 6, flex: 'none' }}>
           <button aria-label={t.remove} onClick={() => setG((x) => Math.max(100, x - 100))} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>−</button>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900 }}>{grams(g, t)}</div>
@@ -778,7 +779,7 @@ function WeightSheet({ p, look, initial, onClose, onSave }: { p: CatalogProduct;
           </div>
           <button aria-label={t.add} disabled={g >= MAX_WEIGHT_G} onClick={() => setG((x) => Math.min(MAX_WEIGHT_G, x + 100))} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>+</button>
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-60)', background: '#FCF4E6', borderRadius: 12, padding: '10px 12px' }}>{t.weightNote}</div>
+        <div style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-60)', background: '#FCF4E6', borderRadius: 12, padding: '10px 12px', flex: 'none' }}>{t.weightNote}</div>
         </>) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F4F2F0', borderRadius: 14, padding: 6 }}>
             <button aria-label={t.remove} onClick={() => setG((x) => Math.max(1, x - 1))} style={{ width: 48, height: 48, border: 'none', borderRadius: 10, background: 'var(--card)', fontSize: 22, cursor: 'pointer' }}>−</button>
