@@ -182,6 +182,8 @@ export interface Category {
 export interface MasterProduct {
   id: string; categoryId: string; name: I18nName; unit: Unit; stepG: number | null; avgPieceG: number | null;
   perishable: boolean; storage: string | null; _count?: { storeProducts: number };
+  /** media.url — фото на витринах; sourcePhotoAt — есть фото реального товара. */
+  media?: { url?: string } | null; sourcePhotoAt?: string | null;
 }
 
 export const listCategories = () => adminFetch<Category[]>('/admin/catalog/categories');
@@ -200,6 +202,48 @@ export const updateProduct = (id: string, b: Partial<{ categoryId: string; name:
   adminFetch<MasterProduct>(`/admin/catalog/products/${id}`, { method: 'PATCH', body: JSON.stringify(b) });
 export const deleteProduct = (id: string) =>
   adminFetch<{ ok: boolean }>(`/admin/catalog/products/${id}`, { method: 'DELETE' });
+
+// --- Фото товара: фото реального товара → генерация по шаблону (Gemini) → проверка → на витрины ---
+export interface PhotoStatus {
+  hasSource: boolean; sourceVersion: number | null; hasDraft: boolean; photoUrl: string | null; generatorReady: boolean;
+}
+export const photoStatus = (id: string) => adminFetch<PhotoStatus>(`/admin/catalog/products/${id}/photo-status`);
+export const uploadSourcePhoto = (id: string, data: string | null, type = 'image/jpeg') =>
+  adminFetch<PhotoStatus>(`/admin/catalog/products/${id}/source-photo`, { method: 'PUT', body: JSON.stringify({ data, type }) });
+export const generateProductPhoto = (id: string, note?: string) =>
+  adminFetch<PhotoStatus>(`/admin/catalog/products/${id}/generate-photo`, { method: 'POST', body: JSON.stringify({ note: note || undefined }) });
+export const applyProductPhoto = (id: string) =>
+  adminFetch<PhotoStatus>(`/admin/catalog/products/${id}/apply-photo`, { method: 'POST' });
+
+/** Картинка из админского эндпоинта (нужен токен) → objectURL для <img>. null — картинки нет. */
+export async function adminImage(path: string): Promise<string | null> {
+  const token = getAdminToken();
+  const r = await fetch(`${CLIENT_API}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {}, cache: 'no-store' });
+  if (r.status === 401 || r.status === 403) throw new UnauthorizedError('Нет доступа');
+  if (!r.ok) return null;
+  return URL.createObjectURL(await r.blob());
+}
+
+/**
+ * Снимок с телефона → JPEG до 1600 px по длинной стороне (base64 без префикса):
+ * достаточно для генерации и укладывается в лимит 2 МБ.
+ */
+export function photoToJpegBase64(file: File, max = 1600): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.88).split(',')[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось прочитать фото')); };
+    img.src = url;
+  });
+}
 
 // --- Заявки магазинов на каталог ---
 export interface CatalogRequest {

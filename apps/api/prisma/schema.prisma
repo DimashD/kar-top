@@ -176,6 +176,16 @@ model MasterProduct {
   perishable  Boolean  @default(false)
   storage     String?  // условия хранения
   media       Json?
+  // Фото РЕАЛЬНОГО товара (снял сотрудник) — исходник для генерации карточки; покупателям не показывается.
+  sourcePhoto     Bytes?
+  sourcePhotoType String?
+  sourcePhotoAt   DateTime?
+  // Сгенерированная карточка: черновик (на проверке в админке) и сохранённое фото (отдаётся витрине, media.url).
+  photoDraft      Bytes?
+  photoDraftType  String?
+  photo           Bytes?
+  photoType       String?
+  photoAt         DateTime?
   storeProducts StoreProduct[]
 }
 

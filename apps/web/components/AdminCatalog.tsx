@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Category, MasterProduct, Unit, UNIT_LABEL, CatalogRequest,
   listCategories, createCategory, deleteCategory,
   listMasterProducts, createProduct, deleteProduct,
   listCatalogRequests, approveCatalogRequest, rejectCatalogRequest, UnauthorizedError,
+  uploadSourcePhoto, photoToJpegBase64,
 } from '../lib/admin';
 import { useAdmin } from './AdminShell';
+import AdminProductPhoto from './AdminProductPhoto';
 
 const input: React.CSSProperties = { width: '100%', padding: '10px 12px', fontSize: 15, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--card)', color: 'var(--ink)', fontFamily: 'inherit' };
 
@@ -28,7 +30,12 @@ export default function AdminCatalog() {
   const [pUnit, setPUnit] = useState<Unit>('KG');
   const [pStep, setPStep] = useState('');
   const [pAvg, setPAvg] = useState('');
+  // Фото реального товара — сразу при создании (по нему потом генерируется карточка).
+  const [pPhoto, setPPhoto] = useState<File | null>(null);
+  const pPhotoInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  // Открытая панель «Фото» у товара.
+  const [photoOpen, setPhotoOpen] = useState<string | null>(null);
 
   // заявки магазинов
   const [reqs, setReqs] = useState<CatalogRequest[]>([]);
@@ -87,12 +94,16 @@ export default function AdminCatalog() {
     if (!sel || pName.trim().length < 2) return;
     setBusy(true); setErr(null);
     try {
-      await createProduct({
+      const created = await createProduct({
         categoryId: sel, name: { ru: pName.trim() }, unit: pUnit,
         stepG: pStep ? Number(pStep) : undefined, avgPieceG: pAvg ? Number(pAvg) : undefined,
       });
-      setPName(''); setPStep(''); setPAvg('');
+      if (pPhoto) await uploadSourcePhoto(created.id, await photoToJpegBase64(pPhoto));
+      setPName(''); setPStep(''); setPAvg(''); setPPhoto(null);
+      if (pPhotoInput.current) pPhotoInput.current.value = '';
       await loadProducts(sel); await loadCats();
+      // Сразу открываем фото нового товара: можно сгенерировать карточку.
+      if (pPhoto) setPhotoOpen(created.id);
     } catch (e) { handle(e); } finally { setBusy(false); }
   }
   async function removeProduct(id: string) {
@@ -196,19 +207,39 @@ export default function AdminCatalog() {
                 <input value={pAvg} onChange={(e) => setPAvg(e.target.value)} inputMode="numeric" placeholder="напр. 180" style={input} />
               </div>
             )}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>Фото реального товара</label>
+              <input ref={pPhotoInput} type="file" accept="image/*" capture="environment" hidden onChange={(e) => setPPhoto(e.target.files?.[0] ?? null)} />
+              <button type="button" className="btn btn-ghost" onClick={() => pPhotoInput.current?.click()} style={{ ...input, height: 40, justifyContent: 'center', color: pPhoto ? 'var(--leaf)' : 'var(--ink)', borderColor: pPhoto ? 'var(--leaf)' : 'var(--line)' }}>
+                {pPhoto ? '✓ Фото прикреплено' : 'Снять / выбрать'}
+              </button>
+            </div>
             <button className="btn btn-primary" disabled={busy || pName.trim().length < 2} onClick={addProduct} style={{ height: 40 }}>Добавить товар</button>
           </div>
+          <p className="muted" style={{ fontSize: 12, margin: '-6px 0 14px' }}>
+            Фото реального товара (не картинка из интернета) — по нему Gemini нарисует карточку именно этого товара в стиле каталога. Покупатели исходник не видят.
+          </p>
 
           {products.length === 0 ? <div className="muted">В этой категории пока нет товаров.</div> : (
             <div style={{ display: 'grid', gap: 8 }}>
               {products.map((p) => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)' }}>
-                  <div>
+                <div key={p.id}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)' }}>
+                  {p.media?.url ? <img src={p.media.url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flex: 'none', background: '#fff' }} />
+                    : <span style={{ width: 40, height: 40, borderRadius: 8, flex: 'none', background: '#F4F2F0' }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontWeight: 700 }}>{p.name.ru}</span>
                     <span className="muted" style={{ fontSize: 13 }}> · {UNIT_LABEL[p.unit]}{p.stepG ? `, шаг ${p.stepG} г` : ''}{p.avgPieceG ? `, ~${p.avgPieceG} г/шт` : ''}{p.perishable ? ' · скоропорт' : ''}</span>
                     {p._count && p._count.storeProducts > 0 ? <span className="muted" style={{ fontSize: 12 }}> · в {p._count.storeProducts} магаз.</span> : null}
                   </div>
+                  <button className={photoOpen === p.id ? 'btn btn-primary' : 'btn btn-ghost'} onClick={() => setPhotoOpen((x) => (x === p.id ? null : p.id))} style={{ padding: '4px 10px', fontSize: 13 }}>
+                    Фото{p.sourcePhotoAt ? ' ✓' : ''}
+                  </button>
                   <button className="btn btn-ghost" onClick={() => removeProduct(p.id)} style={{ padding: '4px 10px', fontSize: 13, color: 'var(--sale)' }}>Удалить</button>
+                </div>
+                {photoOpen === p.id ? (
+                  <AdminProductPhoto productId={p.id} name={p.name.ru} onUnauthorized={signOut} onSaved={() => sel && loadProducts(sel)} />
+                ) : null}
                 </div>
               ))}
             </div>

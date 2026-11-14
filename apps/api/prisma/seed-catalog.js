@@ -315,7 +315,8 @@ async function findProduct(categoryId, ru) {
       const p = cat && (await prisma.masterProduct.findFirst({
         where: { categoryId: cat.id, name: { path: ['ru'], equals: key.slice(i + 1) } }, select: { id: true, media: true },
       }));
-      if (p && p.media?.url !== url) {
+      // Фото, сделанное в админке по реальному товару (/api/catalog/products/…/photo), сид не перезаписывает.
+      if (p && p.media?.url !== url && !String(p.media?.url ?? '').startsWith('/api/')) {
         await prisma.masterProduct.update({ where: { id: p.id }, data: { media: { url } } });
         photos++;
       }

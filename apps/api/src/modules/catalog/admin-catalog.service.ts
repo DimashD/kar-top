@@ -67,6 +67,7 @@ export class AdminCatalogService {
       orderBy: { name: 'asc' },
       select: {
         id: true, categoryId: true, name: true, unit: true, stepG: true, avgPieceG: true, perishable: true, storage: true,
+        media: true, sourcePhotoAt: true,
         _count: { select: { storeProducts: true } },
       },
     });
