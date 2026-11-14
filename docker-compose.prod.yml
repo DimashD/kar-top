@@ -37,6 +37,11 @@ services:
       TELEGRAM_BOT_NAME: kartop_kz_bot
       TELEGRAM_BOT_WEBHOOK: ${TELEGRAM_BOT_WEBHOOK:-1}
       SMS_API_KEY: ${SMS_API_KEY:-}
+      # Защита от SMS-pumping (необязательно; по умолчанию 10/час и 40/сутки с IP, 50/час и 300/сутки платных отправок на весь сервис).
+      OTP_IP_PER_HOUR: ${OTP_IP_PER_HOUR:-}
+      OTP_IP_PER_DAY: ${OTP_IP_PER_DAY:-}
+      OTP_PAID_PER_HOUR: ${OTP_PAID_PER_HOUR:-}
+      OTP_PAID_PER_DAY: ${OTP_PAID_PER_DAY:-}
       # Коды и уведомления (docs/30): SMS — SMSC.kz, WhatsApp — Meta Cloud API.
       SMSC_LOGIN: ${SMSC_LOGIN:-}
       SMSC_PASSWORD: ${SMSC_PASSWORD:-}
