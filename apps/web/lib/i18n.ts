@@ -97,6 +97,7 @@ const ru = {
   zoneFee: (fee: string | null, min: string | null, free: string | null) =>
     [fee ? `доставка ${fee}` : 'доставка бесплатно', min ? `заказ от ${min}` : null, free ? `бесплатно от ${free}` : null].filter(Boolean).join(' · '),
   seeZone: 'Посмотреть зону доставки',
+  heroCta: 'Выбрать магазин',
   zoneInside: 'Сюда магазин доставит',
   zoneOutside: 'Сюда магазин сам не доставляет — передвиньте булавку в закрашенную зону',
   agreeNeeded: 'Отметьте согласие, чтобы продолжить',
@@ -451,6 +452,7 @@ const kk: Dict = {
   zoneFee: (fee: string | null, min: string | null, free: string | null) =>
     [fee ? `жеткізу ${fee}` : 'жеткізу тегін', min ? `тапсырыс ${min} бастап` : null, free ? `${free} бастап тегін` : null].filter(Boolean).join(' · '),
   seeZone: 'Жеткізу аймағын көру',
+  heroCta: 'Дүкен таңдау',
   zoneInside: 'Дүкен осында жеткізеді',
   zoneOutside: 'Дүкен мұнда өзі жеткізбейді — түйреуішті боялған аймаққа жылжытыңыз',
   agreeNeeded: 'Жалғастыру үшін келісімді белгілеңіз',
@@ -797,6 +799,7 @@ const en: Dict = {
   zoneFee: (fee: string | null, min: string | null, free: string | null) =>
     [fee ? `delivery ${fee}` : 'free delivery', min ? `order from ${min}` : null, free ? `free from ${free}` : null].filter(Boolean).join(' · '),
   seeZone: 'See delivery area',
+  heroCta: 'Choose a shop',
   zoneInside: 'The shop delivers here',
   zoneOutside: 'The shop doesn’t deliver here — move the pin into the shaded area',
   agreeNeeded: 'Tick the consent to continue',

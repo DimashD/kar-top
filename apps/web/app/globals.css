@@ -163,12 +163,15 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
 .home-step-n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--carrot); color: #fff; font-weight: 900; display: grid; place-items: center; }
 @media (min-width: 1100px) {
   .d-only { display: grid !important; }
-  .home-hero { background: linear-gradient(105deg, var(--carrot-50), var(--bg) 70%); border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  /* Тёплая полоса: белые фото товаров на ней не сливаются с фоном. */
+  .home-hero { background: linear-gradient(105deg, #FADCC8, #FCEBDF 60%, #FDF3EC); margin-bottom: 28px; }
+  .home-cta { display: inline-flex !important; margin-top: 22px; height: 52px; padding: 0 26px; font-size: 17px; }
+  .home-how { display: block !important; margin-bottom: 8px; }
+  .home-stores { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 28px 28px 32px !important; margin-top: 24px; margin-bottom: 28px; scroll-margin-top: 80px; }
   .home-hero-in { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; padding: 48px 20px !important; }
   .home-hero h1 { font-size: 46px !important; letter-spacing: -0.02em; }
   .home-collage { grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .home-collage img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px rgba(26,21,18,.08); }
-  .home-collage img:nth-child(2), .home-collage img:nth-child(5) { transform: translateY(18px); }
+  .home-collage img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 18px; background: #fff; border: 4px solid #fff; box-shadow: 0 10px 28px rgba(140,60,20,.16); }
   .home-steps { grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .seller-cta { padding: 24px 28px !important; background: linear-gradient(100deg, #FBE3D6, #FDF1E9) !important; border: none !important; font-size: 18px; }
   .foot-cols { grid-template-columns: 2fr 1fr 1fr; gap: 24px; padding: 20px 0 16px; border-top: 1px solid var(--line); margin-bottom: 8px; }
