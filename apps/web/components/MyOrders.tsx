@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import AppOnly from './AppOnly';
-import { useCallback, useEffect, useState } from 'react';
+import AppOnly, { useInApp } from './AppOnly';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { tenge } from '../lib/format';
 import { LOCALES } from '../lib/i18n';
@@ -19,7 +19,11 @@ type MyOrder = {
   totalTiyn: number; final: boolean; itemCount: number; store: { name: string; slug: string };
 };
 
-const DONE = ['DELIVERED', 'COMPLETED', 'CANCELLED'];
+const RECEIVED = ['DELIVERED', 'COMPLETED'];
+const DONE = [...RECEIVED, 'CANCELLED'];
+type Filter = 'all' | 'active' | 'received' | 'cancelled';
+const inFilter = (f: Filter, s: string) =>
+  f === 'all' ? true : f === 'active' ? !DONE.includes(s) : f === 'received' ? RECEIVED.includes(s) : s === 'CANCELLED';
 // Цвет статуса: ждёт — оранжевый, нужен ответ — янтарный, в работе — синий, готов/в пути — фиолетовый, получен — зелёный.
 function tone(s: string): { fg: string; bg: string } {
   if (s === 'PLACED') return { fg: 'var(--carrot-600)', bg: 'var(--carrot-50)' };
@@ -30,7 +34,10 @@ function tone(s: string): { fg: string; bg: string } {
   return { fg: 'var(--ink-60)', bg: 'var(--line)' };
 }
 
-/** «Мои заказы»: активные сверху, затем завершённые; нажатие — страница заказа со статусом. */
+/**
+ * «Мои заказы». В приложении — фильтр по статусам (Все / В работе / Получены / Отменены, со счётчиками),
+ * заказы «Нужен ваш ответ» — первыми. В браузере статусов нет (они только в приложении) — простой список по дате.
+ */
 export default function MyOrders() {
   const t = useT();
   const lang = useLang();
@@ -47,8 +54,20 @@ export default function MyOrders() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const active = (orders ?? []).filter((o) => !DONE.includes(o.status));
-  const past = (orders ?? []).filter((o) => DONE.includes(o.status));
+  const inApp = useInApp();
+  const counts = useMemo(() => {
+    const list = orders ?? [];
+    return (['all', 'active', 'received', 'cancelled'] as Filter[]).map((f) => [f, list.filter((o) => inFilter(f, o.status)).length] as const);
+  }, [orders]);
+  // По умолчанию: есть заказы в работе — показываем их, иначе все.
+  const [filter, setFilter] = useState<Filter | null>(null);
+  const current: Filter = filter ?? ((counts.find(([f]) => f === 'active')?.[1] ?? 0) > 0 ? 'active' : 'all');
+  const shown = useMemo(() => (orders ?? [])
+    .filter((o) => !inApp || inFilter(current, o.status))
+    // «Нужен ваш ответ» — всегда сверху; дальше новые выше.
+    .sort((a, b) => (inApp ? Number(b.status === 'AWAITING_CUSTOMER') - Number(a.status === 'AWAITING_CUSTOMER') : 0)
+      || +new Date(b.createdAt) - +new Date(a.createdAt)), [orders, inApp, current]);
+  const label: Record<Filter, string> = { all: t.filterAll, active: t.filterActive, received: t.filterReceived, cancelled: t.filterCancelled };
   const card = (o: MyOrder) => {
     const c = tone(o.status);
     return (
@@ -96,10 +115,18 @@ export default function MyOrders() {
           </div>
         ) : (
           <>
-            {active.length ? <h2 style={{ fontSize: 16, margin: '4px 0 0' }}>{t.activeOrders}</h2> : null}
-            {active.map(card)}
-            {past.length ? <h2 style={{ fontSize: 16, margin: '8px 0 0' }}>{t.pastOrders}</h2> : null}
-            {past.map(card)}
+            {inApp ? (
+              <div role="tablist" aria-label={t.myOrders} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 2px', flex: 'none' }}>
+                {counts.filter(([f, n]) => f === 'all' || n > 0).map(([f, n]) => (
+                  <button key={f} role="tab" aria-selected={current === f} onClick={() => setFilter(f)}
+                    style={{ flex: 'none', padding: '8px 14px', borderRadius: 999, font: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                      border: current === f ? '2px solid var(--carrot)' : '1px solid var(--line)', background: current === f ? 'var(--carrot-50)' : 'var(--card)', color: 'var(--ink)' }}>
+                    {label[f]} <span style={{ color: 'var(--ink-60)', fontWeight: 600 }}>{n}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {shown.length ? shown.map(card) : <p className="muted" style={{ textAlign: 'center', margin: '24px 0' }}>{t.noOrdersInFilter}</p>}
           </>
         )}
       </div>

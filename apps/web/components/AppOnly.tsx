@@ -14,3 +14,10 @@ export default function AppOnly({ children, fallback = null }: { children: React
   if (inApp === null) return null;
   return <>{inApp ? children : fallback}</>;
 }
+
+/** true — внутри приложения Kartop, false — браузер, null — ещё не проверили (первый рендер). */
+export function useInApp(): boolean | null {
+  const [inApp, setInApp] = useState<boolean | null>(null);
+  useEffect(() => setInApp(inKartopApp()), []);
+  return inApp;
+}
