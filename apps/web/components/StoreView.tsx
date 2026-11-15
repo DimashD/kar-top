@@ -15,6 +15,7 @@ import { initialsFor, pictureFor, tintFor } from '../lib/pictures';
 import PhoneInput from './PhoneInput';
 import { useLang, useT } from './LangProvider';
 import { ANDROID_URL, inKartopApp } from '../lib/app-links';
+import { rememberVisited } from '../lib/visited';
 import MapPicker from './MapPicker';
 import PointMap from './PointMap';
 import AddressInput from './AddressInput';
@@ -364,6 +365,13 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
   const [weighing, setWeighing] = useState<CatalogProduct | null>(null);
   const [last, setLast] = useState<LastOrder | null>(null);
   useEffect(() => { setLast(readLast(slug)); }, [slug]);
+  // Покупатель открыл витрину (обычно по ссылке магазина) — магазин появится в его списке на главной.
+  useEffect(() => {
+    rememberVisited(slug);
+    accessToken().then((token) => {
+      if (token) fetch(`${CLIENT_API}/me/stores/${encodeURIComponent(slug)}/visit`, { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => {});
+    }).catch(() => {});
+  }, [slug]);
   // В приложении: регистрируем токен пушей, как только он есть и покупатель вошёл.
   useEffect(() => {
     registerAppPush();

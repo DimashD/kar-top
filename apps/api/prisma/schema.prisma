@@ -103,6 +103,7 @@ model User {
   devices      Device[]
   pushTokens   PushToken[]
   legalAcceptances LegalAcceptance[]
+  storeVisits      StoreVisit[]
 }
 
 // Transactional outbox: доменные события пишутся в одной транзакции с изменением состояния.
@@ -213,6 +214,18 @@ model Store {
   // минимальная сумма заказа с доставкой и «бесплатная доставка от» (null — бесплатной нет).
   ownMinOrderTiyn  Int  @default(0)
   ownFreeFromTiyn  Int?
+  // Видимость: по умолчанию магазин НЕ в общем списке — к нему попадают по ссылке, и он остаётся у тех, кто заходил.
+  // listed — показывается всем (платная опция, включает сотрудник платформы); listingRequestedAt — заявка магазина ждёт решения.
+  listed             Boolean   @default(false)
+  listingRequestedAt DateTime?
+  // Период показа всем: бесплатный (новым магазинам, по одобрению) и оплаченный (подписка). Кончились оба — только по ссылке.
+  listedFreeUntil    DateTime?
+  listedPaidUntil    DateTime?
+  // Цена подписки на показ всем (тиыны в месяц), задаёт платформа; null — «по договорённости».
+  listingPriceTiyn   Int?
+  // Последнее отправленное напоминание о конце периода («7d|1d|ended:дата») — чтобы не слать повторно.
+  listingReminder    String?
+  visits             StoreVisit[]
   // Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' по Алматы или null — выходной. Пусто — 08:00–22:00.
   hours Json?
   rating    Float    @default(0)
@@ -474,4 +487,14 @@ model LegalAcceptance {
   store      Store?      @relation(fields: [storeId], references: [id])
   @@index([userId, doc])
   @@index([storeId, doc])
+}
+
+/// Покупатель открывал витрину магазина (по ссылке) — магазин остаётся в его списке на всех устройствах.
+model StoreVisit {
+  userId  String
+  storeId String
+  at      DateTime @default(now())
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store   Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@id([userId, storeId])
 }

@@ -30,3 +30,40 @@ describe('Список магазинов: виды доставки', () => {
     expect(r[2]).toMatchObject({ ownDelivery: false, courierDelivery: false });
   });
 });
+
+describe('Видимость магазинов: только «для всех» и те, что покупатель открывал', () => {
+  it('без visited: в запросе только listed', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    await new ShopsService({ store: { findMany } } as any).list();
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.status).toBe('ACTIVE');
+    // Только «для всех» с идущим бесплатным или оплаченным периодом.
+    expect(where.OR).toEqual([{ listed: true, OR: [{ listedFreeUntil: { gt: expect.any(Date) } }, { listedPaidUntil: { gt: expect.any(Date) } }] }]);
+  });
+  it('с visited: listed ИЛИ slug из посещённых', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    await new ShopsService({ store: { findMany } } as any).list(undefined, ['ruslan-fruits', 'demo']);
+    expect(findMany.mock.calls[0][0].where.OR[1]).toEqual({ slug: { in: ['ruslan-fruits', 'demo'] } });
+  });
+  it('parseSlugs: чистит мусор, дубли и регистр, не больше 100', () => {
+    const { parseSlugs } = require('./shops.controller');
+    expect(parseSlugs('Ruslan-Fruits, demo,demo,../etc,  ,a b')).toEqual(['ruslan-fruits', 'demo']);
+    expect(parseSlugs(Array.from({ length: 150 }, (_, i) => `s${i}`).join(','))).toHaveLength(100);
+    expect(parseSlugs(undefined)).toEqual([]);
+  });
+  it('визит запоминается только у активного магазина; мои магазины = визиты + заказы без дублей', async () => {
+    const prisma = {
+      store: { findFirst: jest.fn().mockResolvedValueOnce({ id: 'st1' }).mockResolvedValueOnce(null) },
+      storeVisit: {
+        upsert: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([{ store: { slug: 'a' } }, { store: { slug: 'b' } }]),
+      },
+      order: { findMany: jest.fn().mockResolvedValue([{ store: { slug: 'b' } }, { store: { slug: 'c' } }]) },
+    };
+    const s = new ShopsService(prisma as any);
+    await expect(s.rememberVisit('u1', 'a')).resolves.toEqual({ ok: true });
+    expect(prisma.storeVisit.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { userId_storeId: { userId: 'u1', storeId: 'st1' } } }));
+    await expect(s.rememberVisit('u1', 'closed')).resolves.toEqual({ ok: false });
+    await expect(s.myStores('u1')).resolves.toEqual(['a', 'b', 'c']);
+  });
+});

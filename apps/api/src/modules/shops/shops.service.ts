@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { effectiveTerms, findZone, ZoneRow } from '../../common/zones';
+import { visibleWhere } from './listing';
 
 @Injectable()
 export class ShopsService {
@@ -13,9 +14,10 @@ export class ShopsService {
    * Виды получения: доставка магазина (по его зонам), курьерская служба (весь город, за счёт покупателя), самовывоз.
    * Если передана точка покупателя — ownHere: довезёт ли магазин сам сюда, и условия зоны (цена, «бесплатно от», минимум).
    */
-  async list(point?: LngLat) {
+  async list(point?: LngLat, visited: string[] = []) {
+    // В общем списке — магазины «для всех» (с идущим бесплатным/оплаченным периодом) плюс те, что покупатель открывал (visited).
     const stores = await this.prisma.store.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', OR: [visibleWhere(), ...(visited.length ? [{ slug: { in: visited } }] : [])] },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
@@ -36,6 +38,27 @@ export class ShopsService {
         ownTerms: ownDelivery ? { minOrderTiyn: ownMinOrderTiyn, freeFromTiyn: ownFreeFromTiyn } : null,
       };
     });
+  }
+
+  /** Покупатель открыл витрину (по ссылке) — запоминаем, чтобы магазин был в его списке на всех устройствах. */
+  async rememberVisit(userId: string, slug: string) {
+    const store = await this.prisma.store.findFirst({ where: { slug, status: 'ACTIVE' }, select: { id: true } });
+    if (!store) return { ok: false };
+    await this.prisma.storeVisit.upsert({
+      where: { userId_storeId: { userId, storeId: store.id } },
+      update: { at: new Date() },
+      create: { userId, storeId: store.id },
+    });
+    return { ok: true };
+  }
+
+  /** Магазины покупателя: открывал витрину или заказывал. Только slug — список собирает /shops?visited=… */
+  async myStores(userId: string): Promise<string[]> {
+    const [visits, orders] = await Promise.all([
+      this.prisma.storeVisit.findMany({ where: { userId }, select: { store: { select: { slug: true } } }, orderBy: { at: 'desc' }, take: 100 }),
+      this.prisma.order.findMany({ where: { customerId: userId }, select: { store: { select: { slug: true } } }, distinct: ['storeId'], take: 100 }),
+    ]);
+    return [...new Set([...visits, ...orders].map((x) => x.store.slug))];
   }
 
   /** Публичный каталог витрины: магазин + его товары, сгруппированные по категориям. */

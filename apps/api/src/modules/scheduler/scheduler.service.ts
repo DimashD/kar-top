@@ -4,6 +4,7 @@ import { Cron, Interval } from '@nestjs/schedule';
 import { NotificationDispatcher } from '../notifications/dispatcher.service';
 import { OpeningReminders } from '../notifications/opening-reminders.service';
 import { BillingService } from '../billing/billing.service';
+import { ListingService } from '../shops/listing';
 
 /**
  * Фоновые задачи платформы.
@@ -22,6 +23,7 @@ export class SchedulerService {
     private readonly dispatcher: NotificationDispatcher,
     private readonly billing: BillingService,
     private readonly reminders: OpeningReminders,
+    private readonly listing: ListingService,
   ) {
     this.enabled = config.get('SCHEDULER_ENABLED') === '1';
     // Счета за подписку — отдельным выключателем: включаем, когда начнём брать плату с магазинов.
@@ -65,6 +67,17 @@ export class SchedulerService {
       this.log.log(`биллинг: выставлено счетов за ${r.period}: ${r.created}`);
     } catch (e) {
       this.log.error(`monthly-invoices: ${(e as Error).message}`);
+    }
+  }
+
+  /** Раз в час: напоминания магазинам о конце бесплатного/оплаченного показа всем (за 7 дней, за день, в день окончания). */
+  @Cron('17 * * * *', { name: 'listing-reminders', timeZone: 'UTC' })
+  async listingReminders() {
+    if (!this.enabled) return;
+    try {
+      await this.listing.remind();
+    } catch (e) {
+      this.log.error(`listing-reminders: ${(e as Error).message}`);
     }
   }
 }

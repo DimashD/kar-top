@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { CLIENT_API, StoreCard } from '../lib/api';
+import { visitedSlugs } from '../lib/visited';
+import { accessToken } from './StoreView';
 import { tenge } from '../lib/format';
 import { useT } from './LangProvider';
 import Icon, { IconName } from './Icon';
@@ -59,12 +61,31 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
     navigator.permissions?.query({ name: 'geolocation' as PermissionName })
       .then((p) => { if (p.state === 'granted') locate(); }).catch(() => {});
   }, []);
-  // Точка известна — сервер говорит, какие магазины довезут сами и на каких условиях.
+  // Свои магазины: открытые на этом устройстве + (если вошёл) открытые/заказанные на других устройствах.
+  const [mine, setMine] = useState<string[] | null>(null);
   useEffect(() => {
-    if (!me) return;
-    fetch(`${CLIENT_API}/shops?lat=${me.lat}&lng=${me.lng}`, { cache: 'no-store' })
+    let alive = true;
+    (async () => {
+      const local = visitedSlugs();
+      let server: string[] = [];
+      const token = await accessToken().catch(() => null);
+      if (token) {
+        const r = await fetch(`${CLIENT_API}/me/stores`, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' }).catch(() => null);
+        if (r?.ok) server = ((await r.json()) as { slugs?: string[] }).slugs ?? [];
+      }
+      if (alive) setMine([...new Set([...local, ...server])]);
+    })();
+    return () => { alive = false; };
+  }, []);
+  // Список с сервера: «для всех» + свои; точка известна — какие магазины довезут сами и на каких условиях.
+  useEffect(() => {
+    if (mine === null) return;
+    const qs = new URLSearchParams();
+    if (me) { qs.set('lat', String(me.lat)); qs.set('lng', String(me.lng)); }
+    if (mine.length) qs.set('visited', mine.join(','));
+    fetch(`${CLIENT_API}/shops?${qs}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null)).then((list) => { if (Array.isArray(list)) setStores(list); }).catch(() => {});
-  }, [me]);
+  }, [me, mine]);
 
   const toggle = (k: Kind) => setKinds((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]));
 
@@ -97,7 +118,7 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
         ))}
       </div>
       {!me ? <p className="muted" style={{ fontSize: 13, margin: '0 0 12px' }}>{t.locateToCheck}</p> : null}
-      {shown.length === 0 ? <p className="muted">{t.noStores}</p> : (
+      {shown.length === 0 ? <p className="muted">{stores.length === 0 ? t.noStoresYet : t.noStores}</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {shown.map(({ s, km }) => {
             const open = now ? openNow(s, now) : null;

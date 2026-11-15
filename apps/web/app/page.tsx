@@ -4,7 +4,9 @@ import StoreMenu from '../components/StoreMenu';
 import StoreList from '../components/StoreList';
 import FeedbackButton from '../components/FeedbackButton';
 import BottomNav from '../components/BottomNav';
+import { cookies } from 'next/headers';
 import { fetchStores } from '../lib/api';
+import { parseVisitedCookie, VISITED_COOKIE } from '../lib/visited';
 import { getDict } from '../lib/i18n-server';
 import Icon, { IconTile } from '../components/Icon';
 
@@ -14,7 +16,8 @@ export const dynamic = 'force-dynamic';
 // Главная — для покупателя: магазины у дома (поиск, «рядом со мной»). Продавцам — одна строка внизу.
 export default async function Home() {
   const t = getDict();
-  const stores = await fetchStores();
+  // Магазины «для всех» + те, что покупатель открывал по ссылке (cookie с устройства).
+  const stores = await fetchStores(parseVisitedCookie(cookies().get(VISITED_COOKIE)?.value));
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 5 }}>
