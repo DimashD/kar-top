@@ -289,6 +289,10 @@ abstract class S {
   String get listingConfirmTitle;
   String get listingConfirmText;
   String get sendRequest;
+  String visibleFreeUntil(String date);
+  String visiblePaidUntil(String date);
+  String visibilityExpired(String? price);
+  String listingTerms(String? price);
   String get security;
   String get appLock;
   String get appLockSubtitle;
@@ -588,6 +592,10 @@ class _Ru extends S {
   @override String get listingConfirmTitle => 'Показывать магазин всем?';
   @override String get listingConfirmText => 'По умолчанию магазин видят только покупатели, которые открыли вашу ссылку. Показ в общем списке Kartop — платная опция. После заявки менеджер свяжется с вами и расскажет условия; включается после согласования.';
   @override String get sendRequest => 'Отправить заявку';
+  @override String visibleFreeUntil(String date) => 'Магазин виден всем · бесплатно до $date';
+  @override String visiblePaidUntil(String date) => 'Магазин виден всем · оплачено до $date';
+  @override String visibilityExpired(String? price) => 'Период показа закончился — магазин снова только по ссылке. Включите, чтобы продлить${price != null ? ' ($price в месяц)' : ''}.';
+  @override String listingTerms(String? price) => 'Новым магазинам — бесплатный период, дальше подписка${price != null ? ' $price в месяц' : ''}.';
   @override String get security => 'Безопасность';
   @override String get appLock => 'Защита входа';
   @override String get appLockSubtitle => 'Face ID / отпечаток или PIN при открытии';
@@ -883,6 +891,10 @@ class _Kk extends S {
   @override String get listingConfirmTitle => 'Дүкенді барлығына көрсету керек пе?';
   @override String get listingConfirmText => 'Әдепкіде дүкенді тек сілтемеңізді ашқан сатып алушылар көреді. Kartop жалпы тізімінде көрсету — ақылы опция. Өтінімнен кейін менеджер хабарласып, шарттарын айтады; келісілгеннен кейін қосылады.';
   @override String get sendRequest => 'Өтінім жіберу';
+  @override String visibleFreeUntil(String date) => 'Дүкен барлығына көрінеді · $date дейін тегін';
+  @override String visiblePaidUntil(String date) => 'Дүкен барлығына көрінеді · $date дейін төленген';
+  @override String visibilityExpired(String? price) => 'Көрсету мерзімі аяқталды — дүкен қайтадан тек сілтеме арқылы. Ұзарту үшін қосыңыз${price != null ? ' (айына $price)' : ''}.';
+  @override String listingTerms(String? price) => 'Жаңа дүкендерге — тегін кезең, кейін жазылым${price != null ? ' айына $price' : ''}.';
   @override String get security => 'Қауіпсіздік';
   @override String get appLock => 'Кіруді қорғау';
   @override String get appLockSubtitle => 'Ашқанда Face ID / саусақ ізі немесе PIN';
@@ -1178,6 +1190,10 @@ class _Tg extends S {
   @override String get listingConfirmTitle => 'Мағозаро ба ҳама нишон диҳем?';
   @override String get listingConfirmText => 'Бо нобаёнӣ мағозаро танҳо харидороне мебинанд, ки истиноди шуморо кушодаанд. Нишон додан дар рӯйхати умумии Kartop — имконияти пулакӣ аст. Пас аз дархост менеҷер бо шумо тамос гирифта, шартҳоро мегӯяд; пас аз мувофиқа фаъол мешавад.';
   @override String get sendRequest => 'Фиристодани дархост';
+  @override String visibleFreeUntil(String date) => 'Мағоза ба ҳама намоён · то $date ройгон';
+  @override String visiblePaidUntil(String date) => 'Мағоза ба ҳама намоён · то $date пардохт шудааст';
+  @override String visibilityExpired(String? price) => 'Мӯҳлати нишондиҳӣ ба охир расид — мағоза боз танҳо тавассути истинод. Барои дароз кардан фаъол кунед${price != null ? ' ($price дар як моҳ)' : ''}.';
+  @override String listingTerms(String? price) => 'Ба мағозаҳои нав — давраи ройгон, баъд обуна${price != null ? ' $price дар як моҳ' : ''}.';
   @override String get security => 'Амният';
   @override String get appLock => 'Ҳифзи вуруд';
   @override String get appLockSubtitle => 'Face ID / изи ангушт ё PIN ҳангоми кушодан';
@@ -1473,6 +1489,10 @@ class _Uz extends S {
   @override String get listingConfirmTitle => 'Doʻkonni hammaga koʻrsatamizmi?';
   @override String get listingConfirmText => 'Odatda doʻkonni faqat havolangizni ochgan xaridorlar koʻradi. Kartop umumiy roʻyxatida koʻrsatish — pullik imkoniyat. Arizadan soʻng menejer bogʻlanib, shartlarni aytadi; kelishilgandan keyin yoqiladi.';
   @override String get sendRequest => 'Ariza yuborish';
+  @override String visibleFreeUntil(String date) => 'Doʻkon hammaga koʻrinadi · $date gacha bepul';
+  @override String visiblePaidUntil(String date) => 'Doʻkon hammaga koʻrinadi · $date gacha toʻlangan';
+  @override String visibilityExpired(String? price) => 'Koʻrsatish muddati tugadi — doʻkon yana faqat havola orqali. Uzaytirish uchun yoqing${price != null ? ' (oyiga $price)' : ''}.';
+  @override String listingTerms(String? price) => 'Yangi doʻkonlarga — bepul davr, keyin obuna${price != null ? ' oyiga $price' : ''}.';
   @override String get security => 'Xavfsizlik';
   @override String get appLock => 'Kirishni himoyalash';
   @override String get appLockSubtitle => 'Ochishda Face ID / barmoq izi yoki PIN';

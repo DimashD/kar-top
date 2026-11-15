@@ -29,6 +29,11 @@ class StoreSettings {
   /// Видимость: listed — магазин показан всем; listingRequested — заявка «показывать всем» ждёт решения.
   bool listed;
   bool listingRequested;
+  /// До какого числа показан всем (null — не показан), бесплатный ли сейчас период, истёк ли, цена подписки (тиыны/мес).
+  DateTime? listedUntil;
+  bool listingFree;
+  bool listingExpired;
+  int? listingPriceTiyn;
   String deliveryMode;
   /// Версия фото магазина (null — фото нет).
   int? photoVersion;
@@ -44,6 +49,10 @@ class StoreSettings {
     this.ownFreeFromTiyn,
     this.listed = false,
     this.listingRequested = false,
+    this.listedUntil,
+    this.listingFree = false,
+    this.listingExpired = false,
+    this.listingPriceTiyn,
     required this.deliveryMode,
     this.photoVersion,
     this.hours = const [],
@@ -58,6 +67,10 @@ class StoreSettings {
         ownFreeFromTiyn: (j['ownFreeFromTiyn'] as num?)?.toInt(),
         listed: j['listed'] as bool? ?? false,
         listingRequested: j['listingRequested'] as bool? ?? false,
+        listedUntil: j['listedUntil'] == null ? null : DateTime.tryParse(j['listedUntil'] as String)?.toLocal(),
+        listingFree: j['listingFree'] as bool? ?? false,
+        listingExpired: j['listingExpired'] as bool? ?? false,
+        listingPriceTiyn: (j['listingPriceTiyn'] as num?)?.toInt(),
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
         photoVersion: (j['photoVersion'] as num?)?.toInt(),
         hours: ((j['hours'] as List?) ?? const [])

@@ -4,8 +4,10 @@ import { AdminAnalyticsService } from './analytics/admin-analytics.service';
 import { AdminStoresController } from './analytics/admin-stores.controller';
 import { AdminStoresService } from './analytics/admin-stores.service';
 import { AdminGuard } from '../common/auth/admin.guard';
+import { ShopsModule } from './shops.module';
 
 @Module({
+  imports: [ShopsModule],
   controllers: [AdminAnalyticsController, AdminStoresController],
   providers: [AdminAnalyticsService, AdminStoresService, AdminGuard],
 })

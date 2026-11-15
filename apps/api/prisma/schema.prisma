@@ -218,6 +218,13 @@ model Store {
   // listed — показывается всем (платная опция, включает сотрудник платформы); listingRequestedAt — заявка магазина ждёт решения.
   listed             Boolean   @default(false)
   listingRequestedAt DateTime?
+  // Период показа всем: бесплатный (новым магазинам, по одобрению) и оплаченный (подписка). Кончились оба — только по ссылке.
+  listedFreeUntil    DateTime?
+  listedPaidUntil    DateTime?
+  // Цена подписки на показ всем (тиыны в месяц), задаёт платформа; null — «по договорённости».
+  listingPriceTiyn   Int?
+  // Последнее отправленное напоминание о конце периода («7d|1d|ended:дата») — чтобы не слать повторно.
+  listingReminder    String?
   visits             StoreVisit[]
   // Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' по Алматы или null — выходной. Пусто — 08:00–22:00.
   hours Json?

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AdminStore, StoreStatus, listStores, createStore, storeAction, setStoreListed, uploadStorePhoto, UnauthorizedError } from '../lib/admin';
+import { AdminStore, StoreStatus, listStores, createStore, storeAction, setStoreListed, markListingPaid, setListingPrice, uploadStorePhoto, UnauthorizedError } from '../lib/admin';
 import { CLIENT_API } from '../lib/api';
 import { useAdmin } from './AdminShell';
 import { isValidKzPhone, kzPhoneE164, formatKzPhone } from '../lib/phone';
@@ -75,11 +75,21 @@ export default function AdminStores() {
     finally { setSavingId(null); }
   }
 
-  async function listing(id: string, listed: boolean) {
+  // Показ всем: одобрить с бесплатным периодом / снять / оплачено +1 мес / цена подписки.
+  const [freeDays, setFreeDays] = useState(60);
+  async function listingOp(id: string, op: () => Promise<unknown>) {
     setSavingId(id); setErr(null);
-    try { await setStoreListed(id, listed); await load(filter); }
+    try { await op(); await load(filter); }
     catch (e) { if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message); }
     finally { setSavingId(null); }
+  }
+  const listing = (id: string, listed: boolean) => listingOp(id, () => setStoreListed(id, listed, listed ? freeDays : undefined));
+  function price(s: AdminStore) {
+    const v = window.prompt('Цена подписки на показ всем, ₸ в месяц (пусто — «по договорённости»):', s.listingPriceTiyn != null ? String(s.listingPriceTiyn / 100) : '');
+    if (v === null) return;
+    const n = v.trim() === '' ? null : Math.round(Number(v.replace(/\s/g, '')) * 100);
+    if (n !== null && (!Number.isFinite(n) || n < 0)) { setErr('Цена — число в тенге'); return; }
+    listingOp(s.id, () => setListingPrice(s.id, n));
   }
 
   async function photo(id: string, file: File) {
@@ -163,14 +173,24 @@ export default function AdminStores() {
                     <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, whiteSpace: 'nowrap' }}>{m.label}</span>
                     {/* Видимость: по ссылке (по умолчанию) или для всех (платная опция). */}
                     <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-                      color: s.listed ? 'var(--leaf)' : 'var(--ink-60)', background: s.listed ? 'var(--leaf-50)' : '#F4F2F0' }}>{s.listed ? '👁 Для всех' : '🔗 Только по ссылке'}</span>
+                      color: s.listed ? 'var(--leaf)' : s.listingExpired ? '#9A6700' : 'var(--ink-60)', background: s.listed ? 'var(--leaf-50)' : s.listingExpired ? '#FFF4D6' : '#F4F2F0' }}>
+                      {s.listed ? `👁 Для всех · ${s.listingFree ? 'бесплатно' : 'оплачено'} до ${s.listedUntil ? fmtDate(s.listedUntil) : '—'}` : s.listingExpired ? '⌛ Период закончился · по ссылке' : '🔗 Только по ссылке'}
+                    </span>
+                    <span className="muted" style={{ fontSize: 12 }}>Подписка: {s.listingPriceTiyn != null ? `${(s.listingPriceTiyn / 100).toLocaleString('ru-RU')} ₸/мес` : 'цена не задана'}</span>
                   </div>
                 </div>
                 {s.listingRequestedAt ? (
                   <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: '#FFF4D6', color: '#7A5200', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <b>Просит показывать магазин всем</b> · заявка от {fmtDate(s.listingRequestedAt)} · платная опция
-                    <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                      <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => listing(s.id, true)} style={{ padding: '6px 12px', fontSize: 13 }}>Показывать всем</button>
+                    <b>Просит показывать магазин всем</b> · заявка от {fmtDate(s.listingRequestedAt)}{s.listingExpired ? ' · период закончился — продление' : ' · новый магазин'}
+                    <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {!s.listingExpired ? (<>
+                        <select value={freeDays} onChange={(e) => setFreeDays(Number(e.target.value))} style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid var(--line)', font: 'inherit', fontSize: 13 }}>
+                          {[30, 60, 90].map((d) => <option key={d} value={d}>{d} дней бесплатно</option>)}
+                        </select>
+                        <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => listing(s.id, true)} style={{ padding: '6px 12px', fontSize: 13 }}>Одобрить</button>
+                      </>) : (
+                        <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => listingOp(s.id, () => markListingPaid(s.id, 1))} style={{ padding: '6px 12px', fontSize: 13 }}>Оплачено: +1 месяц</button>
+                      )}
                       <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => listing(s.id, false)} style={{ padding: '6px 12px', fontSize: 13 }}>Отклонить</button>
                     </span>
                   </div>
@@ -179,11 +199,15 @@ export default function AdminStores() {
                   {s.status !== 'ACTIVE' ? <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => act(s.id, 'approve')} style={{ padding: '6px 12px', fontSize: 13 }}>Активировать</button> : null}
                   {s.status !== 'SUSPENDED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'suspend')} style={{ padding: '6px 12px', fontSize: 13 }}>Приостановить</button> : null}
                   {s.status !== 'BLOCKED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'block')} style={{ padding: '6px 12px', fontSize: 13, color: 'var(--sale)' }}>Заблокировать</button> : null}
-                  {!s.listingRequestedAt ? (
+                  {!s.listingRequestedAt ? (<>
+                    {s.listed || s.listingExpired ? (
+                      <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => listingOp(s.id, () => markListingPaid(s.id, 1))} style={{ padding: '6px 12px', fontSize: 13 }}>Оплачено: +1 мес</button>
+                    ) : null}
                     <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => listing(s.id, !s.listed)} style={{ padding: '6px 12px', fontSize: 13 }}>
-                      {s.listed ? 'Убрать из общего списка' : 'Показывать всем'}
+                      {s.listed ? 'Убрать из общего списка' : `Показывать всем (${freeDays} дн. бесплатно)`}
                     </button>
-                  ) : null}
+                  </>) : null}
+                  <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => price(s)} style={{ padding: '6px 12px', fontSize: 13 }}>Цена подписки</button>
                   <label className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
                     {savingId === s.id ? 'Загрузка…' : s.photoVersion ? 'Заменить фото' : 'Загрузить фото'}
                     <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) photo(s.id, f); }} />

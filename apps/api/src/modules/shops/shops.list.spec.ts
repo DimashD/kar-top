@@ -35,12 +35,15 @@ describe('Видимость магазинов: только «для всех�
   it('без visited: в запросе только listed', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     await new ShopsService({ store: { findMany } } as any).list();
-    expect(findMany.mock.calls[0][0].where).toEqual({ status: 'ACTIVE', OR: [{ listed: true }] });
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.status).toBe('ACTIVE');
+    // Только «для всех» с идущим бесплатным или оплаченным периодом.
+    expect(where.OR).toEqual([{ listed: true, OR: [{ listedFreeUntil: { gt: expect.any(Date) } }, { listedPaidUntil: { gt: expect.any(Date) } }] }]);
   });
   it('с visited: listed ИЛИ slug из посещённых', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     await new ShopsService({ store: { findMany } } as any).list(undefined, ['ruslan-fruits', 'demo']);
-    expect(findMany.mock.calls[0][0].where).toEqual({ status: 'ACTIVE', OR: [{ listed: true }, { slug: { in: ['ruslan-fruits', 'demo'] } }] });
+    expect(findMany.mock.calls[0][0].where.OR[1]).toEqual({ slug: { in: ['ruslan-fruits', 'demo'] } });
   });
   it('parseSlugs: чистит мусор, дубли и регистр, не больше 100', () => {
     const { parseSlugs } = require('./shops.controller');

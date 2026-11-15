@@ -103,6 +103,20 @@ export const TEMPLATES: Record<string, NotifTemplate> = {
     body: () => 'Проверьте цены. Чего нет в наличии — скройте, чтобы это не заказали',
   },
 
+  // --- Магазину: показ всем покупателям (бесплатный период → подписка) ---
+  'store.listing_ending': {
+    audience: 'merchant',
+    title: (p) => (p.daysLeft <= 1 ? '⏳ Завтра магазин перестанет показываться всем' : `⏳ Показ всем: осталось ${p.daysLeft} дн.`),
+    body: (p) => `${p.free ? 'Бесплатный период' : 'Оплаченный период'} до ${new Date(p.until).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty' })}. `
+      + `Чтобы магазин оставался в общем списке Kartop, оплатите подписку${p.priceTiyn ? ` — ${tenge(p.priceTiyn)} в месяц` : ''}`,
+    critical: true,
+  },
+  'store.listing_ended': {
+    audience: 'merchant',
+    title: () => '🔗 Магазин снова виден только по ссылке',
+    body: (p) => `Период показа всем закончился. Вернуть — в Настройках → «Показывать всем покупателям»${p.priceTiyn ? ` (${tenge(p.priceTiyn)} в месяц)` : ''}`,
+  },
+
   // --- Биллинг магазина ---
   'billing.invoice_issued': {
     audience: 'merchant',

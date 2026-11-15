@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Role } from '@prisma/client';
+import { listingState, visibleNow } from '../shops/listing';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StoreAccess } from '../../common/auth/store-access.service';
 import { AddProductDto, UpdateProductDto, StoreSettingsDto, StorePhotoDto, ZonesDto, AddMemberDto, UpdateMemberDto } from './dto';
@@ -31,12 +32,13 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, listed: true, listingRequestedAt: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, listed: true, listingRequestedAt: true, listedFreeUntil: true, listedPaidUntil: true, listingPriceTiyn: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
-    const { photoAt, hours, listingRequestedAt, ...rest } = s;
-    // listingRequested — заявка «показывать всем» ждёт решения платформы.
-    return { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, listingRequested: !!listingRequestedAt && !s.listed };
+    const { photoAt, hours, listed, listingRequestedAt, listedFreeUntil, listedPaidUntil, listingPriceTiyn, ...rest } = s;
+    // Показ всем: виден ли сейчас, до какого числа (бесплатно/оплачено), заявка, истёк ли, цена подписки.
+    const listing = listingState({ listed, listingRequestedAt, listedFreeUntil, listedPaidUntil, listingPriceTiyn });
+    return { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, ...listing };
   }
 
   /** Фото магазина: JPEG/PNG/WebP в base64, до 2 МБ. null — убрать фото. Только OWNER/MANAGER. */
@@ -69,8 +71,9 @@ export class MerchantService {
     // Выключить — сразу. Заявка повторно не сбрасывает время первой заявки.
     let listing: { listed?: boolean; listingRequestedAt?: Date | null } = {};
     if (dto.listed === true) {
-      const cur = await this.prisma.store.findUnique({ where: { id: storeId }, select: { listed: true, listingRequestedAt: true } });
-      if (!cur?.listed && !cur?.listingRequestedAt) listing = { listingRequestedAt: new Date() };
+      // Уже виден всем — ничего; нет — заявка (в т.ч. после окончания периода: «продлить»).
+      const cur = await this.prisma.store.findUnique({ where: { id: storeId }, select: { listed: true, listingRequestedAt: true, listedFreeUntil: true, listedPaidUntil: true } });
+      if (cur && !visibleNow(cur) && !cur.listingRequestedAt) listing = { listingRequestedAt: new Date() };
     } else if (dto.listed === false) {
       listing = { listed: false, listingRequestedAt: null };
     }

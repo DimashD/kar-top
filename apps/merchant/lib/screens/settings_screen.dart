@@ -332,6 +332,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (result != null && result >= 0 && result <= 1440) await _save({field: result});
   }
 
+  /// Статус показа всем: до какого числа (бесплатно/оплачено), заявка, период закончился, только по ссылке.
+  String _visibilityText(S s, StoreSettings st) {
+    final u = st.listedUntil;
+    final date = u == null ? '' : '${u.day.toString().padLeft(2, '0')}.${u.month.toString().padLeft(2, '0')}.${u.year}';
+    final price = st.listingPriceTiyn == null ? null : tenge(st.listingPriceTiyn!);
+    if (st.listed && u != null) return st.listingFree ? s.visibleFreeUntil(date) : s.visiblePaidUntil(date);
+    if (st.listingRequested) return s.visibilityPending;
+    if (st.listingExpired) return s.visibilityExpired(price);
+    return '${s.visibilityOff} ${s.listingTerms(price)}';
+  }
+
   /// Сумма в тенге (поле) → тиыны. nullable: кнопка «Убрать» сохраняет null (например, «бесплатно от» не задано).
   Future<void> _editMoney({required String title, required String helper, required int? current, required String field, bool nullable = false}) async {
     final s = context.read<Lang>().s;
@@ -442,14 +453,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             activeThumbColor: AppColors.leaf,
             secondary: Icon(st.listed ? Icons.public : Icons.link, color: AppColors.carrot),
             title: Text(s.showToEveryone, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(st.listed ? s.visibilityOn : st.listingRequested ? s.visibilityPending : s.visibilityOff),
+            subtitle: Text(_visibilityText(s, st)),
             onChanged: (on) async {
               if (!on) { await _save({'listed': false}); return; }
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: Text(s.listingConfirmTitle),
-                  content: Text(s.listingConfirmText),
+                  content: Text('${s.listingConfirmText}\n\n${s.listingTerms(st.listingPriceTiyn == null ? null : tenge(st.listingPriceTiyn!))}'),
                   actions: [
                     TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
                     ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.sendRequest)),

@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { effectiveTerms, findZone, ZoneRow } from '../../common/zones';
+import { visibleWhere } from './listing';
 
 @Injectable()
 export class ShopsService {
@@ -14,9 +15,9 @@ export class ShopsService {
    * Если передана точка покупателя — ownHere: довезёт ли магазин сам сюда, и условия зоны (цена, «бесплатно от», минимум).
    */
   async list(point?: LngLat, visited: string[] = []) {
-    // В общем списке — только магазины «для всех» (listed) плюс те, что покупатель уже открывал (visited: по ссылке).
+    // В общем списке — магазины «для всех» (с идущим бесплатным/оплаченным периодом) плюс те, что покупатель открывал (visited).
     const stores = await this.prisma.store.findMany({
-      where: { status: 'ACTIVE', OR: [{ listed: true }, ...(visited.length ? [{ slug: { in: visited } }] : [])] },
+      where: { status: 'ACTIVE', OR: [visibleWhere(), ...(visited.length ? [{ slug: { in: visited } }] : [])] },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,

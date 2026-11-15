@@ -116,8 +116,9 @@ export interface AdminStore {
   createdAt: string; productCount: number; orderCount: number;
   photoVersion: number | null;
   owner: { phone: string; name: string | null } | null;
-  /** «Показывать всем покупателям» (платная опция); listingRequestedAt — магазин просит включить. */
-  listed?: boolean; listingRequestedAt?: string | null;
+  /** Показ всем: виден ли сейчас, до какого числа, бесплатный ли период, истёк ли, цена (тиыны/мес); заявка магазина. */
+  listed?: boolean; listedUntil?: string | null; listingFree?: boolean; listingExpired?: boolean;
+  listingPriceTiyn?: number | null; listingRequestedAt?: string | null;
 }
 
 export function listStores(status?: string): Promise<AdminStore[]> {
@@ -127,8 +128,17 @@ export function listStores(status?: string): Promise<AdminStore[]> {
 export function createStore(input: { name: string; ownerPhone: string; city?: string; address?: string; kaspiPhone?: string }) {
   return adminFetch('/admin/stores', { method: 'POST', body: JSON.stringify(input) });
 }
-export function setStoreListed(id: string, listed: boolean) {
-  return adminFetch(`/admin/stores/${id}/listing`, { method: 'POST', body: JSON.stringify({ listed }) });
+/** Показывать всем: listed=true — с бесплатным периодом freeDays (по умолчанию 60), false — снять. */
+export function setStoreListed(id: string, listed: boolean, freeDays?: number) {
+  return adminFetch(`/admin/stores/${id}/listing`, { method: 'POST', body: JSON.stringify({ listed, ...(freeDays ? { freeDays } : {}) }) });
+}
+/** Оплата подписки получена: +months месяцев показа. */
+export function markListingPaid(id: string, months = 1) {
+  return adminFetch(`/admin/stores/${id}/listing/paid`, { method: 'POST', body: JSON.stringify({ months }) });
+}
+/** Цена подписки на показ всем, тиыны в месяц; null — «по договорённости». */
+export function setListingPrice(id: string, priceTiyn: number | null) {
+  return adminFetch(`/admin/stores/${id}/listing/price`, { method: 'POST', body: JSON.stringify({ priceTiyn }) });
 }
 export function storeAction(id: string, action: 'approve' | 'suspend' | 'block') {
   return adminFetch(`/admin/stores/${id}/${action}`, { method: 'POST' });
