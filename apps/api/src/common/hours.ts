@@ -51,3 +51,24 @@ export function minutesUntilOpen(week: WeekHours, at: Date): number | null {
   const left = minutes(d.open) - min;
   return left > 0 ? left : null;
 }
+
+/**
+ * Предзаказ («собираем заранее»): заказы до cutoff (ЧЧ:ММ по Алматы) — на следующий рабочий день, после — через день.
+ * Возвращает самое раннее время получения: открытие магазина в этот день (по Алматы). Выходные пропускаем (до 14 дней).
+ */
+export function preorderEarliest(week: WeekHours, cutoff: string, now: Date): Date {
+  const OFFSET = 5 * 60; // Алматы — UTC+5, без перехода на летнее время
+  const local = new Date(now.getTime() + OFFSET * 60_000);
+  const nowMin = local.getUTCHours() * 60 + local.getUTCMinutes();
+  const cut = HHMM.test(cutoff) ? minutes(cutoff) : 20 * 60;
+  const start = nowMin < cut ? 1 : 2;
+  for (let k = start; k < start + 14; k++) {
+    const d = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + k));
+    const h = week[(d.getUTCDay() + 6) % 7]; // getUTCDay: 0 — воскресенье; у нас 0 — понедельник
+    if (h) return new Date(d.getTime() + (minutes(h.open) - OFFSET) * 60_000);
+  }
+  // Магазин не работает 2 недели — просто «через start дней».
+  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() + start) - OFFSET * 60_000);
+}
+
+export const isHHMM = (v: string) => HHMM.test(v);

@@ -38,6 +38,8 @@ export interface Catalog {
     phone?: string | null; ownDeliveryMinutes?: number; courierHandoverMinutes?: number;
     /** Своя доставка, условия всего магазина: минимальный заказ и «бесплатно от» (тиыны). Условия зон — уже с их учётом. */
     ownMinOrderTiyn?: number; ownFreeFromTiyn?: number | null;
+    /** Предзаказ: заказы до preorderCutoff (ЧЧ:ММ) — на следующий рабочий день, после — через день; «как можно скорее» нет. */
+    preorderEnabled?: boolean; preorderCutoff?: string;
     /** Часы работы: 7 дней (пн первый), { open, close } 'HH:MM' или null — выходной. */
     hours?: ({ open: string; close: string } | null)[];
     // Продавец (ИП/ТОО и ИИН/БИН) — из принятой оферты; закон о защите прав потребителей.
@@ -115,6 +117,8 @@ export interface StoreCard {
   /** Довезёт ли магазин сам до точки покупателя (null — точка не известна) и условия его зоны. */
   ownHere?: boolean | null;
   ownZone?: { feeTiyn: number; minOrderTiyn: number; freeFromTiyn: number | null } | null;
+  /** Предзаказ: заказы до preorderCutoff — на следующий рабочий день. */
+  preorderEnabled?: boolean; preorderCutoff?: string;
 }
 
 /** SSR: магазины для главной — «для всех» и те, что покупатель уже открывал (visited — из cookie). */

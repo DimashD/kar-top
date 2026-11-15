@@ -459,6 +459,8 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
             <Icon name="scooter" size={18} /><span style={{ flex: 1 }}>{t.deliveryZone}</span><span>›</span>
           </Link>
         ) : null}
+        {/* Предзаказ — сразу видно до выбора товаров. */}
+        {catalog.store.preorderEnabled ? <PreorderNote cutoff={catalog.store.preorderCutoff ?? '20:00'} /> : null}
         {/* Каталог / Списком */}
         <div role="tablist" style={{ display: 'flex', background: '#F4F2F0', borderRadius: 12, padding: 4, marginBottom: 12 }}>
           {(['catalog', 'list'] as const).map((m) => (
@@ -1029,15 +1031,19 @@ function CheckoutDrawer(props: {
   // доставка — средний срок своей доставки или передачи курьеру. Локальное 'YYYY-MM-DDTHH:MM'.
   const leadMin = mode === 'PICKUP' ? store.pickupLeadMinutes ?? 60
     : mode === 'SERVICE' ? store.courierHandoverMinutes ?? 30 : store.ownDeliveryMinutes ?? 60;
+  // Предзаказ: ближайший день доставки — следующий рабочий (до cutoff) или через день (после), с открытия магазина.
+  const preorder = !!store.preorderEnabled;
   const earliest = useMemo(() => {
-    const d = new Date(Date.now() + leadMin * 60000);
+    const d = preorder ? preorderEarliest(store.hours?.length === 7 ? store.hours : DEFAULT_WEEK, store.preorderCutoff ?? '20:00', new Date())
+      : new Date(Date.now() + leadMin * 60000);
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, [leadMin]);
+  }, [leadMin, preorder, store.hours, store.preorderCutoff]);
 
 
   const addrOk = mode === 'PICKUP' || line.trim().length >= 5;
-  const pickupOk = !pickupAt || pickupAt >= earliest;
+  // Предзаказ: время получения обязательно (без «как можно скорее»).
+  const pickupOk = preorder ? !!pickupAt && pickupAt >= earliest : !pickupAt || pickupAt >= earliest;
   const canSubmit = lines.length > 0 && addrOk && pickupOk && !outOfZone && !belowMin && !busy;
 
   async function submit() {
@@ -1158,11 +1164,13 @@ function CheckoutDrawer(props: {
               </>)}
             </Field>
             <Field label={t.deliverWhen}>
-              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} />
+              {preorder ? <PreorderNote cutoff={store.preorderCutoff ?? '20:00'} /> : null}
+              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} noAsap={preorder} />
             </Field>
           </>) : (
             <Field label={t.pickupWhen}>
-              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.readyBy} />
+              {preorder ? <PreorderNote cutoff={store.preorderCutoff ?? '20:00'} /> : null}
+              <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.readyBy} noAsap={preorder} />
               <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
                 {store.address ? t.pickupFrom(store.address) : t.pickupAddressLater}
               </div>
@@ -1234,6 +1242,31 @@ function openAt(week: WeekHours, d: Date): boolean {
   const m = d.getHours() * 60 + d.getMinutes();
   return !!h && m >= toMin(h.open) && m < toMin(h.close);
 }
+/**
+ * Предзаказ: заказы до cutoff (ЧЧ:ММ) — на следующий рабочий день, после — через день; с открытия магазина.
+ * Время покупателя — в Казахстане совпадает с магазином (то же правило на сервере: common/hours preorderEarliest).
+ */
+function preorderEarliest(week: WeekHours, cutoff: string, now: Date): Date {
+  const start = now.getHours() * 60 + now.getMinutes() < toMin(cutoff) ? 1 : 2;
+  for (let k = start; k < start + 14; k++) {
+    const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + k);
+    const h = dayHours(week, d);
+    if (h) { d.setHours(0, toMin(h.open), 0, 0); return d; }
+  }
+  const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + start);
+  return d;
+}
+
+/** Плашка «Магазин собирает заказы заранее: до 20:00 — на завтра». */
+function PreorderNote({ cutoff }: { cutoff: string }) {
+  const t = useT();
+  return (
+    <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: '#EEF3E2', color: '#3F5A1F', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+      🗓 {t.preorderNote(cutoff)}
+    </div>
+  );
+}
+
 /** Длина слота получения, мин (окна по 2 часа от открытия магазина). */
 const SLOT_MIN = 120;
 
@@ -1241,12 +1274,13 @@ const SLOT_MIN = 120;
  * Время получения слотами по часам работы магазина: «Как можно скорее» (если магазин успевает в рабочее время),
  * затем ближайшие 3 рабочих дня и окна по 2 часа от открытия до закрытия. Значение — начало окна ('YYYY-MM-DDTHH:MM').
  */
-function PickupTimePicker({ earliest, hours, value, onChange, asapNote }: { earliest: string; hours?: WeekHours; value: string; onChange: (v: string) => void; asapNote: (time: string) => string }) {
+function PickupTimePicker({ earliest, hours, value, onChange, asapNote, noAsap }: { earliest: string; hours?: WeekHours; value: string; onChange: (v: string) => void; asapNote: (time: string) => string; noAsap?: boolean }) {
   const t = useT();
   const lang = useLang();
   const week = hours?.length === 7 ? hours : DEFAULT_WEEK;
   const first = new Date(earliest);
-  const asapOk = openAt(week, first);
+  // Предзаказ — «как можно скорее» нет: сразу окна ближайшего дня доставки.
+  const asapOk = !noAsap && openAt(week, first);
   const slotsOf = (day: Date): { from: Date; to: Date }[] => {
     const h = dayHours(week, day);
     if (!h) return [];

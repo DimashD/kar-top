@@ -153,6 +153,7 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
                         : <span style={chip}><Icon name="scooter" size={15} />{t.ownDelivery}</span>
                     ) : null}
                     {courier(s) ? <span style={chip}><Icon name="car" size={15} />{t.courierShort} · {t.atYourCost}</span> : null}
+                    {s.preorderEnabled ? <span style={{ ...chip, background: '#EEF3E2', color: '#3F5A1F' }}>🗓 {t.preorderBadge(s.preorderCutoff ?? '20:00')}</span> : null}
                     {s.pickupEnabled ? <span style={chip}><Icon name="bag" size={15} />{t.pickup}</span> : null}
                   </div>
                 </div>

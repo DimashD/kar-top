@@ -21,7 +21,7 @@ export class ShopsService {
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
-        deliveryMode: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
+        deliveryMode: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, preorderEnabled: true, preorderCutoff: true, zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
     return stores.map(({ geom, photoAt, hours, zones, deliveryMode, ownMinOrderTiyn, ownFreeFromTiyn, ...s }) => {
       const c = (geom as any)?.coordinates as [number, number] | undefined;
@@ -71,7 +71,7 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true,
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, preorderEnabled: true, preorderCutoff: true,
         zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');

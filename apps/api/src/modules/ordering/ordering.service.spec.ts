@@ -324,6 +324,30 @@ describe('Зоны доставки', () => {
   });
 });
 
+describe('Предзаказ: магазин собирает заказы заранее', () => {
+  const storeWith = (over: Record<string, unknown> = {}) => makePrisma({
+    store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY, deliveryMode: 'OWN', deliveryEnabled: true,
+      ownMinOrderTiyn: 0, ownFreeFromTiyn: null, zones: [], preorderEnabled: true, preorderCutoff: '20:00', ...over }) },
+  });
+  const base = { storeSlug: 's', phone: '+77011234567', payMethod: 'CASH', fulfillment: 'PICKUP', items: [{ storeProductId: 'sp-pcs', qty: 1 }] };
+  const inHours = (h: number) => new Date(Date.now() + h * 3600e3).toISOString();
+
+  it('без времени получения → 400 (как можно скорее нельзя)', async () => {
+    await expect(new OrderingService(storeWith() as any).create(base as any)).rejects.toThrow(/заранее/);
+  });
+  it('время через 2 часа (сегодня) → 400', async () => {
+    await expect(new OrderingService(storeWith() as any).create({ ...base, pickupAt: inHours(2) } as any)).rejects.toThrow(/заранее/);
+  });
+  it('время через 3 дня → заказ принят', async () => {
+    const r = await new OrderingService(storeWith() as any).create({ ...base, pickupAt: inHours(72) } as any);
+    expect(r).toBeTruthy();
+  });
+  it('предзаказ выключен — как раньше: можно «как можно скорее»', async () => {
+    const r = await new OrderingService(storeWith({ preorderEnabled: false }) as any).create(base as any);
+    expect(r).toBeTruthy();
+  });
+});
+
 describe('Условия доставки магазина (мин. заказ, бесплатно от) — в настройках магазина', () => {
   const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
   const storeWith = (terms: { ownMinOrderTiyn?: number; ownFreeFromTiyn?: number | null }, zones: any[] = []) => makePrisma({

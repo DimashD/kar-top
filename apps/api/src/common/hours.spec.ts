@@ -28,3 +28,26 @@ describe('часы работы', () => {
     expect(minutesUntilOpen(week, new Date('2026-11-10T03:00:00Z'))).toBeNull(); // вт — выходной
   });
 });
+
+import { preorderEarliest } from './hours';
+
+describe('Предзаказ: до cutoff — на следующий рабочий день, после — через день', () => {
+  // 2026-11-16 — понедельник. Время по Алматы = UTC+5.
+  const at = (iso: string) => new Date(iso);
+  const week = Array.from({ length: 7 }, () => ({ open: '09:00', close: '20:00' }));
+
+  it('пн 15:00 (до 20:00) → вт 09:00', () => {
+    expect(preorderEarliest(week, '20:00', at('2026-11-16T10:00:00Z')).toISOString()).toBe('2026-11-17T04:00:00.000Z');
+  });
+  it('пн 21:30 (после 20:00) → ср 09:00', () => {
+    expect(preorderEarliest(week, '20:00', at('2026-11-16T16:30:00Z')).toISOString()).toBe('2026-11-18T04:00:00.000Z');
+  });
+  it('следующий день — выходной → ближайший рабочий', () => {
+    const w: ({ open: string; close: string } | null)[] = [...week]; w[1] = null; // вторник выходной
+    expect(preorderEarliest(w, '20:00', at('2026-11-16T10:00:00Z')).toISOString()).toBe('2026-11-18T04:00:00.000Z');
+  });
+  it('полночь по Алматы считается уже новым днём', () => {
+    // пн 23:59 UTC = вт 04:59 Алматы (до 20:00) → ср 09:00
+    expect(preorderEarliest(week, '20:00', at('2026-11-16T23:59:00Z')).toISOString()).toBe('2026-11-18T04:00:00.000Z');
+  });
+});

@@ -23,6 +23,9 @@ class StoreSettings {
   bool deliveryEnabled;
   int courierHandoverMinutes;
   int ownDeliveryMinutes;
+  /// Предзаказ: заказы до preorderCutoff ('ЧЧ:ММ') — на следующий рабочий день.
+  bool preorderEnabled;
+  String preorderCutoff;
   /// Своя доставка: минимальный заказ и «бесплатно от» (тиыны; null — бесплатной нет).
   int ownMinOrderTiyn;
   int? ownFreeFromTiyn;
@@ -45,6 +48,8 @@ class StoreSettings {
     required this.deliveryEnabled,
     required this.courierHandoverMinutes,
     required this.ownDeliveryMinutes,
+    this.preorderEnabled = false,
+    this.preorderCutoff = '20:00',
     this.ownMinOrderTiyn = 0,
     this.ownFreeFromTiyn,
     this.listed = false,
@@ -63,6 +68,8 @@ class StoreSettings {
         deliveryEnabled: j['deliveryEnabled'] as bool? ?? true,
         courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
+        preorderEnabled: j['preorderEnabled'] as bool? ?? false,
+        preorderCutoff: j['preorderCutoff'] as String? ?? '20:00',
         ownMinOrderTiyn: (j['ownMinOrderTiyn'] as num?)?.toInt() ?? 0,
         ownFreeFromTiyn: (j['ownFreeFromTiyn'] as num?)?.toInt(),
         listed: j['listed'] as bool? ?? false,

@@ -289,6 +289,9 @@ abstract class S {
   String get listingConfirmTitle;
   String get listingConfirmText;
   String get sendRequest;
+  String get preorderTitle;
+  String preorderSubtitle(String cutoff);
+  String get preorderCutoffLabel;
   String visibleFreeUntil(String date);
   String visiblePaidUntil(String date);
   String visibilityExpired(String? price);
@@ -592,6 +595,9 @@ class _Ru extends S {
   @override String get listingConfirmTitle => 'Показывать магазин всем?';
   @override String get listingConfirmText => 'По умолчанию магазин видят только покупатели, которые открыли вашу ссылку. Показ в общем списке Kartop — платная опция. После заявки менеджер свяжется с вами и расскажет условия; включается после согласования.';
   @override String get sendRequest => 'Отправить заявку';
+  @override String get preorderTitle => 'Принимаем заказы заранее';
+  @override String preorderSubtitle(String cutoff) => 'Заказы до $cutoff — на следующий рабочий день, позже — через день. «Как можно скорее» у покупателей не будет.';
+  @override String get preorderCutoffLabel => 'Приём заказов на завтра до';
   @override String visibleFreeUntil(String date) => 'Магазин виден всем · бесплатно до $date';
   @override String visiblePaidUntil(String date) => 'Магазин виден всем · оплачено до $date';
   @override String visibilityExpired(String? price) => 'Период показа закончился — магазин снова только по ссылке. Включите, чтобы продлить${price != null ? ' ($price в месяц)' : ''}.';
@@ -891,6 +897,9 @@ class _Kk extends S {
   @override String get listingConfirmTitle => 'Дүкенді барлығына көрсету керек пе?';
   @override String get listingConfirmText => 'Әдепкіде дүкенді тек сілтемеңізді ашқан сатып алушылар көреді. Kartop жалпы тізімінде көрсету — ақылы опция. Өтінімнен кейін менеджер хабарласып, шарттарын айтады; келісілгеннен кейін қосылады.';
   @override String get sendRequest => 'Өтінім жіберу';
+  @override String get preorderTitle => 'Тапсырыстарды алдын ала қабылдаймыз';
+  @override String preorderSubtitle(String cutoff) => '$cutoff дейінгі тапсырыстар — келесі жұмыс күні, кейінгілері — бір күннен кейін. Сатып алушыларда «Мүмкіндігінше тез» болмайды.';
+  @override String get preorderCutoffLabel => 'Ертеңге тапсырыс қабылдау уақыты';
   @override String visibleFreeUntil(String date) => 'Дүкен барлығына көрінеді · $date дейін тегін';
   @override String visiblePaidUntil(String date) => 'Дүкен барлығына көрінеді · $date дейін төленген';
   @override String visibilityExpired(String? price) => 'Көрсету мерзімі аяқталды — дүкен қайтадан тек сілтеме арқылы. Ұзарту үшін қосыңыз${price != null ? ' (айына $price)' : ''}.';
@@ -1190,6 +1199,9 @@ class _Tg extends S {
   @override String get listingConfirmTitle => 'Мағозаро ба ҳама нишон диҳем?';
   @override String get listingConfirmText => 'Бо нобаёнӣ мағозаро танҳо харидороне мебинанд, ки истиноди шуморо кушодаанд. Нишон додан дар рӯйхати умумии Kartop — имконияти пулакӣ аст. Пас аз дархост менеҷер бо шумо тамос гирифта, шартҳоро мегӯяд; пас аз мувофиқа фаъол мешавад.';
   @override String get sendRequest => 'Фиристодани дархост';
+  @override String get preorderTitle => 'Фармоишҳоро пешакӣ қабул мекунем';
+  @override String preorderSubtitle(String cutoff) => 'Фармоишҳо то $cutoff — дар рӯзи кории оянда, баъдтар — пас аз як рӯз. «Ҳарчи зудтар» барои харидорон намешавад.';
+  @override String get preorderCutoffLabel => 'Қабули фармоиш барои фардо то';
   @override String visibleFreeUntil(String date) => 'Мағоза ба ҳама намоён · то $date ройгон';
   @override String visiblePaidUntil(String date) => 'Мағоза ба ҳама намоён · то $date пардохт шудааст';
   @override String visibilityExpired(String? price) => 'Мӯҳлати нишондиҳӣ ба охир расид — мағоза боз танҳо тавассути истинод. Барои дароз кардан фаъол кунед${price != null ? ' ($price дар як моҳ)' : ''}.';
@@ -1489,6 +1501,9 @@ class _Uz extends S {
   @override String get listingConfirmTitle => 'Doʻkonni hammaga koʻrsatamizmi?';
   @override String get listingConfirmText => 'Odatda doʻkonni faqat havolangizni ochgan xaridorlar koʻradi. Kartop umumiy roʻyxatida koʻrsatish — pullik imkoniyat. Arizadan soʻng menejer bogʻlanib, shartlarni aytadi; kelishilgandan keyin yoqiladi.';
   @override String get sendRequest => 'Ariza yuborish';
+  @override String get preorderTitle => 'Buyurtmalarni oldindan qabul qilamiz';
+  @override String preorderSubtitle(String cutoff) => '$cutoff gacha buyurtmalar — keyingi ish kuni, keyinroq — bir kundan soʻng. Xaridorlarda «Imkon qadar tez» boʻlmaydi.';
+  @override String get preorderCutoffLabel => 'Ertangi kun uchun buyurtma qabul qilish vaqti';
   @override String visibleFreeUntil(String date) => 'Doʻkon hammaga koʻrinadi · $date gacha bepul';
   @override String visiblePaidUntil(String date) => 'Doʻkon hammaga koʻrinadi · $date gacha toʻlangan';
   @override String visibilityExpired(String? price) => 'Koʻrsatish muddati tugadi — doʻkon yana faqat havola orqali. Uzaytirish uchun yoqing${price != null ? ' (oyiga $price)' : ''}.';
