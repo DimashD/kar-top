@@ -31,7 +31,7 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
     const { photoAt, hours, ...rest } = s;
@@ -78,6 +78,9 @@ export class MerchantService {
         ...(dto.deliveryMode != null ? { deliveryMode: dto.deliveryMode } : {}),
         ...(dto.courierHandoverMinutes != null ? { courierHandoverMinutes: dto.courierHandoverMinutes } : {}),
         ...(dto.ownDeliveryMinutes != null ? { ownDeliveryMinutes: dto.ownDeliveryMinutes } : {}),
+        ...(dto.ownMinOrderTiyn != null ? { ownMinOrderTiyn: dto.ownMinOrderTiyn } : {}),
+        // null — убрать «бесплатно от»; поле не передано — не трогать.
+        ...(dto.ownFreeFromTiyn !== undefined ? { ownFreeFromTiyn: dto.ownFreeFromTiyn } : {}),
       },
     });
     // Тот же ответ, что и при чтении (с фото и часами) — приложение заменяет им свои настройки.

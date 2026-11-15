@@ -23,6 +23,9 @@ class StoreSettings {
   bool deliveryEnabled;
   int courierHandoverMinutes;
   int ownDeliveryMinutes;
+  /// Своя доставка: минимальный заказ и «бесплатно от» (тиыны; null — бесплатной нет).
+  int ownMinOrderTiyn;
+  int? ownFreeFromTiyn;
   String deliveryMode;
   /// Версия фото магазина (null — фото нет).
   int? photoVersion;
@@ -34,6 +37,8 @@ class StoreSettings {
     required this.deliveryEnabled,
     required this.courierHandoverMinutes,
     required this.ownDeliveryMinutes,
+    this.ownMinOrderTiyn = 0,
+    this.ownFreeFromTiyn,
     required this.deliveryMode,
     this.photoVersion,
     this.hours = const [],
@@ -44,6 +49,8 @@ class StoreSettings {
         deliveryEnabled: j['deliveryEnabled'] as bool? ?? true,
         courierHandoverMinutes: (j['courierHandoverMinutes'] as num?)?.toInt() ?? 30,
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
+        ownMinOrderTiyn: (j['ownMinOrderTiyn'] as num?)?.toInt() ?? 0,
+        ownFreeFromTiyn: (j['ownFreeFromTiyn'] as num?)?.toInt(),
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
         photoVersion: (j['photoVersion'] as num?)?.toInt(),
         hours: ((j['hours'] as List?) ?? const [])

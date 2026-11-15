@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../l10n.dart';
 import '../models.dart';
@@ -8,6 +9,7 @@ import '../session.dart';
 import '../theme.dart';
 import '../lock.dart';
 import '../config.dart';
+import '../format.dart';
 import '../widgets/language_picker.dart';
 import '../widgets/share_store.dart';
 import 'delivery_zones_screen.dart';
@@ -330,6 +332,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (result != null && result >= 0 && result <= 1440) await _save({field: result});
   }
 
+  /// Сумма в тенге (поле) → тиыны. nullable: кнопка «Убрать» сохраняет null (например, «бесплатно от» не задано).
+  Future<void> _editMoney({required String title, required String helper, required int? current, required String field, bool nullable = false}) async {
+    final s = context.read<Lang>().s;
+    final ctrl = TextEditingController(text: current == null ? '' : (current ~/ 100).toString());
+    const clear = -1;
+    final result = await showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(suffixText: '₸', helperText: helper, helperMaxLines: 4),
+        ),
+        actions: [
+          if (nullable) TextButton(onPressed: () => Navigator.pop(ctx, clear), child: Text(s.clearValue)),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.cancel)),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, int.tryParse(ctrl.text) ?? (nullable ? clear : 0)), child: Text(s.save)),
+        ],
+      ),
+    );
+    if (result == null) return;
+    if (result == clear) {
+      await _save({field: null});
+    } else if (result >= 0 && result <= 1000000) {
+      await _save({field: result * 100});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
@@ -428,6 +461,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: Text(s.aboutMinutes(st.ownDeliveryMinutes)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _editMinutes(title: s.averageTime, helper: s.ownDeliveryHelper, current: st.ownDeliveryMinutes, field: 'ownDeliveryMinutes'),
+                ),
+                // Условия доставки на весь магазин (зона может задать свои — см. «Зона доставки»).
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.shopping_basket_outlined, color: AppColors.carrot),
+                  title: Text(s.minOrderForDelivery),
+                  subtitle: Text(st.ownMinOrderTiyn > 0 ? tenge(st.ownMinOrderTiyn) : s.noMinimum),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _editMoney(title: s.minOrderForDelivery, helper: s.minOrderHelper, current: st.ownMinOrderTiyn, field: 'ownMinOrderTiyn'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.card_giftcard_outlined, color: AppColors.carrot),
+                  title: Text(s.freeDeliveryFrom),
+                  subtitle: Text(st.ownFreeFromTiyn != null ? tenge(st.ownFreeFromTiyn!) : s.notSet),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _editMoney(title: s.freeDeliveryFrom, helper: s.freeFromHelper, current: st.ownFreeFromTiyn, field: 'ownFreeFromTiyn', nullable: true),
                 ),
               ],
             ],

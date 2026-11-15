@@ -29,6 +29,23 @@ export function findZone<T extends ZoneRow>(zones: T[], point: LngLat): T | null
   return hits.sort((a, b) => a.feeTiyn - b.feeTiyn)[0] ?? null;
 }
 
+/** Общие условия своей доставки магазина (настройки магазина). */
+export type StoreTerms = { ownMinOrderTiyn: number; ownFreeFromTiyn: number | null };
+
+/**
+ * Итоговые условия доставки для точки: магазин + зона.
+ * Минимум — наибольший из «магазин» и «зона» (зона может только ужесточить); «бесплатно от» — у зоны, если задано, иначе у магазина.
+ * Без зон: цена 0 (как раньше), минимум и «бесплатно от» — магазина.
+ */
+export function effectiveTerms(store: StoreTerms, zone: Pick<ZoneRow, 'feeTiyn' | 'minOrderTiyn' | 'freeFromTiyn'> | null): ZoneRow {
+  return {
+    feeTiyn: zone?.feeTiyn ?? 0,
+    minOrderTiyn: Math.max(store.ownMinOrderTiyn ?? 0, zone?.minOrderTiyn ?? 0),
+    freeFromTiyn: zone?.freeFromTiyn ?? store.ownFreeFromTiyn ?? null,
+    polygon: null,
+  };
+}
+
 /** Цена доставки с учётом «бесплатно от суммы». */
 export function deliveryFee(zone: ZoneRow, subtotalTiyn: number): number {
   return zone.freeFromTiyn != null && subtotalTiyn >= zone.freeFromTiyn ? 0 : zone.feeTiyn;
