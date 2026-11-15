@@ -1001,7 +1001,9 @@ function CheckoutDrawer(props: {
   const delivering = mode !== 'PICKUP';
   const ownDelivery = mode === 'OWN';
   const outOfZone = ownDelivery && zone?.inZone === false;
-  const belowMin = ownDelivery && !!zone?.inZone && (zone.minOrderTiyn ?? 0) > subtotal;
+  // Минимум для доставки магазина: по выбранной точке (зона + магазин) или, пока точки нет, — минимум всего магазина.
+  const minNeeded = zone?.inZone ? (zone.minOrderTiyn ?? 0) : (store.ownMinOrderTiyn ?? 0);
+  const belowMin = ownDelivery && !outOfZone && minNeeded > subtotal;
   const feeTiyn = ownDelivery && zone?.inZone
     ? (zone.freeFromTiyn != null && subtotal >= zone.freeFromTiyn ? 0 : zone.feeTiyn ?? 0)
     : 0;
@@ -1136,9 +1138,16 @@ function CheckoutDrawer(props: {
                   {zone.freeFromTiyn != null && feeTiyn ? <span style={{ fontWeight: 500 }}> · {t.freeFrom(tenge(zone.freeFromTiyn))}</span> : null}
                   {belowMin ? <div style={{ color: 'var(--sale)', marginTop: 4 }}>{t.minOrderNote(tenge(zone.minOrderTiyn ?? 0))}</div> : null}
                 </div>
-              ) : (
+              ) : (<>
+                {/* Точка ещё не выбрана (или у магазина нет зон): условия всего магазина. */}
+                {ownDelivery && ((store.ownMinOrderTiyn ?? 0) > 0 || (store.ownFreeFromTiyn != null && !!store.deliveryZones?.length)) ? (
+                  <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: belowMin ? '#FBEAEA' : '#F4F2F0', color: belowMin ? 'var(--sale)' : 'var(--ink)', fontWeight: 700, fontSize: 14 }}>
+                    {(store.ownMinOrderTiyn ?? 0) > 0 ? t.minOrderNote(tenge(store.ownMinOrderTiyn!)) : null}
+                    {store.ownFreeFromTiyn != null && store.deliveryZones?.length ? <div style={{ fontWeight: 500 }}>{t.freeFrom(tenge(store.ownFreeFromTiyn))}</div> : null}
+                  </div>
+                ) : null}
                 <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>{t.locationHint}</div>
-              )}
+              </>)}
             </Field>
             <Field label={t.deliverWhen}>
               <PickupTimePicker earliest={earliest} hours={store.hours} value={pickupAt} onChange={setPickupAt} asapNote={t.deliverBy} />

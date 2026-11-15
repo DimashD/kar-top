@@ -2,7 +2,7 @@ import { hoursOf } from '../../common/hours';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
-import { findZone } from '../../common/zones';
+import { effectiveTerms, findZone, ZoneRow } from '../../common/zones';
 
 @Injectable()
 export class ShopsService {
@@ -19,9 +19,9 @@ export class ShopsService {
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
-        deliveryMode: true, zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
+        deliveryMode: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
-    return stores.map(({ geom, photoAt, hours, zones, deliveryMode, ...s }) => {
+    return stores.map(({ geom, photoAt, hours, zones, deliveryMode, ownMinOrderTiyn, ownFreeFromTiyn, ...s }) => {
       const c = (geom as any)?.coordinates as [number, number] | undefined;
       const ownDelivery = s.deliveryEnabled !== false && deliveryMode !== 'SERVICE';
       const courierDelivery = s.deliveryEnabled !== false && deliveryMode !== 'OWN';
@@ -31,7 +31,9 @@ export class ShopsService {
       return {
         ...s, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, location: c ? { lat: c[1], lng: c[0] } : null,
         ownDelivery, courierDelivery, ownHere,
-        ownZone: zone ? { feeTiyn: zone.feeTiyn, minOrderTiyn: zone.minOrderTiyn, freeFromTiyn: zone.freeFromTiyn } : null,
+        ownZone: zone ? termsOut(effectiveTerms({ ownMinOrderTiyn, ownFreeFromTiyn }, zone)) : null,
+        // Условия своей доставки магазина (без учёта зоны): «мин. заказ», «бесплатно от».
+        ownTerms: ownDelivery ? { minOrderTiyn: ownMinOrderTiyn, freeFromTiyn: ownFreeFromTiyn } : null,
       };
     });
   }
@@ -46,16 +48,17 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true,
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true,
         zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
     const { geom, photoAt, hours, zones, ...rest } = store;
     // Фото: /api/shops/<slug>/photo?v=<версия> — версия сбрасывает кэш после замены.
     // Зоны своей доставки — покупатель видит их на карте; кольцо [lng, lat] → [[lat, lng]] для карты.
+    // Условия каждой зоны — уже с учётом настроек магазина (минимум и «бесплатно от»).
     const deliveryZones = zones.map((z) => ({
       ring: (((z.polygon as any)?.coordinates?.[0] ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]),
-      feeTiyn: z.feeTiyn, minOrderTiyn: z.minOrderTiyn, freeFromTiyn: z.freeFromTiyn,
+      ...termsOut(effectiveTerms(store, z)),
     })).filter((z) => z.ring.length > 2).sort((a, b) => a.feeTiyn - b.feeTiyn);
     const storeInfo = { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, deliveryZones };
     const coords = (geom as any)?.coordinates as [number, number] | undefined; // GeoJSON: [lng, lat]
@@ -110,22 +113,25 @@ export class ShopsService {
   async zoneCheck(slug: string, lat: number, lng: number) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, geom: true, zones: true },
+      select: { id: true, geom: true, zones: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
     const point: LngLat = [lng, lat];
-    // Магазин ещё не задал зоны — доставка без ограничений (как было до зон).
-    if (!store.zones.length) return { inZone: true, noZones: true, feeTiyn: 0, minOrderTiyn: 0, freeFromTiyn: null, distanceMeters: null };
+    // Магазин ещё не задал зоны — возит везде, цена 0; минимум и «бесплатно от» — из настроек магазина.
+    if (!store.zones.length) return { inZone: true, noZones: true, ...termsOut(effectiveTerms(store, null)), distanceMeters: null };
     const zone = findZone(store.zones, point);
     if (!zone) return { inZone: false };
     const storePt = (store.geom as any)?.coordinates as LngLat | undefined;
     return {
       inZone: true,
-      feeTiyn: zone.feeTiyn,
-      minOrderTiyn: zone.minOrderTiyn,
-      freeFromTiyn: zone.freeFromTiyn,
+      ...termsOut(effectiveTerms(store, zone)),
       distanceMeters: storePt ? Math.round(haversineMeters(storePt, point)) : null,
     };
   }
+}
+
+/** Условия доставки для ответа API (без многоугольника). */
+function termsOut(t: ZoneRow) {
+  return { feeTiyn: t.feeTiyn, minOrderTiyn: t.minOrderTiyn, freeFromTiyn: t.freeFromTiyn };
 }

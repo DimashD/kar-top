@@ -85,6 +85,10 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           {s.pickupEnabled ? <div style={way}><Icon name="bag" style={wayIc} />{t.pickupIn(s.pickupLeadMinutes)}</div> : null}
           {s.deliveryEnabled !== false ? (<>
             <div style={way}><Icon name={s.deliveryMode === 'SERVICE' ? 'car' : 'scooter'} style={wayIc} />{s.deliveryMode === 'SERVICE' ? t.courierDeliveryNote : t.ownDeliveryIn(s.ownDeliveryMinutes ?? 60)}</div>
+            {/* Зон нет — условия всего магазина (доставка бесплатная, но может быть минимальный заказ). С зонами — условия ниже, у каждой зоны. */}
+            {s.deliveryMode !== 'SERVICE' && !s.deliveryZones?.length && (s.ownMinOrderTiyn ?? 0) > 0 ? (
+              <div style={{ ...way, fontSize: 14 }}><Icon name="scooter" style={wayIc} /><span>{t.zoneFee(null, tenge(s.ownMinOrderTiyn!), null)}</span></div>
+            ) : null}
             {s.deliveryMode === 'BOTH' ? <div style={way}><Icon name="car" style={wayIc} /><span>{t.courierDelivery} · {t.deliveryPaidSeparately}</span></div> : null}
           </>) : null}
         </div>

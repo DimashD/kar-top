@@ -5,7 +5,7 @@ import { CreateOrderDto } from './dto';
 import { piiVisibleToMerchant, canTransition } from './order-state';
 import { weightRange } from './weight-tolerance';
 import { allowedPayMethods } from './payment-rules';
-import { deliveryFee, findZone } from '../../common/zones';
+import { deliveryFee, effectiveTerms, findZone } from '../../common/zones';
 import { hoursOf, isOpenAt } from '../../common/hours';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
@@ -94,19 +94,24 @@ export class OrderingService {
       };
     });
 
-    // Своя доставка: если магазин задал зоны — точка обязательна, должна попасть в зону, сумма — не ниже минимальной.
+    // Своя доставка: если магазин задал зоны — точка обязательна и должна попасть в зону.
+    // Минимальная сумма и «бесплатно от» — из настроек магазина и зоны (effectiveTerms); без зон — только настройки магазина.
     // Курьерская служба — без зон и без цены в заказе.
     let deliveryFeeTiyn = 0;
-    if (deliveryBy === 'OWN' && store.zones?.length) {
-      const lat = dto.address?.lat;
-      const lng = dto.address?.lng;
-      if (lat == null || lng == null) throw new BadRequestException('Укажите точку доставки на карте');
-      const zone = findZone(store.zones, [lng, lat]);
-      if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите курьера или самовывоз');
-      if (subtotal < zone.minOrderTiyn) {
-        throw new BadRequestException(`Минимальная сумма заказа с доставкой — ${Math.round(zone.minOrderTiyn / 100)} ₸`);
+    if (deliveryBy === 'OWN') {
+      let zone = null;
+      if (store.zones?.length) {
+        const lat = dto.address?.lat;
+        const lng = dto.address?.lng;
+        if (lat == null || lng == null) throw new BadRequestException('Укажите точку доставки на карте');
+        zone = findZone(store.zones, [lng, lat]);
+        if (!zone) throw new BadRequestException('Магазин не доставляет по этому адресу — выберите курьера или самовывоз');
       }
-      deliveryFeeTiyn = deliveryFee(zone, subtotal);
+      const terms = effectiveTerms(store, zone);
+      if (subtotal < terms.minOrderTiyn) {
+        throw new BadRequestException(`Минимальная сумма заказа с доставкой магазина — ${Math.round(terms.minOrderTiyn / 100)} ₸`);
+      }
+      deliveryFeeTiyn = deliveryFee(terms, subtotal);
     }
 
     // Email НЕ привязываем здесь: спаривание требует подтверждения владения (см. auth/email/*).

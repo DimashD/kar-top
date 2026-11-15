@@ -324,6 +324,39 @@ describe('Зоны доставки', () => {
   });
 });
 
+describe('Условия доставки магазина (мин. заказ, бесплатно от) — в настройках магазина', () => {
+  const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
+  const storeWith = (terms: { ownMinOrderTiyn?: number; ownFreeFromTiyn?: number | null }, zones: any[] = []) => makePrisma({
+    store: { findFirst: jest.fn().mockResolvedValue({ id: 'store1', pickupEnabled: true, pickupLeadMinutes: 60, hours: ALLDAY, deliveryMode: 'OWN', deliveryEnabled: true,
+      ownMinOrderTiyn: 0, ownFreeFromTiyn: null, ...terms, zones }) },
+  });
+  const base = { storeSlug: 's', phone: '+77011234567', payMethod: 'CASH', fulfillment: 'DELIVERY', items: [{ storeProductId: 'sp-pcs', qty: 1 }] };
+  const inZone = { line: 'x', lat: 43.26, lng: 76.95 };
+
+  it('без зон: минимальная сумма магазина действует → 400', async () => {
+    const svc = new OrderingService(storeWith({ ownMinOrderTiyn: 100_000_000 }) as any);
+    await expect(svc.create({ ...base, address: { line: 'x' } } as any)).rejects.toThrow(/Минимальная сумма/);
+  });
+  it('без зон и без минимума: заказ проходит, доставка 0', async () => {
+    const r = await new OrderingService(storeWith({}) as any).create({ ...base, address: { line: 'x' } } as any);
+    expect(r.deliveryFeeTiyn).toBe(0);
+  });
+  it('минимум магазина выше минимума зоны → действует минимум магазина', async () => {
+    const svc = new OrderingService(storeWith({ ownMinOrderTiyn: 100_000_000 }, [{ polygon: square, feeTiyn: 50000, minOrderTiyn: 0, freeFromTiyn: null }]) as any);
+    await expect(svc.create({ ...base, address: inZone } as any)).rejects.toThrow(/Минимальная сумма/);
+  });
+  it('«бесплатно от» магазина делает доставку в зоне бесплатной (у зоны порог не задан)', async () => {
+    const r = await new OrderingService(storeWith({ ownFreeFromTiyn: 1 }, [{ polygon: square, feeTiyn: 50000, minOrderTiyn: 0, freeFromTiyn: null }]) as any)
+      .create({ ...base, address: inZone } as any);
+    expect(r.deliveryFeeTiyn).toBe(0);
+  });
+  it('порог зоны важнее порога магазина', async () => {
+    const r = await new OrderingService(storeWith({ ownFreeFromTiyn: 1 }, [{ polygon: square, feeTiyn: 50000, minOrderTiyn: 0, freeFromTiyn: 100_000_000 }]) as any)
+      .create({ ...base, address: inZone } as any);
+    expect(r.deliveryFeeTiyn).toBe(50000);
+  });
+});
+
 describe('Два вида доставки: магазин и курьерская служба', () => {
   const square = { type: 'Polygon', kind: 'polygon', coordinates: [[[76.94, 43.25], [76.96, 43.25], [76.96, 43.27], [76.94, 43.27], [76.94, 43.25]]] };
   const storeWith = (deliveryMode: string) => makePrisma({

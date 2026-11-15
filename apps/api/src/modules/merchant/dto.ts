@@ -33,6 +33,9 @@ export class StoreSettingsDto {
   @IsOptional() @IsInt() @Min(0) @Max(1440) ownDeliveryMinutes?: number;
   // Часы работы: 7 дней, { open, close } или null — выходной (проверяется в сервисе, common/hours).
   @IsOptional() @IsArray() hours?: unknown[];
+  // Своя доставка магазина: минимальная сумма заказа и «бесплатно от» (тиыны; null — бесплатной доставки нет).
+  @IsOptional() @IsInt() @Min(0) @Max(100_000_000) ownMinOrderTiyn?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(100_000_000) ownFreeFromTiyn?: number | null;
 }
 
 export class ZoneDto {
