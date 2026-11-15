@@ -76,12 +76,17 @@ export function initialsFor(name: string): string {
 /** Мягкий фон плашки по группе каталога. */
 export function tintFor(group: string): string {
   const g = group.toLowerCase();
+  if (/орех/.test(g)) return '#F4ECDD'; // раньше «фрукт»: «Орехи и сухофрукты»
   if (/фрукт/.test(g)) return '#FCEDE6';
   if (/овощ/.test(g)) return '#E9F2EB';
   if (/салат/.test(g)) return '#EEF3E2';
-  if (/орех/.test(g)) return '#F4ECDD';
   if (/молоч|яйц/.test(g)) return '#FBF4E2';
   if (/мяс|рыб/.test(g)) return '#F9E6E4';
   if (/мёд/.test(g)) return '#FBF0D9';
+  if (/хлеб|выпеч/.test(g)) return '#F7EEDF';
+  if (/бакале/.test(g)) return '#F4EEDF';
+  if (/чай|кофе|напит/.test(g)) return '#EFE7E1';
+  if (/заморож/.test(g)) return '#E6F0F7';
+  if (/для дома/.test(g)) return '#ECEEF6';
   return '#F4F2F0';
 }

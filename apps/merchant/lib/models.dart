@@ -195,10 +195,10 @@ class CatalogItem {
   final String id;
   final String name;
   final String unit;
-  /// Названия по языкам из общего каталога: { ru, kk, en }.
+  /// Названия по языкам из общего каталога: { ru, kk, en } (+ tg, uz у категорий).
   final Map<String, dynamic> names;
   final String categoryId;
-  /// Название категории по языкам: { ru, kk, en }.
+  /// Название категории по языкам: { ru, kk, en, tg, uz }.
   final Map<String, dynamic> categoryNames;
   final int categorySort;
   /// Крупная группа каталога («Фрукты и ягоды»…): родитель категории. Пусто — без группы.
