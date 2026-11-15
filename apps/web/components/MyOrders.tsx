@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import AppOnly, { useInApp } from './AppOnly';
+import AppOnly from './AppOnly';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CLIENT_API } from '../lib/api';
 import { tenge } from '../lib/format';
@@ -35,8 +35,8 @@ function tone(s: string): { fg: string; bg: string } {
 }
 
 /**
- * «Мои заказы». В приложении — фильтр по статусам (Все / В работе / Получены / Отменены, со счётчиками),
- * заказы «Нужен ваш ответ» — первыми. В браузере статусов нет (они только в приложении) — простой список по дате.
+ * «Мои заказы»: фильтр Все / В работе / Получены / Отменены (со счётчиками), заказы «Нужен ваш ответ» — первыми.
+ * Фильтр есть и в браузере; цветная плашка статуса у заказа и этапы на странице заказа — только в приложении.
  */
 export default function MyOrders() {
   const t = useT();
@@ -54,7 +54,6 @@ export default function MyOrders() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const inApp = useInApp();
   const counts = useMemo(() => {
     const list = orders ?? [];
     return (['all', 'active', 'received', 'cancelled'] as Filter[]).map((f) => [f, list.filter((o) => inFilter(f, o.status)).length] as const);
@@ -63,10 +62,10 @@ export default function MyOrders() {
   const [filter, setFilter] = useState<Filter | null>(null);
   const current: Filter = filter ?? ((counts.find(([f]) => f === 'active')?.[1] ?? 0) > 0 ? 'active' : 'all');
   const shown = useMemo(() => (orders ?? [])
-    .filter((o) => !inApp || inFilter(current, o.status))
+    .filter((o) => inFilter(current, o.status))
     // «Нужен ваш ответ» — всегда сверху; дальше новые выше.
-    .sort((a, b) => (inApp ? Number(b.status === 'AWAITING_CUSTOMER') - Number(a.status === 'AWAITING_CUSTOMER') : 0)
-      || +new Date(b.createdAt) - +new Date(a.createdAt)), [orders, inApp, current]);
+    .sort((a, b) => (Number(b.status === 'AWAITING_CUSTOMER') - Number(a.status === 'AWAITING_CUSTOMER'))
+      || +new Date(b.createdAt) - +new Date(a.createdAt)), [orders, current]);
   const label: Record<Filter, string> = { all: t.filterAll, active: t.filterActive, received: t.filterReceived, cancelled: t.filterCancelled };
   const card = (o: MyOrder) => {
     const c = tone(o.status);
@@ -115,7 +114,6 @@ export default function MyOrders() {
           </div>
         ) : (
           <>
-            {inApp ? (
               <div role="tablist" aria-label={t.myOrders} style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -20px', padding: '0 20px 2px', flex: 'none' }}>
                 {counts.filter(([f, n]) => f === 'all' || n > 0).map(([f, n]) => (
                   <button key={f} role="tab" aria-selected={current === f} onClick={() => setFilter(f)}
@@ -125,7 +123,6 @@ export default function MyOrders() {
                   </button>
                 ))}
               </div>
-            ) : null}
             {shown.length ? shown.map(card) : <p className="muted" style={{ textAlign: 'center', margin: '24px 0' }}>{t.noOrdersInFilter}</p>}
           </>
         )}
