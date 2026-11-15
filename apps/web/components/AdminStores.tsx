@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AdminStore, StoreStatus, listStores, createStore, storeAction, uploadStorePhoto, UnauthorizedError } from '../lib/admin';
+import { AdminStore, StoreStatus, listStores, createStore, storeAction, setStoreListed, uploadStorePhoto, UnauthorizedError } from '../lib/admin';
 import { CLIENT_API } from '../lib/api';
 import { useAdmin } from './AdminShell';
 import { isValidKzPhone, kzPhoneE164, formatKzPhone } from '../lib/phone';
@@ -71,6 +71,13 @@ export default function AdminStores() {
   async function act(id: string, action: 'approve' | 'suspend' | 'block') {
     setSavingId(id); setErr(null);
     try { await storeAction(id, action); await load(filter); }
+    catch (e) { if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message); }
+    finally { setSavingId(null); }
+  }
+
+  async function listing(id: string, listed: boolean) {
+    setSavingId(id); setErr(null);
+    try { await setStoreListed(id, listed); await load(filter); }
     catch (e) { if (e instanceof UnauthorizedError) signOut(); else setErr((e as Error).message); }
     finally { setSavingId(null); }
   }
@@ -152,12 +159,31 @@ export default function AdminStores() {
                       {s.productCount} товаров · {s.orderCount} заказов · с {fmtDate(s.createdAt)}
                     </div>
                   </div>
-                  <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, whiteSpace: 'nowrap' }}>{m.label}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                    <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, whiteSpace: 'nowrap' }}>{m.label}</span>
+                    {/* Видимость: по ссылке (по умолчанию) или для всех (платная опция). */}
+                    <span style={{ padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                      color: s.listed ? 'var(--leaf)' : 'var(--ink-60)', background: s.listed ? 'var(--leaf-50)' : '#F4F2F0' }}>{s.listed ? '👁 Для всех' : '🔗 Только по ссылке'}</span>
+                  </div>
                 </div>
+                {s.listingRequestedAt ? (
+                  <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: '#FFF4D6', color: '#7A5200', fontSize: 14, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <b>Просит показывать магазин всем</b> · заявка от {fmtDate(s.listingRequestedAt)} · платная опция
+                    <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                      <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => listing(s.id, true)} style={{ padding: '6px 12px', fontSize: 13 }}>Показывать всем</button>
+                      <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => listing(s.id, false)} style={{ padding: '6px 12px', fontSize: 13 }}>Отклонить</button>
+                    </span>
+                  </div>
+                ) : null}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                   {s.status !== 'ACTIVE' ? <button className="btn btn-primary" disabled={savingId === s.id} onClick={() => act(s.id, 'approve')} style={{ padding: '6px 12px', fontSize: 13 }}>Активировать</button> : null}
                   {s.status !== 'SUSPENDED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'suspend')} style={{ padding: '6px 12px', fontSize: 13 }}>Приостановить</button> : null}
                   {s.status !== 'BLOCKED' ? <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => act(s.id, 'block')} style={{ padding: '6px 12px', fontSize: 13, color: 'var(--sale)' }}>Заблокировать</button> : null}
+                  {!s.listingRequestedAt ? (
+                    <button className="btn btn-ghost" disabled={savingId === s.id} onClick={() => listing(s.id, !s.listed)} style={{ padding: '6px 12px', fontSize: 13 }}>
+                      {s.listed ? 'Убрать из общего списка' : 'Показывать всем'}
+                    </button>
+                  ) : null}
                   <label className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 13, cursor: 'pointer' }}>
                     {savingId === s.id ? 'Загрузка…' : s.photoVersion ? 'Заменить фото' : 'Загрузить фото'}
                     <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) photo(s.id, f); }} />

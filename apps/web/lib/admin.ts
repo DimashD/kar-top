@@ -116,6 +116,8 @@ export interface AdminStore {
   createdAt: string; productCount: number; orderCount: number;
   photoVersion: number | null;
   owner: { phone: string; name: string | null } | null;
+  /** «Показывать всем покупателям» (платная опция); listingRequestedAt — магазин просит включить. */
+  listed?: boolean; listingRequestedAt?: string | null;
 }
 
 export function listStores(status?: string): Promise<AdminStore[]> {
@@ -124,6 +126,9 @@ export function listStores(status?: string): Promise<AdminStore[]> {
 }
 export function createStore(input: { name: string; ownerPhone: string; city?: string; address?: string; kaspiPhone?: string }) {
   return adminFetch('/admin/stores', { method: 'POST', body: JSON.stringify(input) });
+}
+export function setStoreListed(id: string, listed: boolean) {
+  return adminFetch(`/admin/stores/${id}/listing`, { method: 'POST', body: JSON.stringify({ listed }) });
 }
 export function storeAction(id: string, action: 'approve' | 'suspend' | 'block') {
   return adminFetch(`/admin/stores/${id}/${action}`, { method: 'POST' });

@@ -31,11 +31,12 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, listed: true, listingRequestedAt: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
-    const { photoAt, hours, ...rest } = s;
-    return { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null };
+    const { photoAt, hours, listingRequestedAt, ...rest } = s;
+    // listingRequested — заявка «показывать всем» ждёт решения платформы.
+    return { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, listingRequested: !!listingRequestedAt && !s.listed };
   }
 
   /** Фото магазина: JPEG/PNG/WebP в base64, до 2 МБ. null — убрать фото. Только OWNER/MANAGER. */
@@ -64,6 +65,15 @@ export class MerchantService {
       const delivery = dto.deliveryEnabled ?? cur?.deliveryEnabled;
       if (!pickup && !delivery) throw new BadRequestException('Оставьте включённым хотя бы один способ: доставку или самовывоз');
     }
+    // «Показывать всем»: включить сам магазин не может — это заявка, решение за платформой (платная опция).
+    // Выключить — сразу. Заявка повторно не сбрасывает время первой заявки.
+    let listing: { listed?: boolean; listingRequestedAt?: Date | null } = {};
+    if (dto.listed === true) {
+      const cur = await this.prisma.store.findUnique({ where: { id: storeId }, select: { listed: true, listingRequestedAt: true } });
+      if (!cur?.listed && !cur?.listingRequestedAt) listing = { listingRequestedAt: new Date() };
+    } else if (dto.listed === false) {
+      listing = { listed: false, listingRequestedAt: null };
+    }
     let hours: WeekHours | undefined;
     if (dto.hours !== undefined) {
       try { hours = parseHours(dto.hours); } catch (e) { throw new BadRequestException((e as Error).message); }
@@ -71,6 +81,7 @@ export class MerchantService {
     await this.prisma.store.update({
       where: { id: storeId },
       data: {
+        ...listing,
         ...(hours ? { hours } : {}),
         ...(dto.pickupEnabled != null ? { pickupEnabled: dto.pickupEnabled } : {}),
         ...(dto.deliveryEnabled != null ? { deliveryEnabled: dto.deliveryEnabled } : {}),

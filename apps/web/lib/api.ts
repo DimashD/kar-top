@@ -117,10 +117,11 @@ export interface StoreCard {
   ownZone?: { feeTiyn: number; minOrderTiyn: number; freeFromTiyn: number | null } | null;
 }
 
-/** SSR: активные магазины для главной. */
-export async function fetchStores(): Promise<StoreCard[]> {
+/** SSR: магазины для главной — «для всех» и те, что покупатель уже открывал (visited — из cookie). */
+export async function fetchStores(visited: string[] = []): Promise<StoreCard[]> {
   try {
-    const r = await fetch(`${SERVER_API}/shops`, { next: { revalidate: 60 } });
+    const q = visited.length ? `?visited=${visited.map(encodeURIComponent).join(',')}` : '';
+    const r = await fetch(`${SERVER_API}/shops${q}`, visited.length ? { cache: 'no-store' } : { next: { revalidate: 60 } });
     return r.ok ? ((await r.json()) as StoreCard[]) : [];
   } catch {
     return [];

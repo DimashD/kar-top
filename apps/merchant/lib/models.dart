@@ -26,6 +26,9 @@ class StoreSettings {
   /// Своя доставка: минимальный заказ и «бесплатно от» (тиыны; null — бесплатной нет).
   int ownMinOrderTiyn;
   int? ownFreeFromTiyn;
+  /// Видимость: listed — магазин показан всем; listingRequested — заявка «показывать всем» ждёт решения.
+  bool listed;
+  bool listingRequested;
   String deliveryMode;
   /// Версия фото магазина (null — фото нет).
   int? photoVersion;
@@ -39,6 +42,8 @@ class StoreSettings {
     required this.ownDeliveryMinutes,
     this.ownMinOrderTiyn = 0,
     this.ownFreeFromTiyn,
+    this.listed = false,
+    this.listingRequested = false,
     required this.deliveryMode,
     this.photoVersion,
     this.hours = const [],
@@ -51,6 +56,8 @@ class StoreSettings {
         ownDeliveryMinutes: (j['ownDeliveryMinutes'] as num?)?.toInt() ?? 60,
         ownMinOrderTiyn: (j['ownMinOrderTiyn'] as num?)?.toInt() ?? 0,
         ownFreeFromTiyn: (j['ownFreeFromTiyn'] as num?)?.toInt(),
+        listed: j['listed'] as bool? ?? false,
+        listingRequested: j['listingRequested'] as bool? ?? false,
         deliveryMode: j['deliveryMode'] as String? ?? 'OWN',
         photoVersion: (j['photoVersion'] as num?)?.toInt(),
         hours: ((j['hours'] as List?) ?? const [])

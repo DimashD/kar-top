@@ -1,9 +1,13 @@
 import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { StorePhotoDto } from '../merchant/dto';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 import { StoreStatus } from '@prisma/client';
 import { AdminStoresService } from './admin-stores.service';
 import { AdminGuard } from '../../common/auth/admin.guard';
+
+class ListingDto {
+  @IsBoolean() listed!: boolean;
+}
 
 class ProvisionStoreDto {
   @IsString() @MinLength(2) name!: string;
@@ -34,6 +38,10 @@ export class AdminStoresController {
   /** Фото магазина — показывается вверху витрины. */
   @Put(':id/photo')
   setPhoto(@Param('id') id: string, @Body() dto: StorePhotoDto) { return this.stores.setPhoto(id, dto.data, dto.type); }
+
+  // «Показывать всем покупателям» (по заявке магазина; платная опция).
+  @Post(':id/listing')
+  setListed(@Param('id') id: string, @Body() dto: ListingDto) { return this.stores.setListed(id, dto.listed); }
 
   @Post(':id/approve')
   approve(@Param('id') id: string) { return this.stores.approve(id); }

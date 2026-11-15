@@ -435,6 +435,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const SizedBox(height: 10),
+        // Видимость: по умолчанию — только по ссылке; «показывать всем» — платная опция по заявке.
+        Card(
+          child: SwitchListTile(
+            value: st.listed || st.listingRequested,
+            activeThumbColor: AppColors.leaf,
+            secondary: Icon(st.listed ? Icons.public : Icons.link, color: AppColors.carrot),
+            title: Text(s.showToEveryone, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(st.listed ? s.visibilityOn : st.listingRequested ? s.visibilityPending : s.visibilityOff),
+            onChanged: (on) async {
+              if (!on) { await _save({'listed': false}); return; }
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(s.listingConfirmTitle),
+                  content: Text(s.listingConfirmText),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+                    ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.sendRequest)),
+                  ],
+                ),
+              );
+              if (ok == true) await _save({'listed': true});
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
         // Своя доставка магазина
         Card(
           child: Column(

@@ -36,6 +36,8 @@ export class StoreSettingsDto {
   // Своя доставка магазина: минимальная сумма заказа и «бесплатно от» (тиыны; null — бесплатной доставки нет).
   @IsOptional() @IsInt() @Min(0) @Max(100_000_000) ownMinOrderTiyn?: number;
   @IsOptional() @IsInt() @Min(0) @Max(100_000_000) ownFreeFromTiyn?: number | null;
+  // «Показывать всем покупателям»: true — подать заявку (включает сотрудник платформы, платная опция), false — выключить.
+  @IsOptional() @IsBoolean() listed?: boolean;
 }
 
 export class ZoneDto {

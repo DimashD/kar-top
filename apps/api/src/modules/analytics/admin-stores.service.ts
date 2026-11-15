@@ -65,7 +65,7 @@ export class AdminStoresService {
       take: limit,
       select: {
         id: true, slug: true, name: true, status: true, phone: true,
-        address: true, deliveryMode: true, createdAt: true, photoAt: true,
+        address: true, deliveryMode: true, createdAt: true, photoAt: true, listed: true, listingRequestedAt: true,
         _count: { select: { products: true, orders: true } },
         members: { where: { role: 'OWNER' }, select: { user: { select: { phone: true, name: true } } } },
       },
@@ -76,7 +76,15 @@ export class AdminStoresService {
       productCount: s._count.products, orderCount: s._count.orders,
       photoVersion: s.photoAt ? s.photoAt.getTime() : null,
       owner: s.members[0]?.user ?? null,
+      // Видимость: listed — «для всех»; listingRequestedAt — магазин просит показывать всем (ждёт решения).
+      listed: s.listed, listingRequestedAt: s.listed ? null : s.listingRequestedAt,
     }));
+  }
+
+  /** «Показывать всем»: включить/выключить (решение по заявке магазина). Заявка при этом закрывается. */
+  async setListed(id: string, listed: boolean) {
+    const s = await this.prisma.store.update({ where: { id }, data: { listed, listingRequestedAt: null }, select: { id: true, listed: true } });
+    return s;
   }
 
   /** Фото магазина из админки (сотрудник платформы загружает за магазин). data null — убрать. */
