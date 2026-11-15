@@ -6,7 +6,7 @@ import { piiVisibleToMerchant, canTransition } from './order-state';
 import { weightRange } from './weight-tolerance';
 import { allowedPayMethods } from './payment-rules';
 import { deliveryFee, effectiveTerms, findZone } from '../../common/zones';
-import { hoursOf, isOpenAt } from '../../common/hours';
+import { hoursOf, isOpenAt, preorderEarliest } from '../../common/hours';
 
 @Injectable()
 export class OrderingService {
@@ -28,7 +28,7 @@ export class OrderingService {
   async create(dto: CreateOrderDto) {
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, status: 'ACTIVE' },
-      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true },
+      select: { id: true, pickupEnabled: true, pickupLeadMinutes: true, deliveryMode: true, deliveryEnabled: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, zones: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, preorderEnabled: true, preorderCutoff: true },
     });
     if (!store) throw new NotFoundException('Магазин не найден');
 
@@ -51,6 +51,14 @@ export class OrderingService {
     const leadMin = (fulfillment === 'PICKUP' ? store.pickupLeadMinutes
       : deliveryBy === 'SERVICE' ? store.courierHandoverMinutes : store.ownDeliveryMinutes) ?? 60;
     let pickupAt: Date | null = null;
+    // Предзаказ: время получения обязательно и не раньше ближайшего дня доставки (до cutoff — завтра, после — через день).
+    if (store.preorderEnabled) {
+      if (!dto.pickupAt) throw new BadRequestException('Магазин принимает заказы заранее — выберите день и время получения');
+      const earliest = preorderEarliest(hoursOf(store.hours), store.preorderCutoff, new Date());
+      if (new Date(dto.pickupAt).getTime() < earliest.getTime() - 60_000) {
+        throw new BadRequestException(`Магазин собирает заказы заранее: заказы до ${store.preorderCutoff} — на следующий день. Выберите время не раньше ближайшего дня доставки`);
+      }
+    }
     if (dto.pickupAt) {
       pickupAt = new Date(dto.pickupAt);
       if (isNaN(pickupAt.getTime())) throw new BadRequestException('Некорректное время');

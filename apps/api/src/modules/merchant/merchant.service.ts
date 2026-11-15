@@ -32,7 +32,7 @@ export class MerchantService {
     await this.access.assertMember(storeId, userId);
     const s = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, listed: true, listingRequestedAt: true, listedFreeUntil: true, listedPaidUntil: true, listingPriceTiyn: true },
+      select: { id: true, name: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, courierHandoverMinutes: true, ownDeliveryMinutes: true, slug: true, photoAt: true, hours: true, ownMinOrderTiyn: true, ownFreeFromTiyn: true, listed: true, listingRequestedAt: true, listedFreeUntil: true, listedPaidUntil: true, listingPriceTiyn: true, preorderEnabled: true, preorderCutoff: true },
     });
     if (!s) throw new NotFoundException('Магазин не найден');
     const { photoAt, hours, listed, listingRequestedAt, listedFreeUntil, listedPaidUntil, listingPriceTiyn, ...rest } = s;
@@ -93,6 +93,8 @@ export class MerchantService {
         ...(dto.courierHandoverMinutes != null ? { courierHandoverMinutes: dto.courierHandoverMinutes } : {}),
         ...(dto.ownDeliveryMinutes != null ? { ownDeliveryMinutes: dto.ownDeliveryMinutes } : {}),
         ...(dto.ownMinOrderTiyn != null ? { ownMinOrderTiyn: dto.ownMinOrderTiyn } : {}),
+        ...(dto.preorderEnabled != null ? { preorderEnabled: dto.preorderEnabled } : {}),
+        ...(dto.preorderCutoff != null ? { preorderCutoff: dto.preorderCutoff } : {}),
         // null — убрать «бесплатно от»; поле не передано — не трогать.
         ...(dto.ownFreeFromTiyn !== undefined ? { ownFreeFromTiyn: dto.ownFreeFromTiyn } : {}),
       },

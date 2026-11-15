@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AddProductDto {
@@ -38,6 +38,9 @@ export class StoreSettingsDto {
   @IsOptional() @IsInt() @Min(0) @Max(100_000_000) ownFreeFromTiyn?: number | null;
   // «Показывать всем покупателям»: true — подать заявку (включает сотрудник платформы, платная опция), false — выключить.
   @IsOptional() @IsBoolean() listed?: boolean;
+  // Предзаказ: принимаем заказы заранее; заказы до preorderCutoff — на следующий рабочий день.
+  @IsOptional() @IsBoolean() preorderEnabled?: boolean;
+  @IsOptional() @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Время приёма — ЧЧ:ММ' }) preorderCutoff?: string;
 }
 
 export class ZoneDto {
