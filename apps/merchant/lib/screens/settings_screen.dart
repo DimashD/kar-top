@@ -472,6 +472,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const SizedBox(height: 10),
+        // Предзаказ: «заказывайте сегодня до вечера — привезём завтра».
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile(
+                value: st.preorderEnabled,
+                activeThumbColor: AppColors.leaf,
+                secondary: const Icon(Icons.event_available_outlined, color: AppColors.carrot),
+                title: Text(s.preorderTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(s.preorderSubtitle(st.preorderCutoff)),
+                onChanged: (v) => _save({'preorderEnabled': v}),
+              ),
+              if (st.preorderEnabled) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.schedule, color: AppColors.carrot),
+                  title: Text(s.preorderCutoffLabel),
+                  trailing: Text(st.preorderCutoff, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  onTap: () async {
+                    final parts = st.preorderCutoff.split(':');
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay(hour: int.tryParse(parts[0]) ?? 20, minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0),
+                      builder: (ctx, child) => MediaQuery(data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true), child: child!),
+                    );
+                    if (picked != null) {
+                      await _save({'preorderCutoff': '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}'});
+                    }
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
         // Своя доставка магазина
         Card(
           child: Column(
