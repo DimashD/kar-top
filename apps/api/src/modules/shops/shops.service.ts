@@ -2,6 +2,7 @@ import { hoursOf } from '../../common/hours';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
+import { REVIEW_STORE_SLUG } from '../identity/review-account.service';
 import { findZone } from '../../common/zones';
 
 @Injectable()
@@ -15,7 +16,8 @@ export class ShopsService {
    */
   async list(point?: LngLat) {
     const stores = await this.prisma.store.findMany({
-      where: { status: 'ACTIVE' },
+      // Демо-магазин для проверки Google Play покупателям не показываем (открыть можно только по ссылке).
+      where: { status: 'ACTIVE', slug: { not: REVIEW_STORE_SLUG } },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
