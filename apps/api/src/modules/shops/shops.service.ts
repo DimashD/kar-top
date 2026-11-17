@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LngLat, haversineMeters } from '../../common/geo';
 import { effectiveTerms, findZone, ZoneRow } from '../../common/zones';
 import { visibleWhere } from './listing';
+import { REVIEW_STORE_SLUG } from '../identity/review-account.service';
 
 @Injectable()
 export class ShopsService {
@@ -17,7 +18,8 @@ export class ShopsService {
   async list(point?: LngLat, visited: string[] = []) {
     // В общем списке — магазины «для всех» (с идущим бесплатным/оплаченным периодом) плюс те, что покупатель открывал (visited).
     const stores = await this.prisma.store.findMany({
-      where: { status: 'ACTIVE', OR: [visibleWhere(), ...(visited.length ? [{ slug: { in: visited } }] : [])] },
+      // Демо-магазин для проверки Google Play покупателям не показываем.
+      where: { status: 'ACTIVE', slug: { not: REVIEW_STORE_SLUG }, OR: [visibleWhere(), ...(visited.length ? [{ slug: { in: visited } }] : [])] },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
