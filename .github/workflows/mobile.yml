@@ -40,7 +40,21 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: 3.50.0, cache: true }
       - run: flutter pub get
-      # Без key.properties сборка подписывается debug-ключом — для тестового .apk это нормально.
+      # Постоянный ключ подписи: иначе каждая сборка подписана новым debug-ключом и не ставится поверх прошлой.
+      - name: Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > android/kartop.jks
+          cat > android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=$(pwd)/android/kartop.jks
+          EOF
       - run: >-
           flutter build apk --release --flavor staging
           --build-number=${{ github.run_number }}

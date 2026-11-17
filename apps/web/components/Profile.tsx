@@ -6,6 +6,7 @@ import { formatKzPhone } from '../lib/phone';
 import { LangSwitcher, useT } from './LangProvider';
 import { AuthSheet, logout, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
+import AccountNav from './AccountNav';
 import BottomNav from './BottomNav';
 import FeedbackButton from './FeedbackButton';
 import Icon from './Icon';
@@ -26,6 +27,9 @@ export default function Profile() {
   const row: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', color: 'var(--ink)', textDecoration: 'none', borderTop: '1px solid var(--line)', fontWeight: 600, background: 'transparent', border: 'none', width: '100%', font: 'inherit', textAlign: 'left', cursor: 'pointer' };
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
+      <div className="acct">
+      <AccountNav />
+      <div className="acct-main">
       <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <span className="m-only"><StoreMenu /></span>
@@ -68,6 +72,8 @@ export default function Profile() {
       ) : null}
       {/* Та же форма «Написать в Kartop»: строка «Написать в поддержку» открывает её событием. */}
       <FeedbackButton hideLink />
+      </div>
+      </div>
       <BottomNav />
     </main>
   );

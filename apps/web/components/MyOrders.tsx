@@ -9,6 +9,7 @@ import { formatKzPhone } from '../lib/phone';
 import { useLang, useT } from './LangProvider';
 import { accessToken, AuthSheet, readSession } from './StoreView';
 import StoreMenu from './StoreMenu';
+import AccountNav from './AccountNav';
 import BottomNav from './BottomNav';
 import { IconTile } from './Icon';
 
@@ -69,6 +70,9 @@ export default function MyOrders() {
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
+      <div className="acct">
+      <AccountNav />
+      <div className="acct-main">
       <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 5 }}>
         <div className="container dk-wide" style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <span className="m-only"><StoreMenu /></span>
@@ -101,6 +105,8 @@ export default function MyOrders() {
         <AuthSheet initialPhone={readSession()?.phone ? formatKzPhone(readSession()!.phone) : '+7'}
           hint={t.loginToSeeOrders} confirmLabel={t.loginBtn} onClose={() => setAuth(false)} onDone={() => { setAuth(false); load(); }} />
       ) : null}
+      </div>
+      </div>
       <BottomNav />
     </main>
   );

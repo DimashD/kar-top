@@ -46,12 +46,18 @@ export class ShopsService {
   async catalog(slug: string) {
     const store = await this.prisma.store.findFirst({
       where: { slug, status: 'ACTIVE' },
-      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true },
+      select: { id: true, slug: true, name: true, rating: true, reviewCount: true, address: true, deliveryMode: true, deliveryEnabled: true, pickupEnabled: true, pickupLeadMinutes: true, geom: true, photoAt: true, phone: true, ownDeliveryMinutes: true, courierHandoverMinutes: true, hours: true, legalName: true, legalBin: true,
+        zones: { select: { polygon: true, feeTiyn: true, minOrderTiyn: true, freeFromTiyn: true } } },
     });
     if (!store) throw new NotFoundException('Магазин не найден или не активен');
-    const { geom, photoAt, hours, ...rest } = store;
+    const { geom, photoAt, hours, zones, ...rest } = store;
     // Фото: /api/shops/<slug>/photo?v=<версия> — версия сбрасывает кэш после замены.
-    const storeInfo = { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null };
+    // Зоны своей доставки — покупатель видит их на карте; кольцо [lng, lat] → [[lat, lng]] для карты.
+    const deliveryZones = zones.map((z) => ({
+      ring: (((z.polygon as any)?.coordinates?.[0] ?? []) as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number]),
+      feeTiyn: z.feeTiyn, minOrderTiyn: z.minOrderTiyn, freeFromTiyn: z.freeFromTiyn,
+    })).filter((z) => z.ring.length > 2).sort((a, b) => a.feeTiyn - b.feeTiyn);
+    const storeInfo = { ...rest, hours: hoursOf(hours), photoVersion: photoAt ? photoAt.getTime() : null, deliveryZones };
     const coords = (geom as any)?.coordinates as [number, number] | undefined; // GeoJSON: [lng, lat]
     const location = coords ? { lat: coords[1], lng: coords[0] } : null;
 

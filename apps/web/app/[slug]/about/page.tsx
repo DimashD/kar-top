@@ -6,8 +6,16 @@ import StoreMenu from '../../../components/StoreMenu';
 import FeedbackButton from '../../../components/FeedbackButton';
 import BottomNav from '../../../components/BottomNav';
 import Icon from '../../../components/Icon';
+import ZoneMap from '../../../components/ZoneMap';
+import { tenge } from '../../../lib/format';
 
 export const dynamic = 'force-dynamic';
+
+/** 2ГИС: поиск по адресу магазина, карта — у его точки (так 2ГИС сам находит дом и строит маршрут). */
+function route2gis(address: string | null, loc: { lat: number; lng: number } | null | undefined) {
+  if (!address && loc) return `https://2gis.kz/geo/${loc.lng},${loc.lat}`;
+  return `https://2gis.kz/search/${encodeURIComponent(address!)}${loc ? `?m=${loc.lng},${loc.lat}/17` : ''}`;
+}
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const c = await fetchCatalog(params.slug);
@@ -38,13 +46,14 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)' }}>
       <header className="page-head" style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
-        <div className="container" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
+        <div className="container dk-wide" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, maxWidth: 760 }}>
           <span className="m-only"><StoreMenu /></span>
           <Link href={`/${s.slug}`} style={{ flex: 1, fontWeight: 800, color: 'var(--ink)', textDecoration: 'none' }}>← {t.toProducts}</Link>
         </div>
       </header>
-      {photo ? <img src={photo} alt={s.name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 220, objectFit: 'cover', margin: '0 auto' }} /> : null}
-      <div className="container" style={{ padding: '16px 20px 40px', maxWidth: 760 }}>
+      {photo ? <img className="about-photo" src={photo} alt={s.name} style={{ display: 'block', width: '100%', maxWidth: 760, height: 220, objectFit: 'cover', margin: '0 auto' }} /> : null}
+      <div className="container dk-wide" style={{ padding: '16px 20px 40px', maxWidth: 760 }}>
+        <div className="two-col"><div className="col">
         <h1 style={{ fontSize: 26, margin: 0 }}>{s.name}</h1>
         <div className="muted" style={{ marginTop: 4 }}>★ {s.rating.toFixed(1)}{s.reviewCount ? ` · ${t.reviewsShort(s.reviewCount)}` : ''}</div>
         {s.address ? <div style={{ marginTop: 8, fontSize: 15, display: 'flex', gap: 6, alignItems: 'flex-start' }}><Icon name="pin" size={18} style={{ marginTop: 1, color: 'var(--carrot)' }} />{s.address}</div> : null}
@@ -52,9 +61,10 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           {phone ? <a className="btn btn-ghost" style={btn} href={`tel:+${phone}`}><Icon name="phone" size={22} />{t.storeCall}</a> : null}
           {phone ? <a className="btn btn-ghost" style={btn} href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer"><Icon name="chat" size={22} />{t.storeWhatsapp}</a> : null}
-          {loc ? <a className="btn btn-ghost" style={btn} href={`https://2gis.kz/geo/${loc.lng},${loc.lat}`} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
+          {loc || s.address ? <a className="btn btn-ghost" style={btn} href={route2gis(s.address, loc)} target="_blank" rel="noreferrer"><Icon name="route" size={22} />{t.storeRoute}</a> : null}
         </div>
 
+        </div><div className="col">
         {s.hours?.length === 7 ? (
           <div className="card" style={card}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>{t.workHours}</div>
@@ -79,12 +89,28 @@ export default async function AboutStorePage({ params }: { params: { slug: strin
           </>) : null}
         </div>
 
+        {/* Зона своей доставки — на карте и с условиями, чтобы покупатель сразу видел, довезут ли до него. */}
+        {s.deliveryEnabled !== false && s.deliveryMode !== 'SERVICE' && s.deliveryZones?.length ? (
+          <div id="zone" className="card" style={card}>
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>{t.deliveryZone}</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 10 }}>{t.zoneLegend}</div>
+            <ZoneMap zones={s.deliveryZones} store={loc ?? null} />
+            {s.deliveryZones.map((z, i) => (
+              <div key={i} style={{ ...way, fontSize: 14 }}>
+                <Icon name="scooter" style={wayIc} />
+                <span>{s.deliveryZones!.length > 1 ? `${t.deliveryZone} ${i + 1}: ` : ''}{t.zoneFee(z.feeTiyn ? tenge(z.feeTiyn) : null, z.minOrderTiyn ? tenge(z.minOrderTiyn) : null, z.freeFromTiyn != null && z.feeTiyn ? tenge(z.freeFromTiyn) : null)}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         {s.legalName ? (
           <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
             {t.seller}: {s.legalName}{s.legalBin ? `, ${t.sellerBin} ${s.legalBin}` : ''}
           </div>
         ) : null}
 
+        </div></div>
         <p style={{ textAlign: 'center', marginTop: 20 }}><Link className="btn btn-primary" href={`/${s.slug}`}>{t.toProducts}</Link></p>
         <FeedbackButton storeSlug={s.slug} />
       </div>
