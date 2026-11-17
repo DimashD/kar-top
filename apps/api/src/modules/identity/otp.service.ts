@@ -143,8 +143,8 @@ export class OtpService {
       CODE_TTL_SEC,
     );
     if (fixed) {
-      // Тестовая среда: никуда не отправляем (не тратим SMS), код фиксированный.
-      this.log.log('OTP (staging): используется фиксированный тестовый код');
+      // Тестовая среда или номер для проверки Google Play: никуда не отправляем (не тратим SMS), код фиксированный.
+      this.log.log('OTP: используется фиксированный код (тестовая среда или номер проверки)');
       return 'test';
     }
 
@@ -181,12 +181,24 @@ export class OtpService {
    * На проде (APP_ENV=production или не задан) всегда null, даже если TEST_OTP_CODE задан по ошибке.
    */
   private testOtpCode(phone?: string): string | null {
+    const review = this.reviewOtpCode(phone);
+    if (review) return review;
     if (this.config.get<string>('APP_ENV') !== 'staging') return null;
     // OTP_REAL_PHONES — номера, которым и на тесте шлём настоящий код (проверка Telegram/SMS/WhatsApp).
     const real = (this.config.get<string>('OTP_REAL_PHONES') || '').split(',').map((p) => p.replace(/\D/g, '')).filter(Boolean);
     if (phone && real.includes(phone.replace(/\D/g, ''))) return null;
     const code = this.config.get<string>('TEST_OTP_CODE');
     return code && /^\d{6}$/.test(code) ? code : null;
+  }
+
+  /**
+   * Вход для проверяющих Google Play: один номер REVIEW_PHONE с постоянным кодом REVIEW_OTP_CODE (6 цифр).
+   * Работает в любой среде, но только для этого номера; без обеих переменных выключен.
+   */
+  private reviewOtpCode(phone?: string): string | null {
+    const reviewPhone = (this.config.get<string>('REVIEW_PHONE') || '').replace(/\D/g, '');
+    const code = this.config.get<string>('REVIEW_OTP_CODE') || '';
+    return phone && reviewPhone && phone.replace(/\D/g, '') === reviewPhone && /^\d{6}$/.test(code) ? code : null;
   }
 
   /** Подтверждённый (спаренный) email пользователя по телефону. Непроверенный email в User.email не попадает. */

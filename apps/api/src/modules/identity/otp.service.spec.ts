@@ -84,6 +84,16 @@ describe('OtpService тестовый OTP-код (только staging)', () => 
     await expect(svc.verify('+77011234567', '111111')).resolves.toBeNull();
   });
 
+  it('production: номер проверки Google Play входит по постоянному коду, остальные — как обычно', async () => {
+    const { svc, tg, sms } = makeEnv({ APP_ENV: 'production', REVIEW_PHONE: '+7 700 000 0777', REVIEW_OTP_CODE: '654321' });
+    await svc.request('+77000000777');
+    expect(tg.send).not.toHaveBeenCalled();
+    expect(sms.send).not.toHaveBeenCalled();
+    await expect(svc.verify('+77000000777', '654321')).resolves.toBe('77000000777');
+    await svc.request('+77011234567');
+    await expect(svc.verify('+77011234567', '654321')).resolves.toBeNull();
+  });
+
   it('staging: лимит запросов кода не применяется (SMS не тратятся)', async () => {
     const { svc } = makeEnv({ APP_ENV: 'staging', TEST_OTP_CODE: '111111' });
     for (let i = 0; i < 5; i++) await svc.request('+77011234567');

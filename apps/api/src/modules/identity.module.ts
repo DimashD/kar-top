@@ -13,11 +13,12 @@ import { TelegramChannel } from './identity/channels/telegram.channel';
 import { SmsChannel } from './identity/channels/sms.channel';
 import { WhatsappChannel } from './identity/channels/whatsapp.channel';
 import { EmailChannel } from './identity/channels/email.channel';
+import { ReviewAccountService } from './identity/review-account.service';
 
 @Module({
   imports: [JwtModule.register({})],
   controllers: [OtpController, EmailController, StaffAuthController, PasswordController, TelegramLoginController],
-  providers: [OtpService, AuthService, TokenService, TelegramLoginService, TelegramChannel, SmsChannel, WhatsappChannel, EmailChannel],
+  providers: [OtpService, AuthService, TokenService, TelegramLoginService, TelegramChannel, SmsChannel, WhatsappChannel, EmailChannel, ReviewAccountService],
   exports: [OtpService],
 })
 export class IdentityModule {}
