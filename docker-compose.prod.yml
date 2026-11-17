@@ -44,6 +44,9 @@ services:
       OTP_IP_PER_DAY: ${OTP_IP_PER_DAY:-}
       OTP_PAID_PER_HOUR: ${OTP_PAID_PER_HOUR:-}
       OTP_PAID_PER_DAY: ${OTP_PAID_PER_DAY:-}
+      # Вход для проверяющих Google Play: один номер с постоянным кодом и демо-магазин (docs/29).
+      REVIEW_PHONE: ${REVIEW_PHONE:-}
+      REVIEW_OTP_CODE: ${REVIEW_OTP_CODE:-}
       # Коды и уведомления (docs/30): SMS — SMSC.kz, WhatsApp — Meta Cloud API.
       SMSC_LOGIN: ${SMSC_LOGIN:-}
       SMSC_PASSWORD: ${SMSC_PASSWORD:-}
