@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { CLIENT_API, StoreCard } from '../lib/api';
 import { visitedSlugs } from '../lib/visited';
+import { inKartopApp } from '../lib/app-links';
 import { accessToken } from './StoreView';
 import { tenge } from '../lib/format';
 import { useT } from './LangProvider';
@@ -66,7 +67,8 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const local = visitedSlugs();
+      // Пока идёт закрытое тестирование в Google Play: в приложении показываем скрытый демо-магазин.
+      const local = [...visitedSlugs(), ...(inKartopApp() ? ['kartop-demo'] : [])];
       let server: string[] = [];
       const token = await accessToken().catch(() => null);
       if (token) {
