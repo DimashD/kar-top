@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { inKartopApp } from '../lib/app-links';
 import { useRouter } from 'next/navigation';
 import { dict, Dict, Lang, LANGS, LANG_COOKIE, LANG_LABELS } from '../lib/i18n';
 
@@ -8,6 +9,8 @@ const LangContext = createContext<Lang>('ru');
 
 /** Язык приходит с сервера (cookie / Accept-Language) — клиентские компоненты берут его отсюда. */
 export function LangProvider({ lang, children }: { lang: Lang; children: ReactNode }) {
+  // В приложении Kartop нижний отступ под системной полосой даёт само приложение — сайту второй не нужен.
+  useEffect(() => { if (inKartopApp()) document.documentElement.classList.add('in-kartop-app'); }, []);
   return <LangContext.Provider value={lang}>{children}</LangContext.Provider>;
 }
 

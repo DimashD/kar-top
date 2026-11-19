@@ -27,7 +27,7 @@ export default function BottomNav() {
   return (
     <>
       <div className="m-only" style={{ height: BOTTOM_NAV_H }} />
-      <nav className="m-only" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 15, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="m-only" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 15, background: 'var(--card)', borderTop: '1px solid var(--line)', paddingBottom: 'var(--sab)' }}>
         <div style={{ display: 'flex', maxWidth: 560, margin: '0 auto', height: BOTTOM_NAV_H }}>
           {tab('/', 'store', t.navStores, !path.startsWith('/orders') && !path.startsWith('/order/') && !path.startsWith('/notifications') && !path.startsWith('/profile'))}
           {tab('/orders', 'receipt', t.navOrders, path.startsWith('/orders') || path.startsWith('/order/'))}
