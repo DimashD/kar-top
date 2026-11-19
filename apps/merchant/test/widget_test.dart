@@ -19,10 +19,18 @@ Widget _app(Lang lang) => MultiProvider(
 
 void main() {
   testWidgets('экран входа отображается', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(_app(Lang()));
     expect(find.text('Kartop'), findsOneWidget);
     // Первый экран — вход по коду; ссылка на вход по паролю.
     expect(find.text(S.forCode('ru').signInWithPassword), findsOneWidget);
+  });
+
+  testWidgets('повторный вход на этом телефоне — сразу по паролю', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'loginPhone': '+7 701 111 59 99'});
+    await tester.pumpWidget(_app(Lang()));
+    await tester.pumpAndSettle();
+    expect(find.text(S.forCode('ru').signInWithCode), findsOneWidget);
   });
 
   testWidgets('переключение языка меняет тексты', (WidgetTester tester) async {

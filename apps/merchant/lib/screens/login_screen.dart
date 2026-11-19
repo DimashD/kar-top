@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n.dart';
 import '../phone.dart';
 import '../session.dart';
@@ -8,7 +9,7 @@ import '../widgets/kartop_logo.dart';
 import '../widgets/language_picker.dart';
 import 'partner_screen.dart';
 
-/// Вход магазина. Обычно — номер и пароль (без SMS). Первый вход или забыли пароль — по коду,
+/// Вход магазина. Первый вход на телефоне — по коду; дальше — номер и пароль (без SMS). Забыли пароль — по коду,
 /// после кода магазин придумывает пароль (при первом входе — обязательно).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,8 +25,24 @@ class _LoginScreenState extends State<LoginScreen> {
   final _code = TextEditingController();
   final _new1 = TextEditingController();
   final _new2 = TextEditingController();
-  // По умолчанию — вход по коду: так проще в первый раз (и для проверки Google Play); пароль — ссылкой ниже.
+  // Первый вход на этом телефоне — по коду (и для проверки Google Play); дальше — по паролю: SMS платные.
   _Step _step = _Step.phoneForCode;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      final phone = p.getString('loginPhone');
+      if (phone != null && mounted && _step == _Step.phoneForCode) {
+        setState(() { _phone.text = phone; _step = _Step.password; });
+      }
+    }).catchError((_) {});
+  }
+
+  /// Запоминаем номер: со следующего раза вход по паролю, номер уже введён.
+  Future<void> _rememberPhone() async =>
+      (await SharedPreferences.getInstance()).setString('loginPhone', _phone.text);
+
   bool _busy = false;
   bool _mustSetPassword = false;
   String? _error;
@@ -46,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginPassword() => _run(() async {
         final session = context.read<Session>();
         final (token, refresh) = await session.api.loginPassword(kzPhoneE164(_phone.text), _password.text);
+        await _rememberPhone();
         await session.setToken(token, refresh);
       });
 
@@ -72,12 +90,14 @@ class _LoginScreenState extends State<LoginScreen> {
     await _run(() async {
       final session = context.read<Session>();
       await session.api.setPassword(_new1.text);
+      await _rememberPhone();
       await session.setToken(_pending!.$1, _pending!.$2);
     });
   }
 
   Future<void> _skip() async {
     final session = context.read<Session>();
+    await _rememberPhone();
     await session.setToken(_pending!.$1, _pending!.$2);
   }
 
