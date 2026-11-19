@@ -532,7 +532,7 @@ export default function StoreView({ catalog, slug }: { catalog: Catalog; slug: s
 
       {count > 0 && !open && !desktop && (
         <button className="btn btn-primary" onClick={() => setOpen(true)}
-          style={{ position: 'fixed', left: 16, right: 16, bottom: `calc(${BOTTOM_NAV_H + 12}px + env(safe-area-inset-bottom))`, zIndex: 21, maxWidth: 'calc(var(--maxw) - 40px)', margin: '0 auto', height: 56, boxShadow: 'var(--shadow)', fontSize: 16 }}>
+          style={{ position: 'fixed', left: 16, right: 16, bottom: `calc(${BOTTOM_NAV_H + 12}px + var(--sab))`, zIndex: 21, maxWidth: 'calc(var(--maxw) - 40px)', margin: '0 auto', height: 56, boxShadow: 'var(--shadow)', fontSize: 16 }}>
           <span>{t.cartButton(count)}</span>
           <span style={{ marginLeft: 'auto' }}>{tenge(subtotal)}</span>
         </button>

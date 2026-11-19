@@ -155,7 +155,7 @@ export default function MapPicker({ initial, fallback, zones, onPick, onClose }:
         </svg>
         {!ready && !err ? <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="muted">…</div> : null}
       </div>
-      <div style={{ padding: '12px 16px calc(18px + env(safe-area-inset-bottom))', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '12px 16px calc(18px + var(--sab))', background: 'var(--card)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {err ? <div style={{ color: 'var(--sale)', fontSize: 13 }}>{err}</div> : null}
         {here ? (
           <div style={{ padding: '10px 12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
