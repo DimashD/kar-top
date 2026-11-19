@@ -290,12 +290,6 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
         ) : step === 'phone' ? (
           <>
             <div className="muted" style={{ fontSize: 15 }}>{hint ?? t.confirmPhoneHint}</div>
-            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer',
-              ...(nudge && !agree ? { padding: 10, borderRadius: 10, border: '2px solid var(--sale)', background: '#FBEAEA' } : {}) }}>
-              <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); if (e.target.checked) setNudge(false); }} style={{ width: 20, height: 20, marginTop: 1, accentColor: 'var(--carrot)', flex: 'none' }} />
-              <span>{t.agreePd[0]}<a href="/consent" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreePd[1]}</a>{t.agreePd[2]}
-                {nudge && !agree ? <span style={{ display: 'block', color: 'var(--sale)', fontWeight: 700, marginTop: 4 }}>{t.agreeNeeded}</span> : null}</span>
-            </label>
             {/* Быстрее всего — через бот Kartop в Telegram: номер подтверждает Telegram, код не нужен. */}
             <button className="btn btn-primary btn-block" disabled={busy} onClick={() => { if (!needAgree()) loginTelegram(); }} style={{ height: 54, fontSize: 16, background: '#229ED9', borderColor: '#229ED9' }}>
               <Icon name="send" size={20} />{t.loginTelegram}
@@ -306,9 +300,13 @@ export function AuthSheet({ initialPhone, onClose, onDone, hint, confirmLabel }:
             <button className="btn btn-ghost btn-block" disabled={!isValidKzPhone(phone) || busy} onClick={() => { if (!needAgree()) send('sms'); }} style={{ height: 50, fontSize: 16 }}>
               {busy ? t.sendingCode : <><Icon name="chat" size={19} />{t.codeSms}</>}
             </button>
-            <div className="muted" style={{ fontSize: 13 }}>
-              {t.acceptTerms[0]}<a href="/terms" target="_blank" style={{ color: 'inherit', textDecoration: 'underline' }}>{t.acceptTerms[1]}</a>{t.acceptTerms[2]}
-            </div>
+            {/* Согласие — одна отметка внизу (соглашение + ПДн), не предотмечена; без неё не входим. */}
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, cursor: 'pointer',
+              ...(nudge && !agree ? { padding: 10, borderRadius: 10, border: '2px solid var(--sale)', background: '#FBEAEA' } : {}) }}>
+              <input type="checkbox" checked={agree} onChange={(e) => { setAgree(e.target.checked); if (e.target.checked) setNudge(false); }} style={{ width: 20, height: 20, marginTop: 1, accentColor: 'var(--carrot)', flex: 'none' }} />
+              <span>{t.agreeAll[0]}<a href="/terms" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreeAll[1]}</a>{t.agreeAll[2]}<a href="/consent" target="_blank" style={{ color: 'var(--carrot-600)', fontWeight: 700 }}>{t.agreeAll[3]}</a>{t.agreeAll[4]}
+                {nudge && !agree ? <span style={{ display: 'block', color: 'var(--sale)', fontWeight: 700, marginTop: 4 }}>{t.agreeNeeded}</span> : null}</span>
+            </label>
           </>
         ) : (
           <>

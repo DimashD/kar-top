@@ -21,7 +21,7 @@ on:
       task:
         description: 'Операция'
         type: choice
-        options: [install-ssh-key, disable-password-login, firebase-staging-app, firebase-customer-app, apply-provider-keys, push-diagnostics, disk-cleanup]
+        options: [install-ssh-key, disable-password-login, firebase-staging-app, firebase-customer-app, apply-provider-keys, push-diagnostics, prod-otp-diagnostics, disk-cleanup]
 
 permissions:
   contents: read
@@ -287,6 +287,29 @@ jobs:
             $C exec -T staging-api node - < deploy/ops/push-diag.js
             echo "--- журнал api (пуши и коды входа) ---"
             $C logs --since 48h staging-api 2>&1 | grep -iE "fcm|push|не доставлено|telegram|smsc|otp|канал" | tail -40
+
+  # Прод: почему не доходят коды входа — только чтение. Ключи не печатаются, только «задан / нет».
+  prod-otp-diagnostics:
+    if: inputs.task == 'prod-otp-diagnostics'
+    runs-on: ubuntu-latest
+    steps:
+      - name: OTP diagnostics (prod) — только чтение
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/kar-top
+            echo "--- какие ключи кодов заданы (без значений) ---"
+            for k in SMSC_LOGIN SMSC_PASSWORD SMS_SENDER_NAME TELEGRAM_GATEWAY_TOKEN TELEGRAM_BOT_TOKEN WHATSAPP_TOKEN REVIEW_PHONE REVIEW_OTP_CODE OTP_PAID_PER_HOUR OTP_PAID_PER_DAY; do
+              v=$(grep -E "^$k=" .env.prod | head -1 | cut -d= -f2-)
+              [ -n "$v" ] && echo "$k: задан" || echo "$k: НЕТ"
+            done
+            echo "--- журнал api за 48 ч (коды входа) ---"
+            docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml logs --since 48h api 2>&1 \
+              | grep -iE "otp|smsc|telegram gateway|канал|бюджет|не доставил" | sed -E 's/\+?7[0-9]{9}([0-9])/+7*********\1/g' | tail -60
 
   disk-cleanup:
     if: inputs.task == 'disk-cleanup'

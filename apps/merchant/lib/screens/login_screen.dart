@@ -24,7 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _code = TextEditingController();
   final _new1 = TextEditingController();
   final _new2 = TextEditingController();
-  _Step _step = _Step.password;
+  // По умолчанию — вход по коду: так проще в первый раз (и для проверки Google Play); пароль — ссылкой ниже.
+  _Step _step = _Step.phoneForCode;
   bool _busy = false;
   bool _mustSetPassword = false;
   String? _error;

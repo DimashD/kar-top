@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { CLIENT_API, StoreCard } from '../lib/api';
+import { inKartopApp } from '../lib/app-links';
 import { tenge } from '../lib/format';
 import { useT } from './LangProvider';
 import Icon, { IconName } from './Icon';
@@ -60,9 +61,14 @@ export default function StoreList({ stores: initial }: { stores: StoreCard[] }) 
       .then((p) => { if (p.state === 'granted') locate(); }).catch(() => {});
   }, []);
   // Точка известна — сервер говорит, какие магазины довезут сами и на каких условиях.
+  // В приложении (закрытое тестирование Google Play) дополнительно показываем скрытый демо-магазин.
   useEffect(() => {
-    if (!me) return;
-    fetch(`${CLIENT_API}/shops?lat=${me.lat}&lng=${me.lng}`, { cache: 'no-store' })
+    const app = inKartopApp();
+    if (!me && !app) return;
+    const qs = new URLSearchParams();
+    if (me) { qs.set('lat', String(me.lat)); qs.set('lng', String(me.lng)); }
+    if (app) qs.set('demo', '1');
+    fetch(`${CLIENT_API}/shops?${qs}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null)).then((list) => { if (Array.isArray(list)) setStores(list); }).catch(() => {});
   }, [me]);
 
