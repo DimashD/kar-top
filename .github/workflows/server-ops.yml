@@ -308,6 +308,8 @@ jobs:
               v=$(grep -E "^$k=" .env.prod | head -1 | cut -d= -f2-)
               [ -n "$v" ] && echo "$k: задан" || echo "$k: НЕТ"
             done
+            L=$(grep -E "^SMSC_LOGIN=" .env.prod | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+            [ -n "$L" ] && echo "SMSC_LOGIN (подсказка): ${L:0:2}…${L: -2} (${#L} символов)"
             echo "--- журнал api за 48 ч (коды входа) ---"
             docker compose -p kar-top --env-file .env.prod -f docker-compose.prod.yml logs --since 48h api 2>&1 \
               | grep -iE "otp|smsc|telegram gateway|канал|бюджет|не доставил" | sed -E 's/\+?7[0-9]{9}([0-9])/+7*********\1/g' | tail -60
