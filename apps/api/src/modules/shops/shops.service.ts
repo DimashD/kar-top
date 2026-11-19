@@ -18,8 +18,8 @@ export class ShopsService {
   async list(point?: LngLat, visited: string[] = []) {
     // В общем списке — магазины «для всех» (с идущим бесплатным/оплаченным периодом) плюс те, что покупатель открывал (visited).
     const stores = await this.prisma.store.findMany({
-      // Демо-магазин для проверки Google Play покупателям не показываем.
-      where: { status: 'ACTIVE', slug: { not: REVIEW_STORE_SLUG }, OR: [visibleWhere(), ...(visited.length ? [{ slug: { in: visited } }] : [])] },
+      // Демо-магазин для проверки Google Play в общем списке не показываем — только если его явно открывали (visited, приложение).
+      where: { status: 'ACTIVE', OR: [{ AND: [visibleWhere(), { slug: { not: REVIEW_STORE_SLUG } }] }, ...(visited.length ? [{ slug: { in: visited } }] : [])] },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
