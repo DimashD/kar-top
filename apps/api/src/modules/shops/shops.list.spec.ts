@@ -37,8 +37,13 @@ describe('Видимость магазинов: только «для всех�
     await new ShopsService({ store: { findMany } } as any).list();
     const where = findMany.mock.calls[0][0].where;
     expect(where.status).toBe('ACTIVE');
-    // Только «для всех» с идущим бесплатным или оплаченным периодом.
-    expect(where.OR).toEqual([{ listed: true, OR: [{ listedFreeUntil: { gt: expect.any(Date) } }, { listedPaidUntil: { gt: expect.any(Date) } }] }]);
+    // Только «для всех» с идущим бесплатным или оплаченным периодом; демо-магазин для проверки — не в общем списке.
+    expect(where.OR).toEqual([{ AND: [{ listed: true, OR: [{ listedFreeUntil: { gt: expect.any(Date) } }, { listedPaidUntil: { gt: expect.any(Date) } }] }, { slug: { not: 'kartop-demo' } }] }]);
+  });
+  it('демо-магазин виден, только если его явно запросили (visited — приложение)', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    await new ShopsService({ store: { findMany } } as any).list(undefined, ['kartop-demo']);
+    expect(findMany.mock.calls[0][0].where.OR[1]).toEqual({ slug: { in: ['kartop-demo'] } });
   });
   it('с visited: listed ИЛИ slug из посещённых', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
