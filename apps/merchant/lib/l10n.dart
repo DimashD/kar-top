@@ -514,7 +514,7 @@ class _Ru extends S {
   @override String get deliveryAndPickup => 'Доставка и самовывоз';
   @override String get storePhoto => 'Фото магазина';
   @override String get passwordLabel => "Пароль";
-  @override String get signInWithCode => "Войти по коду (первый вход или забыли пароль)";
+  @override String get signInWithCode => "Войти по коду";
   @override String get signInWithPassword => "Войти по паролю";
   @override String get createPassword => "Придумайте пароль";
   @override String get createPasswordHint => "Дальше будете входить по номеру и паролю — без SMS. Не короче 6 символов.";

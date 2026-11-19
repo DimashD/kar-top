@@ -8,9 +8,9 @@ export class ShopsController {
   constructor(private readonly shops: ShopsService) {}
 
   @Get()
-  list(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+  list(@Query('lat') lat?: string, @Query('lng') lng?: string, @Query('demo') demo?: string) {
     const la = Number(lat), ln = Number(lng);
-    return this.shops.list(lat && lng && Number.isFinite(la) && Number.isFinite(ln) ? [ln, la] : undefined);
+    return this.shops.list(lat && lng && Number.isFinite(la) && Number.isFinite(ln) ? [ln, la] : undefined, demo === '1');
   }
 
   @Get(':slug/catalog')

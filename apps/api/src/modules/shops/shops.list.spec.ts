@@ -30,3 +30,14 @@ describe('Список магазинов: виды доставки', () => {
     expect(r[2]).toMatchObject({ ownDelivery: false, courierDelivery: false });
   });
 });
+
+describe('Демо-магазин для проверки Google Play', () => {
+  it('на сайте скрыт, приложению (demo=1) показывается', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const s = new ShopsService({ store: { findMany } } as any);
+    await s.list();
+    expect(findMany.mock.calls[0][0].where).toEqual({ status: 'ACTIVE', slug: { not: 'kartop-demo' } });
+    await s.list(undefined, true);
+    expect(findMany.mock.calls[1][0].where).toEqual({ status: 'ACTIVE' });
+  });
+});

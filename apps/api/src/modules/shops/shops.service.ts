@@ -14,10 +14,10 @@ export class ShopsService {
    * Виды получения: доставка магазина (по его зонам), курьерская служба (весь город, за счёт покупателя), самовывоз.
    * Если передана точка покупателя — ownHere: довезёт ли магазин сам сюда, и условия зоны (цена, «бесплатно от», минимум).
    */
-  async list(point?: LngLat) {
+  async list(point?: LngLat, includeDemo = false) {
     const stores = await this.prisma.store.findMany({
-      // Демо-магазин для проверки Google Play покупателям не показываем (открыть можно только по ссылке).
-      where: { status: 'ACTIVE', slug: { not: REVIEW_STORE_SLUG } },
+      // Демо-магазин для проверки Google Play на сайте не показываем; приложение (закрытое тестирование) просит его явно.
+      where: { status: 'ACTIVE', ...(includeDemo ? {} : { slug: { not: REVIEW_STORE_SLUG } }) },
       orderBy: [{ rating: 'desc' }, { createdAt: 'asc' }],
       take: 500,
       select: { slug: true, name: true, address: true, rating: true, reviewCount: true, photoAt: true, geom: true, deliveryEnabled: true, pickupEnabled: true, hours: true,
