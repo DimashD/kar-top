@@ -25,11 +25,7 @@ class Session extends ChangeNotifier {
       await p.setString('token', access);
       await p.setString('refresh', refresh);
     };
-    api.onAuthLost = () async {
-      // Закрываем открытые экраны (заказ, магазин) — корень покажет экран входа.
-      navigatorKey.currentState?.popUntil((r) => r.isFirst);
-      await logout();
-    };
+    api.onAuthLost = logout;
     loading = false;
     notifyListeners();
   }
@@ -54,6 +50,9 @@ class Session extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Закрываем открытые экраны (магазин, заказ, настройки) — корень покажет экран входа.
+    // Без этого «Выйти» в настройках магазина ничего не меняло на экране: магазин открыт поверх корня.
+    navigatorKey.currentState?.popUntil((r) => r.isFirst);
     _token = null;
     api.token = null;
     api.refreshToken = null;
