@@ -31,6 +31,10 @@ on:
         description: 'Только снять скриншоты (без загрузки в Play)'
         type: boolean
         default: false
+      build_only:
+        description: 'Загрузить только сборку (тексты, иконки и скриншоты страницы в Play не трогать)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # служебная ветка store-screenshots (просмотр снимков без скачивания артефакта)
@@ -146,7 +150,21 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.3' }
       - run: gem install fastlane -N --quiet
+      - name: Upload build only to Google Play
+        if: ${{ inputs.build_only }}
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          fastlane run upload_to_play_store \
+            package_name:kz.kartop.kartop_merchant \
+            json_key_data:"$PLAY_JSON" \
+            track:${{ inputs.track }} \
+            release_status:${{ inputs.release_status }} \
+            aab:build/app/outputs/bundle/prodRelease/app-prod-release.aab \
+            skip_upload_metadata:true skip_upload_images:true skip_upload_screenshots:true skip_upload_changelogs:true \
+            skip_upload_apk:true
       - name: Upload to Google Play
+        if: ${{ !inputs.build_only }}
         env:
           PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
