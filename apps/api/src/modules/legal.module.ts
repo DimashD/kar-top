@@ -10,5 +10,6 @@ import { IdentityModule } from './identity.module';
   imports: [IdentityModule],
   controllers: [LegalController, AdminLegalController],
   providers: [LegalService, StoreAccess, AdminGuard],
+  exports: [LegalService],
 })
 export class LegalModule {}

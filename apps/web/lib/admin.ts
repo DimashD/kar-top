@@ -1,6 +1,7 @@
 // Клиентский помощник для веб-админки платформы.
 // Токен сотрудника хранится в localStorage; эндпоинты под AdminGuard требуют Bearer.
 import { CLIENT_API } from './api';
+import type { Tariff, TariffsOverview } from './tariffs';
 
 const TOKEN_KEY = 'kartop_admin_token';
 
@@ -348,3 +349,49 @@ export interface StoreOffer {
 export const storeOffer = (id: string) => adminFetch<StoreOffer>(`/admin/stores/${id}/legal`);
 export const markStoreOffer = (id: string, b: { method: 'ECP' | 'PAPER'; legalName?: string; bin?: string; note?: string }) =>
   adminFetch<StoreOffer>(`/admin/stores/${id}/legal/mark`, { method: 'POST', body: JSON.stringify(b) });
+
+// --- Заявки магазинов (самостоятельная регистрация) ---
+export type ApplicationState = 'DRAFT' | 'SUBMITTED' | 'REJECTED' | 'APPROVED';
+export type StoreDocKind = 'SIGN_PHOTO' | 'INSIDE_PHOTO' | 'CONTRACT' | 'ID_CARD';
+export interface StoreApplication {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  address: string | null;
+  geom: { lat: number; lng: number } | null;
+  legalName: string | null;
+  legalBin: string | null;
+  binKind: 'IIN' | 'BIN' | null;
+  createdAt: string;
+  applicationSubmittedAt: string | null;
+  applicationRejectReason: string | null;
+  owner: { phone: string; name: string | null } | null;
+  productCount: number;
+  checks: { data: boolean; bin: boolean; photos: boolean; contract: boolean };
+  ready: boolean;
+  state: ApplicationState;
+  documents?: { id: string; kind: StoreDocKind; createdAt: string }[];
+  documentCount?: number;
+}
+export const listApplications = () => adminFetch<StoreApplication[]>('/admin/applications');
+export const getApplication = (id: string) => adminFetch<StoreApplication>(`/admin/applications/${id}`);
+export const approveApplication = (id: string) => adminFetch<StoreApplication>(`/admin/applications/${id}/approve`, { method: 'POST' });
+export const rejectApplication = (id: string, reason: string) =>
+  adminFetch<StoreApplication>(`/admin/applications/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+
+/** Фото документа заявки (нужен токен — грузим blob и отдаём object URL). */
+export async function applicationDocUrl(storeId: string, docId: string): Promise<string> {
+  const token = getAdminToken();
+  const r = await fetch(`${CLIENT_API}/admin/applications/${storeId}/documents/${docId}`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {}, cache: 'no-store',
+  });
+  if (!r.ok) throw new Error('Не удалось загрузить фото');
+  return URL.createObjectURL(await r.blob());
+}
+
+// --- Тарифы ---
+export const listTariffs = () => adminFetch<TariffsOverview>('/admin/tariffs');
+export const publishTariff = (t: { title: string; body: string; monthlyFeeTiyn: number | null; commissionBp: number | null; effectiveFrom: string }) =>
+  adminFetch<Tariff>('/admin/tariffs', { method: 'POST', body: JSON.stringify(t) });
+export const cancelTariff = (id: string) => adminFetch<{ ok: true }>(`/admin/tariffs/${id}`, { method: 'DELETE' });

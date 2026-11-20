@@ -210,4 +210,36 @@ class Api {
     final r = await _get('/merchant/stores/$storeId/catalog-requests') as List;
     return r.cast<Map<String, dynamic>>();
   }
+
+  // --- Заявка магазина (самостоятельная регистрация) ---
+  Future<StoreSummary> createApplication(Map<String, dynamic> body) async =>
+      StoreSummary.fromJson(await _post('/merchant/applications', body) as Map<String, dynamic>);
+
+  Future<StoreApplication> application(String storeId) async =>
+      StoreApplication.fromJson(await _get('/merchant/stores/$storeId/application') as Map<String, dynamic>);
+
+  Future<StoreApplication> updateApplication(String storeId, Map<String, dynamic> body) async =>
+      StoreApplication.fromJson(await _put('/merchant/stores/$storeId/application', body) as Map<String, dynamic>);
+
+  Future<StoreApplication> submitApplication(String storeId) async =>
+      StoreApplication.fromJson(await _post('/merchant/stores/$storeId/application/submit') as Map<String, dynamic>);
+
+  /// Ссылка на договор для печати с уже вписанными данными магазина (действует 2 дня).
+  Future<String> contractLink(String storeId) async =>
+      ((await _post('/merchant/stores/$storeId/application/contract-link')) as Map<String, dynamic>)['url'] as String;
+
+  /// Фото для заявки: kind — SIGN_PHOTO | INSIDE_PHOTO | CONTRACT | ID_CARD; JPEG base64.
+  Future<void> addStoreDocument(String storeId, String kind, String base64Jpeg) =>
+      _post('/merchant/stores/$storeId/documents', {'kind': kind, 'data': base64Jpeg, 'type': 'image/jpeg'});
+
+  Future<void> deleteStoreDocument(String storeId, String docId) => _delete('/merchant/stores/$storeId/documents/$docId');
+
+  String storeDocumentUrl(String storeId, String docId) => '$kApiBase/merchant/stores/$storeId/documents/$docId';
+  Map<String, String> get authHeaders => {if (token != null) 'authorization': 'Bearer $token'};
+
+  // --- Тарифы (публично) ---
+  Future<List<Tariff>> upcomingTariffs() async {
+    final r = await _get('/tariffs') as Map<String, dynamic>;
+    return (r['upcoming'] as List? ?? []).map((e) => Tariff.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }
