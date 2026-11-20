@@ -37,6 +37,22 @@ export const TEMPLATES: Record<string, NotifTemplate> = {
     body: (p) => `Заказ ${no(p)}${p.comment ? `: «${String(p.comment).slice(0, 80)}»` : ''}`,
   },
 
+  'store.application_approved': {
+    audience: 'merchant',
+    title: () => '✅ Заявка одобрена',
+    body: (p) => `Магазин «${p.name ?? ''}» подключён к Kartop — можно принимать заказы`,
+  },
+  'store.application_rejected': {
+    audience: 'merchant',
+    title: () => '✏️ Заявку нужно исправить',
+    body: (p) => String(p.reason ?? '').slice(0, 120),
+  },
+  'tariff.published': {
+    audience: 'merchant',
+    title: () => '📄 Меняются тарифы Kartop',
+    body: (p) => `Новые условия с ${p.effectiveFrom ? new Date(p.effectiveFrom).toLocaleDateString('ru-RU', { timeZone: 'Asia/Almaty' }) : ''} — посмотрите на kar-top.kz/tariffs`,
+  },
+
   // --- Покупателю: путь заказа ---
   'order.placed_customer': {
     audience: 'customer',

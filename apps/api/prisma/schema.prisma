@@ -251,6 +251,45 @@ model Store {
   legalName String?
   legalBin  String?
   legalAcceptances LegalAcceptance[]
+  // Самостоятельная регистрация (заявка из приложения магазина): отправлена на проверку / причина отказа / результат проверки ИИН/БИН.
+  selfRegistered         Boolean   @default(false)
+  applicationSubmittedAt DateTime?
+  applicationRejectReason String?
+  binCheck               Json?
+  documents              StoreDocument[]
+}
+
+// Фото для заявки магазина: вывеска, магазин внутри, подписанный договор (страницы), удостоверение владельца.
+enum StoreDocKind {
+  SIGN_PHOTO
+  INSIDE_PHOTO
+  CONTRACT
+  ID_CARD
+}
+
+model StoreDocument {
+  id        String       @id @default(uuid())
+  storeId   String
+  kind      StoreDocKind
+  data      Bytes
+  type      String
+  createdAt DateTime     @default(now())
+  store     Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@index([storeId, kind])
+}
+
+// Тарифы для магазинов — отдельно от оферты: оферта ссылается на kar-top.kz/tariffs.
+// Новая версия вступает в силу с effectiveFrom (не раньше чем через 30 дней после публикации, кроме самой первой).
+model Tariff {
+  id                String   @id @default(uuid())
+  title             String
+  body              String
+  monthlyFeeTiyn    Int?
+  commissionBp      Int?     // процент с заказа в сотых долях процента: 250 = 2,5%
+  effectiveFrom     DateTime
+  createdAt         DateTime @default(now())
+  createdById       String?
+  @@index([effectiveFrom])
 }
 
 model StoreMember {
