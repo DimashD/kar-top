@@ -147,7 +147,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Image.network(api.storeDocumentUrl(_storeId!, id), headers: api.authHeaders, width: 92, height: 92, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(width: 92, height: 92, color: AppColors.line, child: const Icon(Icons.image_outlined))),
+                  errorBuilder: (_, _, _) => Container(width: 92, height: 92, color: AppColors.line, child: const Icon(Icons.image_outlined))),
             ),
             if (editable)
               Positioned(
@@ -201,7 +201,7 @@ class _ApplicationScreenState extends State<ApplicationScreen> {
     final a = _a;
     final editable = a == null || a.editable;
     final created = _storeId != null && a != null;
-    final field = (TextEditingController c, String label, {String? hint, TextInputType? kb, int? max}) => Padding(
+    Widget field(TextEditingController c, String label, {String? hint, TextInputType? kb, int? max}) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: TextField(
             controller: c, enabled: editable && !_busy, keyboardType: kb, maxLength: max,
