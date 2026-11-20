@@ -12,6 +12,8 @@ export const LEGAL = {
 
 // Дата редакции — та же, что LEGAL_VERSIONS в API (apps/api/src/modules/legal/legal-versions.ts).
 export const LEGAL_EDITION = '13.11.2026';
+// Оферта для магазинов: тарифы вынесены на страницу /tariffs (API: LEGAL_VERSIONS.MERCHANT_OFFER).
+export const OFFER_EDITION = '20.11.2026';
 
 /** Строка реквизитов для подвала и шапок документов. */
 export const requisites = () => `${LEGAL.operator}, ${LEGAL.bin}, ${LEGAL.address}`;
