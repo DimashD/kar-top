@@ -1,0 +1,7 @@
+{
+  "name": "kartop-e2e",
+  "private": true,
+  "description": "Автотесты сайта в настоящем браузере (Playwright) против тестовой среды",
+  "scripts": { "test": "playwright test" },
+  "devDependencies": { "@playwright/test": "1.49.1" }
+}
