@@ -5,7 +5,7 @@ import { LEGAL_EDITION, requisites } from '../lib/legal';
 export type LegalSection = { h: string; p: (string | string[])[] };
 
 /** Страница юридического документа: заголовок, редакция, разделы (строка = абзац, массив = список). */
-export default function LegalDoc({ title, lead, sections }: { title: string; lead?: string; sections: LegalSection[] }) {
+export default function LegalDoc({ title, lead, sections, edition }: { title: string; lead?: string; sections: LegalSection[]; edition?: string }) {
   return (
     <main>
       <header className="m-only" style={{ borderBottom: '1px solid var(--line)', background: 'var(--card)' }}>
@@ -15,7 +15,7 @@ export default function LegalDoc({ title, lead, sections }: { title: string; lea
       </header>
       <article className="container" style={{ maxWidth: 760, padding: '32px 20px', lineHeight: 1.65 }}>
         <h1 style={{ fontSize: 28, marginBottom: 8 }}>{title}</h1>
-        <p className="muted" style={{ marginBottom: 20 }}>Редакция от {LEGAL_EDITION}</p>
+        <p className="muted" style={{ marginBottom: 20 }}>Редакция от {edition ?? LEGAL_EDITION}</p>
         {lead ? <p style={{ marginBottom: 20 }}>{lead}</p> : null}
         {sections.map((s) => (
           <section key={s.h} style={{ marginBottom: 20 }}>
@@ -26,7 +26,7 @@ export default function LegalDoc({ title, lead, sections }: { title: string; lea
           </section>
         ))}
         <p className="muted" style={{ fontSize: 14, marginTop: 24 }}>
-          Документы: <Link href="/terms">соглашение</Link> · <Link href="/privacy">конфиденциальность</Link> · <Link href="/consent">согласие на ПДн</Link> · <Link href="/merchant-offer">оферта для магазинов</Link>
+          Документы: <Link href="/terms">соглашение</Link> · <Link href="/privacy">конфиденциальность</Link> · <Link href="/consent">согласие на ПДн</Link> · <Link href="/merchant-offer">оферта для магазинов</Link> · <Link href="/tariffs">тарифы</Link>
         </p>
         <p style={{ marginTop: 20 }}><Link className="btn btn-ghost" href="/">На главную</Link></p>
       </article>

@@ -22,7 +22,7 @@ export class MerchantService {
   async myStores(userId: string) {
     const members = await this.prisma.storeMember.findMany({
       where: { userId },
-      select: { role: true, store: { select: { id: true, slug: true, name: true, status: true } } },
+      select: { role: true, store: { select: { id: true, slug: true, name: true, status: true, selfRegistered: true } } },
     });
     return members.map((m) => ({ ...m.store, myRole: m.role }));
   }

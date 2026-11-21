@@ -7,13 +7,72 @@ class StoreSummary {
   final String name;
   final String status;
   final String myRole;
-  StoreSummary({required this.id, required this.slug, required this.name, required this.status, required this.myRole});
+  /// Магазин подключился по заявке из приложения (а не заведён платформой).
+  final bool selfRegistered;
+  StoreSummary({required this.id, required this.slug, required this.name, required this.status, required this.myRole, this.selfRegistered = false});
   factory StoreSummary.fromJson(Map<String, dynamic> j) => StoreSummary(
         id: j['id'] as String,
         slug: j['slug'] as String? ?? '',
         name: j['name'] as String? ?? '',
         status: j['status'] as String? ?? '',
         myRole: j['myRole'] as String? ?? '',
+        selfRegistered: j['selfRegistered'] == true,
+      );
+
+  /// Заявка ещё не одобрена: вместо договора по SMS — экран заявки.
+  bool get isApplication => selfRegistered && status == 'PENDING';
+}
+
+/// Заявка магазина: данные, фото, договор, проверки и состояние (DRAFT | SUBMITTED | REJECTED | APPROVED).
+class StoreApplication {
+  final String id;
+  final String name;
+  final String slug;
+  final String status;
+  final String? address;
+  final String? legalName;
+  final String? legalBin;
+  final String? rejectReason;
+  final String state;
+  final int productCount;
+  final Map<String, bool> checks;
+  final bool ready;
+  final List<({String id, String kind})> documents;
+  StoreApplication({
+    required this.id, required this.name, required this.slug, required this.status, this.address, this.legalName, this.legalBin,
+    this.rejectReason, required this.state, required this.productCount, required this.checks, required this.ready, required this.documents,
+  });
+  factory StoreApplication.fromJson(Map<String, dynamic> j) => StoreApplication(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? '',
+        slug: j['slug'] as String? ?? '',
+        status: j['status'] as String? ?? '',
+        address: j['address'] as String?,
+        legalName: j['legalName'] as String?,
+        legalBin: j['legalBin'] as String?,
+        rejectReason: j['applicationRejectReason'] as String?,
+        state: j['state'] as String? ?? 'DRAFT',
+        productCount: (j['productCount'] as num?)?.toInt() ?? 0,
+        checks: ((j['checks'] as Map?) ?? {}).map((k, v) => MapEntry(k as String, v == true)),
+        ready: j['ready'] == true,
+        documents: ((j['documents'] as List?) ?? [])
+            .map((e) => (id: (e as Map)['id'] as String, kind: e['kind'] as String))
+            .toList(),
+      );
+  bool get editable => state == 'DRAFT' || state == 'REJECTED';
+  List<String> docs(String kind) => [for (final d in documents) if (d.kind == kind) d.id];
+}
+
+/// Тариф для магазинов (страница kar-top.kz/tariffs).
+class Tariff {
+  final String id;
+  final String title;
+  final DateTime effectiveFrom;
+  Tariff({required this.id, required this.title, required this.effectiveFrom});
+  factory Tariff.fromJson(Map<String, dynamic> j) => Tariff(
+        id: j['id'] as String,
+        title: j['title'] as String? ?? '',
+        effectiveFrom: DateTime.parse(j['effectiveFrom'] as String).toLocal(),
       );
 }
 

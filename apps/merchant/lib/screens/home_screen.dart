@@ -10,6 +10,7 @@ import 'catalog_screen.dart';
 import 'settings_screen.dart';
 import 'notifications_screen.dart';
 import 'contract_screen.dart';
+import '../widgets/tariff_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,7 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final me = await session.api.legalStatus();
       final consent = me['terms'] != true || me['pdConsent'] != true;
       var offer = false;
-      if (store != null && store.myRole == 'OWNER') {
+      // Заявка ещё не одобрена: договор подписывается на бумаге в заявке, SMS-оферту не спрашиваем.
+      if (store != null && store.myRole == 'OWNER' && !store.isApplication) {
         offer = (await session.api.offerStatus(store.id))['accepted'] != true;
       }
       if (mounted) setState(() { _needConsent = consent; _needOffer = offer; });
@@ -77,7 +79,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ? ConsentView(onDone: () => setState(() => _needConsent = false))
           : _needOffer && store != null
               ? ContractView(storeId: store.id, onDone: () => setState(() => _needOffer = false))
-              : IndexedStack(index: _tab, children: pages),
+              : Column(children: [
+                  if (store?.myRole == 'OWNER') const TariffBanner(),
+                  Expanded(child: IndexedStack(index: _tab, children: pages)),
+                ]),
       bottomNavigationBar: _needConsent || _needOffer ? null : NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
