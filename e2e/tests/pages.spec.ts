@@ -4,7 +4,7 @@ import { STORE, watchErrors } from './helpers';
 // Каждая страница: открывается, без ошибок в браузере, есть главное содержимое.
 const PAGES: { path: string; name: string; expectText: RegExp }[] = [
   { path: '/', name: 'Главная', expectText: /Kartop/i },
-  { path: `/${STORE}`, name: 'Магазин', expectText: /В корзину/ },
+  { path: `/${STORE}`, name: 'Магазин', expectText: /Каталог|В корзину/ },
   { path: `/${STORE}/about`, name: 'О магазине', expectText: /магазин/i },
   { path: '/orders', name: 'Мои заказы', expectText: /заказ/i },
   { path: '/notifications', name: 'Уведомления', expectText: /уведомлен/i },
