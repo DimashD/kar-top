@@ -1,5 +1,7 @@
 /* Kartop — тёплый «Морковь». Токены дизайна (см. docs/05-ux-audit.md, макеты /design). */
 :root {
+  /* Отступ под системной полосой. В приложении Kartop его уже даёт само приложение (SafeArea) — там 0, иначе двойной пробел. */
+  --sab: env(safe-area-inset-bottom);
   color-scheme: only light;
   --carrot: #D9531E;        /* основной акцент */
   --carrot-600: #BE4414;
@@ -194,3 +196,5 @@ h1, h2, h3 { letter-spacing: -0.02em; margin: 0; font-weight: 800; }
   .two-col > .col { min-width: 0; }
   .about-photo { max-width: 1040px !important; height: 300px !important; border-radius: 0 0 24px 24px; }
 }
+
+:root.in-kartop-app { --sab: 0px; }
